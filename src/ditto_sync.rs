@@ -9,7 +9,7 @@ pub async fn insert_flat_cot_event(ditto: &Ditto, event: &FlatCotEvent) -> Resul
     // For execute_v2, we need to include the parameters in the query string
     let query = format!(
         "INSERT INTO cot_events DOCUMENTS {}",
-        event_json.to_string()
+        event_json
     );
     store.execute_v2(&query).await.map_err(|e| CotError::Format(e.to_string()))?;
 

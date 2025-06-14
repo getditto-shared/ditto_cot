@@ -28,7 +28,7 @@ pub struct CotEvent {
 }
 
 /// Represents a geographic point with elevation and accuracy information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Point {
     pub lat: f64,
     pub lon: f64,
@@ -253,13 +253,10 @@ impl CotEvent {
                         println!("Found emergency element");
                         for attr in e.attributes() {
                             let attr = attr?;
-                            match attr.key.0 {
-                                b"type" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    println!("Parsed emergency type: {}", value);
-                                    event.detail.insert("emergency".to_string(), value);
-                                },
-                                _ => {}
+                            if attr.key.0 == b"type" {
+                                let value = attr.unescape_value()?.to_string();
+                                println!("Parsed emergency type: {}", value);
+                                event.detail.insert("emergency".to_string(), value);
                             }
                         }
                     }
@@ -340,13 +337,10 @@ impl CotEvent {
                         println!("Found emergency element (Empty)");
                         for attr in e.attributes() {
                             let attr = attr?;
-                            match attr.key.0 {
-                                b"type" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    println!("Parsed emergency type (Empty): {}", value);
-                                    event.detail.insert("emergency".to_string(), value);
-                                },
-                                _ => {}
+                            if attr.key.0 == b"type" {
+                                let value = attr.unescape_value()?.to_string();
+                                println!("Parsed emergency type (Empty): {}", value);
+                                event.detail.insert("emergency".to_string(), value);
                             }
                         }
                     } else {
@@ -492,19 +486,22 @@ impl CotEvent {
         emergency_type: &str,
         message: &str,
     ) -> Self {
-        let mut event = Self::default();
-        event.uid = uid.to_string();
-        event.event_type = "b-a-o-can".to_string();  // Emergency
-        event.point.lat = lat;
-        event.point.lon = lon;
-        
         let mut detail = HashMap::new();
         detail.insert("emergency".to_string(), emergency_type.to_string());
         detail.insert("contact.callsign".to_string(), callsign.to_string());
         detail.insert("remarks".to_string(), message.to_string());
         
-        event.detail = detail;
-        event
+        Self {
+            uid: uid.to_string(),
+            event_type: "b-a-o-can".to_string(),  // Emergency
+            point: Point {
+                lat,
+                lon,
+                ..Default::default()
+            },
+            detail,
+            ..Default::default()
+        }
     }
 }
 
