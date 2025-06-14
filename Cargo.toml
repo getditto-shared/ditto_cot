@@ -17,3 +17,15 @@ xml-rs = "0.8"
 pretty_assertions = "1.4"
 anyhow = "1.0"
 
+[build-dependencies]
+cargo-nextest = "0.9.95"
+
+[features]
+dev-tools = []
+
+[profile.ci]
+inherits = "release"
+codegen-units = 1  # Slower builds but faster code
+incremental = false  # Disable incremental compilation for CI
+lto = "thin"  # Thin LTO for better optimization
+
