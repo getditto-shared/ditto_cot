@@ -1,0 +1,20 @@
+# This is a configuration file for cargo-nextest.
+# See https://nexte.st/book/configuration.html for more information.
+
+[profile.default]
+# Show output for failing tests as soon as they fail
+failure-output = "immediate"
+# Show final output for tests that passed
+success-output = "final"
+# Run tests in parallel (default behavior)
+test-threads = "num-cpus"
+
+# Define a "ci" profile that's used in CI environments
+[profile.ci]
+# In CI, we want to see all output
+failure-output = "immediate-final"
+success-output = "immediate-final"
+# Retry failed tests to reduce flakiness
+retries = 2
+# Use a slower timeout in CI
+slow-timeout = { period = "60s", terminate-after = 3 }

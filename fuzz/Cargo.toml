@@ -1,0 +1,12 @@
+[package]
+name = "cotditto-fuzz"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.cotditto]
+path = ".."
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[workspace]
