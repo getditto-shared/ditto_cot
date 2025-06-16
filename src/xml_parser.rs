@@ -1,8 +1,8 @@
-use crate::model::FlatCotEvent;
 use crate::detail_parser::parse_detail_section;
 use crate::error::CotError;
-use quick_xml::Reader;
+use crate::model::FlatCotEvent;
 use quick_xml::events::Event;
+use quick_xml::Reader;
 
 pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
     let mut reader = Reader::from_str(xml);
@@ -51,7 +51,7 @@ pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
             Event::Start(ref e) if e.name().as_ref() == b"detail" => {
                 let mut detail_buf = Vec::new();
                 let mut depth = 1;
-                
+
                 // Read until we find the matching end tag
                 loop {
                     match reader.read_event_into(&mut detail_buf) {
@@ -67,7 +67,7 @@ pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
                     }
                     detail_buf.clear();
                 }
-                
+
                 // Get the inner XML as a string
                 let inner_xml = String::from_utf8_lossy(&detail_buf);
                 let (callsign, group_name, extras) = parse_detail_section(&inner_xml);

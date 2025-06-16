@@ -1,32 +1,26 @@
 //! Round-trip tests for CoT XML parsing and serialization
 
+use chrono::{TimeZone, Utc};
 use ditto_cot::cot_events::CotEvent;
 use ditto_cot::error::CotError;
-use chrono::{Utc, TimeZone};
 
 /// Tests round-trip conversion for a location update event
 #[test]
 fn test_location_update_roundtrip() -> Result<(), CotError> {
     // Create a location update
-    let mut event = CotEvent::new_location_update(
-        "USER-123",
-        "ALPHA-1",
-        "Cyan",
-        34.12345,
-        -118.12345,
-        150.0
-    );
-    
+    let mut event =
+        CotEvent::new_location_update("USER-123", "ALPHA-1", "Cyan", 34.12345, -118.12345, 150.0);
+
     // Set specific timestamps for testing
     let test_time = Utc.with_ymd_and_hms(2023, 1, 1, 12, 0, 0).unwrap();
     event.time = test_time;
     event.start = test_time;
     event.stale = test_time + chrono::Duration::minutes(5);
-    
+
     // Convert to XML and back
     let xml = event.to_xml()?;
     let parsed = CotEvent::from_xml(&xml)?;
-    
+
     // Verify fields match
     assert_eq!(event.uid, parsed.uid);
     assert_eq!(event.event_type, parsed.event_type);
@@ -38,7 +32,7 @@ fn test_location_update_roundtrip() -> Result<(), CotError> {
     assert_eq!(event.point.lon, parsed.point.lon);
     assert_eq!(event.point.hae, parsed.point.hae);
     assert_eq!(event.detail, parsed.detail);
-    
+
     Ok(())
 }
 
@@ -51,19 +45,22 @@ fn test_chat_message_roundtrip() -> Result<(), CotError> {
         "ALPHA-1",
         "Test message",
         "All Chat Rooms",
-        "All Chat Rooms"
+        "All Chat Rooms",
     );
-    
+
     // Convert to XML and back
     let xml = event.to_xml()?;
     let parsed = CotEvent::from_xml(&xml)?;
-    
+
     // Verify fields match
     assert_eq!(event.event_type, parsed.event_type);
     assert_eq!(event.detail.get("chat"), parsed.detail.get("chat"));
     assert_eq!(event.detail.get("chatroom"), parsed.detail.get("chatroom"));
-    assert_eq!(event.detail.get("senderCallsign"), parsed.detail.get("senderCallsign"));
-    
+    assert_eq!(
+        event.detail.get("senderCallsign"),
+        parsed.detail.get("senderCallsign")
+    );
+
     Ok(())
 }
 
@@ -77,20 +74,23 @@ fn test_emergency_roundtrip() -> Result<(), CotError> {
         34.12345,
         -118.12345,
         "Emergency-911",
-        "Need immediate assistance!"
+        "Need immediate assistance!",
     );
-    
+
     // Convert to XML and back
     let xml = event.to_xml()?;
     let parsed = CotEvent::from_xml(&xml)?;
-    
+
     // Verify fields match
     assert_eq!(event.event_type, parsed.event_type);
     assert_eq!(event.point.lat, parsed.point.lat);
     assert_eq!(event.point.lon, parsed.point.lon);
-    assert_eq!(event.detail.get("emergency"), parsed.detail.get("emergency"));
+    assert_eq!(
+        event.detail.get("emergency"),
+        parsed.detail.get("emergency")
+    );
     assert_eq!(event.detail.get("remarks"), parsed.detail.get("remarks"));
-    
+
     Ok(())
 }
 
@@ -114,15 +114,15 @@ fn test_complete_cot_parsing() -> Result<(), CotError> {
             <usericon iconsetpath="COT_MAPPING_2525B/..."/>
         </detail>
     </event>"#;
-    
+
     let event = CotEvent::from_xml(xml)?;
-    
+
     // Verify basic fields
     assert_eq!(event.uid, "TEST-123");
     assert_eq!(event.event_type, "a-f-G-U-C");
     assert_eq!(event.point.lat, 34.12345);
     assert_eq!(event.point.lon, -118.12345);
-    
+
     // Verify detail elements
     assert_eq!(event.detail.get("contact.callsign").unwrap(), "ALPHA-1");
     assert_eq!(event.detail.get("contact.phone").unwrap(), "123-456-7890");
@@ -131,14 +131,17 @@ fn test_complete_cot_parsing() -> Result<(), CotError> {
     assert_eq!(event.detail.get("track.course").unwrap(), "123.45");
     assert_eq!(event.detail.get("track.speed").unwrap(), "5.0");
     assert_eq!(event.detail.get("status.battery").unwrap(), "85");
-    assert_eq!(event.detail.get("usericon.iconsetpath").unwrap(), "COT_MAPPING_2525B/...");
-    
+    assert_eq!(
+        event.detail.get("usericon.iconsetpath").unwrap(),
+        "COT_MAPPING_2525B/..."
+    );
+
     // Test round-trip
     let xml_roundtrip = event.to_xml()?;
     let event_roundtrip = CotEvent::from_xml(&xml_roundtrip)?;
     assert_eq!(event.uid, event_roundtrip.uid);
     assert_eq!(event.event_type, event_roundtrip.event_type);
     assert_eq!(event.detail, event_roundtrip.detail);
-    
+
     Ok(())
 }
