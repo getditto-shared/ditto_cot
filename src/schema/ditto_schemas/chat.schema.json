@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ditto Chat Document",
+  "allOf": [
+    {
+      "$ref": "common.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Chat message"
+        },
+        "room": {
+          "type": "string",
+          "description": "Room name"
+        },
+        "parent": {
+          "type": "string",
+          "description": "Parent message ID"
+        },
+        "roomId": {
+          "type": "string",
+          "description": "Room ID"
+        },
+        "authorCallsign": {
+          "type": "string",
+          "description": "Sender callsign"
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "Sender UID"
+        },
+        "authorType": {
+          "type": "string",
+          "description": "Sender type"
+        },
+        "time": {
+          "type": "string",
+          "description": "Time sent"
+        },
+        "location": {
+          "type": "string",
+          "description": "GeoPoint string location"
+        }
+      }
+    }
+  ]
+}

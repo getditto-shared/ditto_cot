@@ -13,28 +13,60 @@ use quick_xml::{Reader, Writer};
 use crate::error::CotError;
 use uuid::Uuid;
 
-/// Represents a basic CoT event with common fields
-#[derive(Debug, Clone)]
+/// Represents a Cursor on Target (CoT) event with all standard fields.
+///
+/// A CoT event represents a unit's status, location, or communication in a tactical network.
+/// It contains metadata about the event, location information, and a flexible detail section.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CotEvent {
+    /// CoT protocol version (e.g., "2.0")
     pub version: String,
+
+    /// Unique identifier for the event
     pub uid: String,
+
+    /// Event type code (e.g., "a-f-G-U-C" for military ground unit)
     pub event_type: String,
+
+    /// When the event was generated
     pub time: DateTime<Utc>,
+
+    /// When the event becomes valid
     pub start: DateTime<Utc>,
+
+    /// When the event expires
     pub stale: DateTime<Utc>,
+
+    /// How the event was generated (e.g., "h-g-i-g-o" for human-generated)
     pub how: String,
+
+    /// Geographic location and accuracy information
     pub point: Point,
+
+    /// Additional event-specific details as key-value pairs
     pub detail: HashMap<String, String>,
 }
 
-/// Represents a geographic point with elevation and accuracy information
-#[derive(Debug, Clone, Default)]
+/// Represents a geographic point with elevation and accuracy information.
+///
+/// This is used to specify locations in the CoT protocol with associated
+/// accuracy metrics for different dimensions.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Point {
+    /// Latitude in decimal degrees (WGS84)
     pub lat: f64,
+
+    /// Longitude in decimal degrees (WGS84)
     pub lon: f64,
-    pub hae: f64, // Height Above Ellipsoid
-    pub ce: f64,  // Circular Error
-    pub le: f64,  // Linear Error
+
+    /// Height Above Ellipsoid in meters
+    pub hae: f64,
+
+    /// Circular Error in meters (horizontal accuracy)
+    pub ce: f64,
+
+    /// Linear Error in meters (vertical accuracy)
+    pub le: f64,
 }
 
 impl Default for CotEvent {
@@ -63,6 +95,30 @@ impl Default for CotEvent {
 }
 
 impl CotEvent {
+    /// Returns a reference to the event's point data
+    pub fn point(&self) -> &Point {
+        &self.point
+    }
+
+    /// Returns a reference to the event's UID
+    pub fn uid(&self) -> &str {
+        &self.uid
+    }
+
+    /// Returns the callsign from the event's detail map, if available
+    pub fn callsign(&self) -> Option<&str> {
+        self.detail.get("callsign").map(|s| s.as_str())
+    }
+
+    /// Returns a reference to the event type
+    pub fn event_type(&self) -> &str {
+        &self.event_type
+    }
+
+    /// Returns the chat message from the event's detail map, if available
+    pub fn chat_message(&self) -> Option<&str> {
+        self.detail.get("chat").map(|s| s.as_str())
+    }
     /// Converts the CotEvent to an XML string
     pub fn to_xml(&self) -> Result<String, CotError> {
         let mut writer = Writer::new(Cursor::new(Vec::new()));

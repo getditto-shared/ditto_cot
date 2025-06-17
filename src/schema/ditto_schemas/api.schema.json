@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ditto API Document",
+  "allOf": [
+    {
+      "$ref": "common.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "isFile": {
+          "type": "boolean",
+          "description": "Is file"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title"
+        },
+        "mime": {
+          "type": "string",
+          "description": "MIME type"
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Content type"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Optional tag"
+        },
+        "data": {
+          "type": "string",
+          "description": "Document data"
+        },
+        "isRemoved": {
+          "type": "boolean",
+          "description": "Removed on device"
+        },
+        "timeMillis": {
+          "type": "integer",
+          "description": "Creation time millis"
+        }
+      }
+    }
+  ]
+}

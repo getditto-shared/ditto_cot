@@ -1,15 +1,27 @@
+//! XML schema validation for CoT (Cursor on Target) messages.
+//!
+//! This module provides functionality to validate CoT XML messages
+//! against their expected schema definitions.
+
 use std::io::Error as IoError;
 use thiserror::Error;
 use xml::reader::{EventReader, ParserConfig};
 
+/// Errors that can occur during schema validation
+///
+/// This enum represents the different types of errors that can occur
+/// when validating CoT messages against their schemas.
 #[derive(Error, Debug)]
 pub enum SchemaValidationError {
+    /// An I/O error occurred (e.g., reading schema file)
     #[error("IO error: {0}")]
     Io(#[from] IoError),
 
+    /// The XML is malformed or cannot be parsed
     #[error("XML parsing error: {0}")]
     XmlParsing(String),
 
+    /// The XML does not conform to the expected schema
     #[error("Schema validation error: {0}")]
     Validation(String),
 }

@@ -1,9 +1,36 @@
+//! XML parsing utilities for CoT (Cursor on Target) messages.
+//!
+//! This module provides functionality to parse CoT XML messages into
+//! structured Rust types.
+
 use crate::detail_parser::parse_detail_section;
 use crate::error::CotError;
 use crate::model::FlatCotEvent;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
+/// Parses a CoT XML string into a `FlatCotEvent`.
+///
+/// This function takes a CoT XML message as input and returns a structured
+/// `FlatCotEvent` containing all the parsed fields. It handles both the main
+/// event attributes and the detail section.
+///
+/// # Arguments
+/// * `xml` - A string slice containing the CoT XML message
+///
+/// # Returns
+/// * `Result<FlatCotEvent, CotError>` - The parsed event on success, or an error if parsing fails
+///
+/// # Examples
+/// ```no_run
+/// use ditto_cot::xml_parser::parse_cot;
+///
+/// let xml = r#"<event version="2.0" ...></event>"#;
+/// match parse_cot(xml) {
+///     Ok(event) => println!("Parsed event: {:?}", event),
+///     Err(e) => eprintln!("Failed to parse CoT: {}", e),
+/// }
+/// ```
 pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
     let mut reader = Reader::from_str(xml);
     reader.trim_text(true);

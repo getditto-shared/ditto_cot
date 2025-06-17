@@ -1,41 +1,210 @@
 # cotditto
 
-A high-performance Rust library for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and flat, Ditto-compatible CRDT documents.
+A high-performance Rust library for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents.
 
 ## ✨ Features
 
-- Full CoT XML → Flat Rust struct → JSON/CRDT → CoT XML round-trip
-- Handles both known fields and dynamic `<detail>` content via hybrid parsing
-- XML Schema validation against CoT XSD schema
-- Asynchronous Ditto SDK integration for inserting and retrieving events
-- Performance benchmark with Criterion
-- Test suite with edge case validation
-- Future extensibility for plugins or schema-aware detail parsers
+- Full CoT XML ↔ Ditto Document ↔ JSON/CRDT round-trip conversion
+- Schema-validated document types for Chat, Location, and Emergency events
+- Automatic type inference from CoT event types
+- Asynchronous Ditto SDK integration
+- Built on `serde` for flexible serialization/deserialization
+- Comprehensive test coverage
 
 ## 📦 Installation
 
-```
-cargo build
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+cotditto = { git = "https://github.com/yourusername/cotditto" }
 ```
 
 ## 🚀 Usage
 
-### Parse and serialize:
+### Basic Conversion
+
+Convert between CoT XML and Ditto documents:
 
 ```rust
-use cotditto::{xml_parser::parse_cot, xml_writer::to_cot_xml};
+use cotditto::{
+    cot_events::CotEvent,
+    ditto::{cot_to_document, DittoDocument},
+};
 
-let flat = parse_cot(cot_xml).unwrap();
-let xml_out = to_cot_xml(&flat);
+// Parse CoT XML to CotEvent
+let cot_xml = r#"<event version="2.0" ...></event>"#;
+let event = CotEvent::from_xml(cot_xml)?;
+
+// Convert to Ditto document
+let doc = cot_to_document(&event, "peer-123");
+
+// Serialize to JSON
+let json = serde_json::to_string_pretty(&doc)?;
+println!("{}", json);
 ```
 
-### Ditto storage:
+### Document Types
+
+#### 1. Chat Documents
 
 ```rust
-use cotditto::ditto_sync::{insert_flat_cot_event, get_flat_cot_events};
+if let DittoDocument::Chat(chat) = doc {
+    println!("Chat from {}: {}", chat.author_callsign, chat.message);
+    println!("Room: {} (ID: {})", chat.room, chat.room_id);
+    if let Some(loc) = chat.location {
+        println!("Location: {}", loc);
+    }
+}
+```
 
-insert_flat_cot_event(&ditto, &flat).await?;
-let events = get_flat_cot_events(&ditto).await?;
+#### 2. Location Documents
+
+```rust
+if let DittoDocument::Location(loc) = doc {
+    println!("Location update for {}", loc.common.author_callsign);
+    println!("Position: {},{}", 
+        loc.location.latitude, 
+        loc.location.longitude
+    );
+    println!("Accuracy: ±{}m", loc.location.circular_error);
+}
+```
+
+#### 3. Emergency Documents
+
+```rust
+if let DittoDocument::Emergency(emergency) = doc {
+    println!("EMERGENCY: {} ({})", 
+        emergency.emergency_type,
+        emergency.status
+    );
+    if let Some(details) = emergency.details {
+        println!("Details: {}", details);
+    }
+}
+```
+
+### Ditto Integration
+
+```rust
+use cotditto::ditto_sync::{DittoContext, DittoError};
+
+async fn store_cot_event(ditto: &DittoContext, cot_xml: &str) -> Result<(), DittoError> {
+    // Parse CoT XML
+    let event = CotEvent::from_xml(cot_xml)?;
+    
+    // Convert to Ditto document
+    let doc = cot_to_document(&event, &ditto.peer_key);
+    
+    // Store in Ditto
+    ditto.store_document(doc).await?;
+    
+    Ok(())
+}
+
+async fn query_chat_messages(ditto: &DittoContext, room: &str) -> Result<Vec<ChatDocument>, DittoError> {
+    ditto.query_documents::<ChatDocument>(json!({ "room": room })).await
+}
+```
+
+### Round-trip Example
+
+```rust
+// Start with CoT XML
+let cot_xml = r#"
+    <event version="2.0" type="b-t-f"...>
+        <detail>
+            <chat room="All">
+                <chatgrp uid="user1" id="All" senderCallsign="User1">
+                    Hello, world!
+                </chatgrp>
+            </chat>
+        </detail>
+    </event>
+"#;
+
+// Parse to CotEvent
+let event = CotEvent::from_xml(cot_xml)?;
+
+// Convert to Ditto document
+let doc = cot_to_document(&event, "peer-123");
+
+// Convert back to CotEvent
+let event_again = doc.to_cot_event()?;
+
+// Serialize back to XML
+let xml_again = event_again.to_xml()?;
+```
+
+## 📚 Document Schema
+
+### Common Fields
+All Ditto documents include these common fields:
+
+- `_id`: Unique document identifier
+- `_c`: Document counter (updates)
+- `_v`: Schema version
+- `_r`: Soft-delete flag
+- `a`: Ditto peer key
+- `b`: Timestamp (ms since epoch)
+- `d`: Author UID
+- `e`: Author callsign
+- `h`: Circular error (CE) in meters
+
+### Document Types
+
+#### 1. Chat Document (`DittoDocument::Chat`)
+
+```json
+{
+  "_t": "c",
+  "message": "Hello, world!",
+  "room": "All",
+  "room_id": "group-1",
+  "author_callsign": "User1",
+  "author_uid": "user1",
+  "author_type": "user",
+  "time": "2023-01-01T12:00:00Z",
+  "location": "34.0522,-118.2437,100"
+}
+```
+
+#### 2. Location Document (`DittoDocument::Location`)
+
+```json
+{
+  "_t": "l",
+  "location_type": "a-f-G-U-C",
+  "location": {
+    "lat": 34.0522,
+    "lon": -118.2437,
+    "hae": 100.0,
+    "ce": 10.0,
+    "speed": 0.0,
+    "course": 0.0
+  }
+}
+```
+
+#### 3. Emergency Document (`DittoDocument::Emergency`)
+
+```json
+{
+  "_t": "e",
+  "emergency_type": "911",
+  "status": "active",
+  "location": {
+    "lat": 34.0522,
+    "lon": -118.2437,
+    "hae": 100.0,
+    "ce": 10.0
+  },
+  "details": {
+    "message": "Medical emergency"
+  }
+}
+```
 ```
 
 ## 🔍 XML Validation

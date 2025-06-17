@@ -1,8 +1,44 @@
+//! Parser for the detail section of CoT (Cursor on Target) messages.
+//!
+//! This module provides functionality to parse the detail section of CoT messages,
+//! extracting structured information like callsign, group name, and additional
+//! key-value pairs.
+
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+/// Parses the detail section of a CoT message.
+///
+/// This function extracts structured information from the detail section of a CoT message,
+/// including the callsign, group name, and any additional key-value pairs.
+///
+/// # Arguments
+/// * `detail_xml` - A string slice containing the XML content of the detail section
+///
+/// # Returns
+/// A tuple containing:
+/// 1. `Option<String>` - The callsign if found
+/// 2. `Option<String>` - The group name if found
+/// 3. `HashMap<String, Value>` - Additional key-value pairs from the detail section
+///
+/// # Examples
+/// ```
+/// use ditto_cot::detail_parser::parse_detail_section;
+/// use std::collections::HashMap;
+///
+/// let detail = r#"
+///     <contact callsign="TEST-123"/>
+///     <__group name="Blue"/>
+///     <status readiness="true"/>
+/// "#;
+///
+/// let (callsign, group_name, extras) = parse_detail_section(detail);
+/// assert_eq!(callsign, Some("TEST-123".to_string()));
+/// assert_eq!(group_name, Some("Blue".to_string()));
+/// assert_eq!(extras.get("status").and_then(|v| v.get("@readiness")), Some(&Value::String("true".to_string())));
+/// ```
 pub fn parse_detail_section(
     detail_xml: &str,
 ) -> (Option<String>, Option<String>, HashMap<String, Value>) {
