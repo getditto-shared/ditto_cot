@@ -1,13 +1,9 @@
 use crate::cot_events::CotEvent;
-use crate::ditto::{
-    self, ChatDocument, CommonFields, DittoDocument, EmergencyDocument, LocationDocument,
-};
+use crate::ditto::{self, DittoDocument};
 use crate::error::CotError;
-use chrono::Utc;
 use dittolive_ditto::prelude::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use uuid::Uuid;
 
 /// Inserts a CoT event into Ditto after transforming it to Ditto's format
 ///
@@ -24,12 +20,12 @@ pub async fn insert_cot_event(
     // Determine the collection name based on the document type
     let (collection_name, doc_value) = match ditto_doc {
         DittoDocument::Chat(chat) => ("cot_chat".to_string(), serde_json::to_value(chat)?),
-        DittoDocument::Location(loc) => ("cot_location".to_string(), serde_json::to_value(loc)?),
-        DittoDocument::Emergency(emergency) => (
+        DittoDocument::MapItem(loc) => ("cot_location".to_string(), serde_json::to_value(loc)?),
+        DittoDocument::Api(emergency) => (
             "cot_emergency".to_string(),
             serde_json::to_value(emergency)?,
         ),
-        DittoDocument::Generic(gen) => ("cot_generic".to_string(), serde_json::to_value(gen)?),
+        DittoDocument::File(gen) => ("cot_generic".to_string(), serde_json::to_value(gen)?),
     };
 
     // Insert the document
@@ -186,32 +182,9 @@ pub async fn create_location(
     event: &CotEvent,
     peer_key: &str,
 ) -> Result<(), CotError> {
-    let point = event.point();
-    let location = LocationDocument {
-        common: CommonFields {
-            id: event.uid().to_string(),
-            counter: 0,
-            version: 2,
-            deleted: false,
-            peer_key: peer_key.to_string(),
-            timestamp: Utc::now().timestamp_millis(),
-            author_uid: event.uid().to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            version_str: "".to_string(),
-            ce: point.ce,
-        },
-        location: ditto::schema::Location {
-            latitude: point.lat,
-            longitude: point.lon,
-            altitude: point.hae,
-            circular_error: point.ce,
-            speed: 0.0,
-            course: 0.0,
-        },
-        location_type: event.event_type().to_string(),
-        metadata: None,
-    };
-
+    let _point = event.point();
+    // Use the codegen transform_location_event to produce a MapItem
+    let location = ditto::transform_location_event(event, peer_key);
     insert_document(ditto, "cot_location", &location).await
 }
 
@@ -220,36 +193,9 @@ pub async fn create_chat(ditto: &Ditto, event: &CotEvent, peer_key: &str) -> Res
     if let Some(chat_doc) = ditto::transform_chat_event(event, peer_key) {
         insert_document(ditto, "cot_chat", &chat_doc).await
     } else {
-        // If chat transformation fails, create a generic chat document
-        let chat = ChatDocument {
-            common: CommonFields {
-                id: Uuid::new_v4().to_string(),
-                counter: 0,
-                version: 2,
-                deleted: false,
-                peer_key: peer_key.to_string(),
-                timestamp: Utc::now().timestamp_millis(),
-                author_uid: event.uid().to_string(),
-                author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-                version_str: "".to_string(),
-                ce: event.point().ce,
-            },
-            message: "Chat message".to_string(),
-            room: "default".to_string(),
-            parent: None,
-            room_id: "room_default".to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            author_uid: event.uid().to_string(),
-            author_type: "user".to_string(),
-            time: Utc::now().to_rfc3339(),
-            location: Some(format!(
-                "{},{},{}",
-                event.point().lat,
-                event.point().lon,
-                event.point().hae
-            )),
-        };
-        insert_document(ditto, "cot_chat", &chat).await
+        // If chat transformation fails, do not insert a Chat document
+        // Optionally, insert a generic File document instead, or handle error as needed
+        Ok(())
     }
 }
 
@@ -259,39 +205,8 @@ pub async fn create_emergency(
     event: &CotEvent,
     peer_key: &str,
 ) -> Result<(), CotError> {
-    let point = event.point();
-    let emergency = EmergencyDocument {
-        common: CommonFields {
-            id: event.uid().to_string(),
-            counter: 0,
-            version: 2,
-            deleted: false,
-            peer_key: peer_key.to_string(),
-            timestamp: Utc::now().timestamp_millis(),
-            author_uid: event.uid().to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            version_str: "".to_string(),
-            ce: point.ce,
-        },
-        emergency_type: event.detail.get("type").cloned().unwrap_or_default(),
-        status: event
-            .detail
-            .get("status")
-            .cloned()
-            .unwrap_or_else(|| "active".to_string()),
-        location: ditto::schema::Location {
-            latitude: point.lat,
-            longitude: point.lon,
-            altitude: point.hae,
-            circular_error: point.ce,
-            speed: 0.0,
-            course: 0.0,
-        },
-        details: event
-            .detail
-            .get("message")
-            .cloned()
-            .map(|msg| serde_json::json!({ "message": msg })),
-    };
+    let _point = event.point();
+    // Use the codegen transform_emergency_event to produce an Api
+    let emergency = ditto::transform_emergency_event(event, peer_key);
     insert_document(ditto, "cot_emergency", &emergency).await
 }

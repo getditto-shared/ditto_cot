@@ -27,6 +27,7 @@ use std::collections::HashMap;
 /// ```
 /// use ditto_cot::detail_parser::parse_detail_section;
 /// use std::collections::HashMap;
+/// use serde_json::Value;
 ///
 /// let detail = r#"
 ///     <contact callsign="TEST-123"/>

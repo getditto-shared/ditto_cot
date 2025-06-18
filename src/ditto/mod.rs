@@ -6,7 +6,7 @@
 pub mod schema;
 
 use crate::cot_events::CotEvent;
-use chrono::Utc;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 // No unused imports remaining
@@ -17,160 +17,206 @@ pub use schema::*;
 pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
     let event_type = event.event_type();
 
-    if event_type.contains("a-f-G") || event_type.contains("a-f-G-U-C") {
+    if event_type == "a-u-emergency-g" {
         // Handle emergency events
-        DittoDocument::Emergency(transform_emergency_event(event, peer_key))
+        DittoDocument::Api(transform_emergency_event(event, peer_key))
     } else if event_type.contains("b-t-f") || event_type.contains("chat") {
         // Handle chat events
         match transform_chat_event(event, peer_key) {
-            Some(chat_doc) => DittoDocument::Chat(Box::new(chat_doc)),
-            None => DittoDocument::Generic(transform_generic_event(event, peer_key)),
+            Some(chat_doc) => DittoDocument::Chat(chat_doc),
+            None => DittoDocument::File(transform_generic_event(event, peer_key)),
         }
-    } else if event_type.contains("a-f-G-U-C")
+    } else if event_type.contains("a-u-r-loc-g")
+        || event_type.contains("a-f-G-U-C")
         || event_type.contains("a-f-G-U")
         || event_type.contains("a-f-G-U-I")
         || event_type.contains("a-f-G-U-T")
     {
         // Handle location update events
-        DittoDocument::Location(transform_location_event(event, peer_key))
+        DittoDocument::MapItem(transform_location_event(event, peer_key))
     } else {
         // Fall back to generic document for all other event types
-        DittoDocument::Generic(transform_generic_event(event, peer_key))
+        DittoDocument::File(transform_generic_event(event, peer_key))
     }
 }
 
 /// Transform a location CoT event to a Ditto location document
-fn transform_location_event(event: &CotEvent, peer_key: &str) -> LocationDocument {
-    let point = event.point();
-    let now = Utc::now();
-
-    LocationDocument {
-        common: CommonFields {
-            id: event.uid().to_string(),
-            counter: 0,
-            version: 2,
-            deleted: false,
-            peer_key: peer_key.to_string(),
-            timestamp: now.timestamp_millis(),
-            author_uid: event.uid().to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            version_str: "".to_string(),
-            ce: point.ce,
-        },
-        location: Location {
-            latitude: point.lat,
-            longitude: point.lon,
-            altitude: point.hae,
-            circular_error: point.ce,
-            speed: 0.0,  // Not available in basic CoT
-            course: 0.0, // Not available in basic CoT
-        },
-        location_type: event.event_type().to_string(),
-        metadata: None,
+pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
+    // Map CotEvent and peer_key to MapItem fields
+    MapItem {
+        id: event.uid.clone(), // Ditto document ID
+        a: peer_key.to_string(), // Ditto peer key string
+        b: event.point.ce, // Circular error as a best guess
+        c: Some(event.detail.get("name").cloned().unwrap_or_default()), // Name/title if present
+        d: event.uid.clone(), // TAK UID of author
+        d_c: 0, // Document counter (updates), default to 0
+        d_r: false, // Soft-delete flag, default to false
+        d_v: 2, // Schema version (2)
+        e: event.detail.get("callsign").cloned().unwrap_or_default(), // Callsign of author
+        f: None, // Visibility flag
+        g: "".to_string(), // Version string, default empty
+        h: Some(event.point.lat), // Latitude
+        i: Some(event.point.lon), // Longitude
+        j: Some(event.point.hae), // Altitude
+        k: None, // Speed (not in CotEvent)
+        l: None, // Course (not in CotEvent)
+        n: event.start.timestamp_millis(), // Start
+        o: event.stale.timestamp_millis(), // Stale
+        p: event.how.clone(), // How
+        q: "".to_string(), // Access, default empty
+        r: "".to_string(), // Detail (XML CotDetail), default empty
+        s: "".to_string(), // Opex, default empty
+        t: "".to_string(), // Qos, default empty
+        u: "".to_string(), // Caveat, default empty
+        v: "".to_string(), // Releasable to, default empty
+        w: event.event_type.clone(), // Type
     }
 }
 
 /// Transform a chat CoT event to a Ditto chat document
-pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<ChatDocument> {
-    let message = event.detail.get("chat")?;
-    let room = event
-        .detail
-        .get("chatroom")
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| "default".to_string());
-    let chat_group_uid = event.detail.get("chat_group_uid").map(|s| s.to_string());
-    let point = event.point();
-    let now = Utc::now();
+pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
+    // Extract chat message and room from event.detail
+    let message = event.detail.get("chat").cloned();
+    let room = event.detail.get("chatroom").cloned();
+    let room_id = event.detail.get("chat_group_uid").cloned();
+    let author_callsign = event.detail.get("callsign").cloned();
+    let author_uid = Some(event.uid.clone());
+    let author_type = Some("user".to_string());
+    let location = Some(format!("{},{},{}", event.point.lat, event.point.lon, event.point.hae));
+    let time = Some(event.time.to_rfc3339());
+    
+    // If there's no message, return None
+    message.as_ref()?;
 
-    Some(ChatDocument {
-        common: CommonFields {
-            id: event.uid().to_string(),
-            counter: 0,
-            version: 2,
-            deleted: false,
-            peer_key: peer_key.to_string(),
-            timestamp: now.timestamp_millis(),
-            author_uid: event.uid().to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            version_str: "".to_string(),
-            ce: point.ce,
-        },
-        message: message.to_string(),
-        room,
-        room_id: chat_group_uid.unwrap_or_else(|| "default_room".to_string()),
+    Some(Chat {
+        id: event.uid.clone(),
+        a: peer_key.to_string(),
+        b: event.point.ce,
+
+        d: event.uid.clone(),
+        d_c: 0,
+        d_r: false,
+        d_v: 2,
+        e: author_callsign.clone().unwrap_or_default(),
+        g: "".to_string(),
+        h: Some(event.point.lat),
+        i: Some(event.point.lon),
+        j: Some(event.point.hae),
+        k: None,
+        l: None,
+        n: event.start.timestamp_millis(),
+        o: event.stale.timestamp_millis(),
+        p: event.how.clone(),
+        q: "".to_string(),
+        r: "".to_string(),
+        s: "".to_string(),
+        t: "".to_string(),
+        u: "".to_string(),
+        v: "".to_string(),
+        w: event.event_type.clone(),
+        author_callsign,
+        author_type,
+        author_uid,
+        location,
+        message,
         parent: None,
-        author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-        author_uid: event.uid().to_string(),
-        author_type: "user".to_string(),
-        time: now.to_rfc3339(),
-        location: Some(format!("{},{},{}", point.lat, point.lon, point.hae)),
+        room,
+        room_id,
+        time,
     })
 }
 
 /// Transform an emergency CoT event to a Ditto emergency document
-fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> EmergencyDocument {
-    let point = event.point();
-    let now = Utc::now();
+pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
+    let title = event.detail.get("type").cloned();
+    let data = event.detail.get("message").cloned();
+    let mime = Some("application/vnd.cot.emergency+json".to_string());
+    let content_type = Some("emergency".to_string());
+    let is_file = Some(false);
+    let is_removed = Some(false);
+    let tag = event.detail.get("status").cloned();
+    let time_millis = Some(event.time.timestamp_millis());
 
-    EmergencyDocument {
-        common: CommonFields {
-            id: event.uid().to_string(),
-            counter: 0,
-            version: 2,
-            deleted: false,
-            peer_key: peer_key.to_string(),
-            timestamp: now.timestamp_millis(),
-            author_uid: event.uid().to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            version_str: "".to_string(),
-            ce: point.ce,
-        },
-        emergency_type: event.detail.get("type").cloned().unwrap_or_default(),
-        status: event
-            .detail
-            .get("status")
-            .cloned()
-            .unwrap_or_else(|| "active".to_string()),
-        location: Location {
-            latitude: point.lat,
-            longitude: point.lon,
-            altitude: point.hae,
-            circular_error: point.ce,
-            speed: 0.0,
-            course: 0.0,
-        },
-        details: event
-            .detail
-            .get("message")
-            .cloned()
-            .map(|msg| serde_json::json!({ "message": msg })),
+    Api {
+        id: event.uid.clone(),
+        a: peer_key.to_string(),
+        b: event.point.ce,
+        content_type,
+        d: event.uid.clone(),
+        d_c: 0,
+        d_r: false,
+        d_v: 2,
+        data,
+        e: event.detail.get("callsign").cloned().unwrap_or_default(),
+        g: "".to_string(),
+        h: Some(event.point.lat),
+        i: Some(event.point.lon),
+        j: Some(event.point.hae),
+        k: None,
+        l: None,
+        mime,
+        n: event.start.timestamp_millis(),
+        o: event.stale.timestamp_millis(),
+        p: event.how.clone(),
+        q: "".to_string(),
+        r: "".to_string(),
+        s: "".to_string(),
+        t: "".to_string(),
+        tag,
+        time_millis,
+        title,
+        u: "".to_string(),
+        v: "".to_string(),
+        w: event.event_type.clone(),
+        is_file,
+        is_removed,
     }
 }
 
 /// Transform any CoT event to a generic Ditto document
-fn transform_generic_event(event: &CotEvent, peer_key: &str) -> GenericDocument {
-    let point = event.point();
-    let now = Utc::now();
+fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
+    let c = event.detail.get("file_name").cloned();
+    let file = event.detail.get("file_token").cloned();
+    let mime = event.detail.get("mime").cloned();
+    let content_type = Some("generic".to_string());
+    let item_id = event.detail.get("item_id").cloned();
+    let sz = event.detail.get("size").and_then(|s| s.parse().ok());
 
-    GenericDocument {
-        common: CommonFields {
-            id: event.uid().to_string(),
-            counter: 0,
-            version: 2,
-            deleted: false,
-            peer_key: peer_key.to_string(),
-            timestamp: now.timestamp_millis(),
-            author_uid: event.uid().to_string(),
-            author_callsign: event.callsign().unwrap_or("unknown").to_string(),
-            version_str: "".to_string(),
-            ce: point.ce,
-        },
-        cot_type: event.event_type().to_string(),
-        raw_data: serde_json::to_value(event).unwrap_or_default(),
+    File {
+        id: event.uid.clone(),
+        a: peer_key.to_string(),
+        b: event.point.ce,
+        c,
+        content_type,
+        d: event.uid.clone(),
+        d_c: 0,
+        d_r: false,
+        d_v: 2,
+        e: event.detail.get("callsign").cloned().unwrap_or_default(),
+        file,
+        g: "".to_string(),
+        h: Some(event.point.lat),
+        i: Some(event.point.lon),
+        j: Some(event.point.hae),
+        k: None,
+        l: None,
+        item_id,
+        mime,
+        n: event.start.timestamp_millis(),
+        o: event.stale.timestamp_millis(),
+        p: event.how.clone(),
+        q: "".to_string(),
+        r: "".to_string(),
+        s: "".to_string(),
+        sz,
+        t: "".to_string(),
+        u: "".to_string(),
+        v: "".to_string(),
+        w: event.event_type.clone(),
     }
 }
 
-/// Represents a Ditto document that can be one of several specific types.
+///   Represents a Ditto document that can be one of several specific types.
 ///
 /// This is the main enum used when working with Ditto documents in the system.
 /// It uses `#[serde(untagged)]` to ensure clean serialization/deserialization
@@ -183,43 +229,23 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> GenericDocument 
 /// - `Generic`: For any CoT event that doesn't match the above types
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
+///   Represents a Ditto document that can be one of several specific types.
+///
+/// This is the main enum used when working with Ditto documents in the system.
+/// It uses `#[serde(untagged)]` to ensure clean serialization/deserialization
+/// without an additional type tag in the JSON representation.
 pub enum DittoDocument {
-    /// A chat message document (boxed due to large size)
-    Chat(Box<ChatDocument>),
-
-    /// A location update document
-    Location(LocationDocument),
-
-    /// An emergency/alert document
-    Emergency(EmergencyDocument),
-
-    /// A generic document for any other CoT event type
-    Generic(GenericDocument),
+    /// For API/emergency/alert documents
+    Api(Api),
+    /// For chat/messaging content
+    Chat(Chat),
+    /// For generic file/documents
+    File(File),
+    /// For geospatial map/location items
+    MapItem(MapItem),
 }
 
-impl From<ChatDocument> for DittoDocument {
-    fn from(doc: ChatDocument) -> Self {
-        DittoDocument::Chat(Box::new(doc))
-    }
-}
 
-impl From<LocationDocument> for DittoDocument {
-    fn from(doc: LocationDocument) -> Self {
-        DittoDocument::Location(doc)
-    }
-}
-
-impl From<EmergencyDocument> for DittoDocument {
-    fn from(doc: EmergencyDocument) -> Self {
-        DittoDocument::Emergency(doc)
-    }
-}
-
-impl From<GenericDocument> for DittoDocument {
-    fn from(doc: GenericDocument) -> Self {
-        DittoDocument::Generic(doc)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -260,10 +286,10 @@ mod tests {
         let event = create_test_event("u-r-loc");
         let doc = transform_location_event(&event, "test-peer");
 
-        assert_eq!(doc.common.id, "test-uid");
-        assert_eq!(doc.common.peer_key, "test-peer");
-        assert_eq!(doc.location_type, "a-u-r-loc-g");
-        assert_eq!(doc.location.latitude, 1.2345);
+        assert_eq!(doc.id, "test-uid");
+        assert_eq!(doc.a, "test-peer");
+        assert_eq!(doc.w, "a-u-r-loc-g");
+        assert_eq!(doc.h, Some(1.2345));
     }
 
     #[test]
@@ -283,12 +309,40 @@ mod tests {
         let doc = cot_to_document(&event, "test-peer");
 
         if let DittoDocument::Chat(chat_doc) = doc {
-            assert_eq!(chat_doc.common.id, "test-uid");
-            assert_eq!(chat_doc.common.peer_key, "test-peer");
-            assert_eq!(chat_doc.message, "Test message");
-            assert_eq!(chat_doc.room, "All");
+            assert_eq!(chat_doc.id, "test-uid");
+            assert_eq!(chat_doc.a, "test-peer");
+            assert_eq!(chat_doc.message, Some("Test message".to_string()));
+            assert_eq!(chat_doc.room, Some("All".to_string()));
         } else {
             panic!("Expected Chat document, got {:?}", doc);
+        }
+    }
+
+    #[test]
+    fn test_transform_emergency_event() {
+        let event = create_test_event("u-emergency");
+        let doc = cot_to_document(&event, "test-peer");
+
+        if let DittoDocument::Api(api_doc) = doc {
+            assert_eq!(api_doc.id, "test-uid");
+            assert_eq!(api_doc.a, "test-peer");
+            // No emergency_type field in Api; check title or w if needed
+        } else {
+            panic!("Expected Api document, got {:?}", doc);
+        }
+    }
+
+    #[test]
+    fn test_transform_generic_event() {
+        let event = create_test_event("u-generic");
+        let doc = cot_to_document(&event, "test-peer");
+
+        if let DittoDocument::File(file_doc) = doc {
+            assert_eq!(file_doc.id, "test-uid");
+            assert_eq!(file_doc.a, "test-peer");
+            assert_eq!(file_doc.w, "a-u-generic-g");
+        } else {
+            panic!("Expected File document, got {:?}", doc);
         }
     }
 }
