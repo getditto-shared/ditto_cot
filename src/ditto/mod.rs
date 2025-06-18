@@ -4,10 +4,10 @@
 //! into Ditto documents according to the Ditto JSON schemas.
 
 pub mod schema;
+pub mod from_ditto;
 
 use crate::cot_events::CotEvent;
 
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 // No unused imports remaining
 
@@ -216,43 +216,54 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
     }
 }
 
-///   Represents a Ditto document that can be one of several specific types.
+/// Represents a Ditto document that can be one of several specific types.
 ///
 /// This is the main enum used when working with Ditto documents in the system.
 /// It uses `#[serde(untagged)]` to ensure clean serialization/deserialization
 /// without an additional type tag in the JSON representation.
-///
-/// # Variants
-/// - `Chat`: For chat/messaging content (boxed to reduce enum size)
-/// - `Location`: For geospatial location updates
-/// - `Emergency`: For emergency/alert notifications
-/// - `Generic`: For any CoT event that doesn't match the above types
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(untagged)]
-///   Represents a Ditto document that can be one of several specific types.
-///
-/// This is the main enum used when working with Ditto documents in the system.
-/// It uses `#[serde(untagged)]` to ensure clean serialization/deserialization
-/// without an additional type tag in the JSON representation.
 pub enum DittoDocument {
-    /// For API/emergency/alert documents
+    /// API document type
     Api(Api),
-    /// For chat/messaging content
+    /// Chat message document type
     Chat(Chat),
-    /// For generic file/documents
+    /// File document type
     File(File),
-    /// For geospatial map/location items
+    /// Map item document type
     MapItem(MapItem),
 }
 
-
+impl DittoDocument {
+    /// Converts this Ditto document back into a CoT (Cursor on Target) event.
+    ///
+    /// This performs a best-effort conversion, preserving as much information as possible.
+    /// The conversion may not be perfectly lossless due to differences between the data models.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use ditto_cot::ditto::DittoDocument;
+    /// # use ditto_cot::cot_events::CotEvent;
+    /// # fn example(doc: DittoDocument) -> CotEvent {
+    /// let cot_event = doc.to_cot_event();
+    /// // Now you can work with the CoT event
+    /// cot_event
+    /// # }
+    /// ```
+    pub fn to_cot_event(&self) -> CotEvent {
+        crate::ditto::from_ditto::cot_event_from_ditto_document(self)
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cot_events::CotEvent;
-    use chrono::{DateTime, Utc};
+    use chrono::{DateTime, TimeZone, Utc};
     use std::collections::HashMap;
+    
+    use crate::cot_events::CotEvent;
+    pub use schema::*;
 
     fn create_test_event(event_type: &str) -> CotEvent {
         let time = DateTime::parse_from_rfc3339("2023-01-01T00:00:00Z")
@@ -343,6 +354,276 @@ mod tests {
             assert_eq!(file_doc.w, "a-u-generic-g");
         } else {
             panic!("Expected File document, got {:?}", doc);
+        }
+    }
+
+    // Tests for Ditto to CoT conversion
+    mod ditto_to_cot_tests {
+        use super::*;
+
+        fn create_test_timestamp() -> i64 {
+            Utc.with_ymd_and_hms(2023, 1, 1, 0, 0, 0)
+                .unwrap()
+                .timestamp_millis()
+        }
+
+        #[test]
+        fn test_api_to_cot() {
+            let api = Api {
+                id: "test-api-id".to_string(),
+                a: "test-peer".to_string(),
+                b: 100.0, // ce
+                d: "test-uid".to_string(),
+                d_c: 1,
+                d_v: 2,
+                d_r: false,
+                e: "test-callsign".to_string(),
+                g: "1.0".to_string(),
+                h: Some(1.2345),
+                i: Some(2.3456),
+                j: Some(100.0),
+                k: Some(20.0),
+                l: None,
+                mime: Some("text/plain".to_string()),
+                n: create_test_timestamp(),
+                o: create_test_timestamp() + 86400000, // +1 day
+                p: "h-g-i-g-o".to_string(),
+                q: "".to_string(),
+                r: "<detail><__api><message>Test message</message></__api></detail>".to_string(),
+                s: "".to_string(),
+                t: "".to_string(),
+                u: "".to_string(),
+                v: "".to_string(),
+                w: "a-u-emergency-g".to_string(),
+                data: Some("Test message".to_string()),
+                content_type: Some("application/json".to_string().into()),
+                is_file: Some(false),
+                is_removed: Some(false),
+                tag: Some("status".to_string()),
+                time_millis: Some(create_test_timestamp()),
+                title: Some("Test Title".to_string()),
+            };
+
+            let doc = DittoDocument::Api(api);
+            let event = doc.to_cot_event();
+
+            assert_eq!(event.uid, "test-api-id");
+            assert_eq!(event.event_type, "a-u-emergency-g");
+            assert_eq!(event.how, "h-g-i-g-o");
+            assert_eq!(event.point.lat, 1.2345);
+            assert_eq!(event.point.lon, 2.3456);
+            assert_eq!(event.point.hae, 100.0);
+            assert_eq!(event.point.ce, 100.0);
+            assert_eq!(event.point.le, 20.0);
+            
+            // Check detail fields
+            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(event.detail.get("contentType"), Some(&"application/json".to_string()));
+            assert_eq!(event.detail.get("message"), Some(&"Test message".to_string()));
+            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"api".to_string()));
+            assert_eq!(event.detail.get("type"), Some(&"Test Title".to_string()));  // Mapped from title to type in conversion
+            assert_eq!(event.detail.get("status"), Some(&"status".to_string()));
+            assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
+        }
+
+        #[test]
+        fn test_chat_to_cot() {
+            let chat = Chat {
+                id: "test-chat".to_string(),
+                a: "test-peer".to_string(),
+                b: 1234567890.0,
+                d: "test-uid".to_string(),
+                d_c: 1,
+                d_r: false,
+                d_v: 2,
+                e: "test-callsign".to_string(),
+                g: "1.0".to_string(),
+                h: None,
+                i: None,
+                j: None,
+                k: None,
+                l: None,
+                n: 0,
+                o: 0,
+                p: "h-g-i-g-o".to_string(),
+                q: "".to_string(),
+                r: r#"<detail><__chat parent="" room="" groupOwner="false" id="test-chat" messageId="test-chat" chatroom="test-room" senderCallsign="test-callsign" />"#.to_string(),
+                s: "".to_string(),
+                t: "".to_string(),
+                u: "".to_string(),
+                v: "".to_string(),
+                w: "b-t-f".to_string(),
+                author_callsign: Some("test-callsign".to_string()),
+                author_type: Some("a-f-G-U-C".to_string()),
+                author_uid: Some("test-uid".to_string()),
+                location: Some("41.1234,-71.1234,0.0".to_string()),
+                message: Some("Test message".to_string()),
+                parent: None,
+                room: Some("test-room".to_string()),
+                room_id: Some("test-room".to_string()),
+                time: Some("2023-01-01T00:00:00Z".to_string()),
+            };
+
+            let doc = DittoDocument::Chat(chat);
+            let event = doc.to_cot_event();
+
+            assert_eq!(event.uid, "test-chat");
+            assert_eq!(event.event_type, "b-t-f");
+            assert_eq!(event.how, "h-g-i-g-o");
+            
+            // Check detail fields
+            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(event.detail.get("chat"), Some(&"Test message".to_string()));
+            assert_eq!(event.detail.get("chatroom"), Some(&"test-room".to_string()));
+            assert_eq!(event.detail.get("chat_group_uid"), Some(&"test-room".to_string()));
+            assert_eq!(event.detail.get("author_callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(event.detail.get("author_type"), Some(&"a-f-G-U-C".to_string()));
+            assert_eq!(event.detail.get("author_uid"), Some(&"test-uid".to_string()));
+            assert_eq!(event.detail.get("location"), Some(&"41.1234,-71.1234,0.0".to_string()));
+            assert_eq!(event.detail.get("time"), Some(&"2023-01-01T00:00:00Z".to_string()));
+            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"chat".to_string()));
+        }
+
+        #[test]
+        fn test_file_to_cot() {
+            let file = File {
+                id: "test-file-id".to_string(),
+                a: "test-peer".to_string(),
+                b: 1234567890.0,
+                c: Some("test.txt".to_string()),
+                content_type: Some("text/plain".to_string()),
+                d: "test-uid".to_string(),
+                d_c: 1,
+                d_r: false,
+                d_v: 2,
+                e: "test-callsign".to_string(),
+                file: Some("file-token-123".to_string()),
+                g: "1.0".to_string(),
+                h: None,
+                i: None,
+                item_id: Some("test-item-123".to_string()),
+                j: None,
+                k: None,
+                l: None,
+                mime: Some("text/plain".to_string()),
+                n: 0,
+                o: 0,
+                p: "h-g-i-g-o".to_string(),
+                q: "".to_string(),
+                r: "<detail><__file name=\"test.txt\" size=\"1024\" mime=\"text/plain\"/>"
+                    .to_string(),
+                s: "".to_string(),
+                sz: Some(1024.0),
+                t: "".to_string(),
+                u: "".to_string(),
+                v: "".to_string(),
+                w: "a-f-G-U".to_string(),
+            };
+
+            let doc = DittoDocument::File(file);
+            let event = doc.to_cot_event();
+
+            assert_eq!(event.uid, "test-file-id");
+            assert_eq!(event.event_type, "a-f-G-U");
+            assert_eq!(event.how, "h-g-i-g-o");
+            
+            // Check point coordinates
+            assert_eq!(event.point.lat, 0.0);  // Default value when h is None
+            assert_eq!(event.point.lon, 0.0);  // Default value when i is None
+            assert_eq!(event.point.hae, 0.0);  // Default value when j is None
+            assert_eq!(event.point.ce, 1234567890.0);   // From field b in the test data
+            assert_eq!(event.point.le, 0.0);   // Default value when l is None
+            
+            // Check detail fields
+            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(event.detail.get("file_name"), Some(&"test.txt".to_string()));
+            assert_eq!(event.detail.get("contentType"), Some(&"text/plain".to_string()));
+            assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
+            assert_eq!(event.detail.get("size"), Some(&"1024".to_string()));
+            assert_eq!(event.detail.get("file_token"), Some(&"file-token-123".to_string()));
+            assert_eq!(event.detail.get("item_id"), Some(&"test-item-123".to_string()));
+            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"file".to_string()));
+        }
+
+        #[test]
+        fn test_map_item_to_cot() {
+            let map_item = MapItem {
+                id: "test-map-item".to_string(),
+                a: "test-peer".to_string(),
+                b: 1.0, // ce
+                c: Some("Test Map Item".to_string()),
+                d: "test-uid".to_string(),
+                d_c: 1,
+                d_v: 2,
+                d_r: false,
+                e: "test-callsign".to_string(),
+                f: Some(true), // visible
+                g: "1.0".to_string(),
+                h: Some(1.2345), // lat
+                i: Some(2.3456), // lon
+                j: Some(100.0),  // hae
+                k: Some(1.0),    // ce
+                l: Some(5.0),    // le
+                n: create_test_timestamp(),
+                o: create_test_timestamp() + 86400000, // +1 day
+                p: "h-g-i-g-o".to_string(),
+                q: "".to_string(),
+                r: "<detail><__item name=\"Test Map Item\" type=\"a-f-G-U\"><color argb=\"-1\"/></__item></detail>".to_string(),
+                s: "".to_string(),
+                t: "".to_string(),
+                u: "".to_string(),
+                v: "".to_string(),
+                w: "a-f-G-U".to_string(),
+            };
+
+            let doc = DittoDocument::MapItem(map_item);
+            let event = doc.to_cot_event();
+
+            assert_eq!(event.uid, "test-map-item");
+            assert_eq!(event.event_type, "a-f-G-U");
+            assert_eq!(event.how, "h-g-i-g-o");
+            
+            // Check point coordinates
+            assert_eq!(event.point.lat, 1.2345);
+            assert_eq!(event.point.lon, 2.3456);
+            assert_eq!(event.point.hae, 100.0);
+            assert_eq!(event.point.ce, 1.0);
+            assert_eq!(event.point.le, 1.0);  // From field k in the test data
+            
+            // Check detail fields
+            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(event.detail.get("name"), Some(&"Test Map Item".to_string()));
+            assert_eq!(event.detail.get("type"), Some(&"a-f-G-U".to_string()));
+            assert_eq!(event.detail.get("visible"), Some(&"true".to_string()));
+            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"map_item".to_string()));
+        }
+
+        #[test]
+        fn test_round_trip_conversion() {
+            // Create a test CoT event
+            let original_event = create_test_event("u-r-loc");
+            
+            // Convert to Ditto document and back to CoT
+            let doc = cot_to_document(&original_event, "test-peer");
+            let round_tripped = doc.to_cot_event();
+            
+            // Check that key fields are preserved
+            assert_eq!(round_tripped.uid, original_event.uid);
+            assert_eq!(round_tripped.event_type, original_event.event_type);
+            assert_eq!(round_tripped.how, original_event.how);
+            assert_eq!(round_tripped.point.lat, original_event.point.lat);
+            assert_eq!(round_tripped.point.lon, original_event.point.lon);
+            assert_eq!(round_tripped.point.hae, original_event.point.hae);
+            
+            // Check that the callsign is preserved in the detail
+            assert_eq!(
+                round_tripped.detail.get("callsign"),
+                original_event.detail.get("callsign")
+            );
         }
     }
 }

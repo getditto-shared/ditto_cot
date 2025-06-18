@@ -38,7 +38,7 @@ use std::collections::HashMap;
 /// let (callsign, group_name, extras) = parse_detail_section(detail);
 /// assert_eq!(callsign, Some("TEST-123".to_string()));
 /// assert_eq!(group_name, Some("Blue".to_string()));
-/// assert_eq!(extras.get("status").and_then(|v| v.get("@readiness")), Some(&Value::String("true".to_string())));
+/// assert_eq!(extras.get("status").and_then(|v| v.get("readiness")), Some(&Value::String("true".to_string())));
 /// ```
 pub fn parse_detail_section(
     detail_xml: &str,

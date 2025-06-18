@@ -17,6 +17,7 @@ schemars = "0.8.15"
 [dev-dependencies]
 pretty_assertions = "1.4"
 anyhow = "1.0"
+criterion = "0.5"
 
 [build-dependencies]
 cargo-nextest = "0.9.95"
@@ -34,3 +35,9 @@ codegen-units = 1  # Slower builds but faster code
 incremental = false  # Disable incremental compilation for CI
 lto = "thin"  # Thin LTO for better optimization
 
+[lib]
+bench = false
+
+[[bench]]
+name = "perf"
+harness = false
