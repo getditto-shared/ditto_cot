@@ -2,8 +2,8 @@
 
 use chrono::{TimeZone, Utc};
 use ditto_cot::cot_events::CotEvent;
+use ditto_cot::ditto::from_ditto::cot_event_from_ditto_document;
 use ditto_cot::error::CotError;
-use ditto_cot::ditto::{from_ditto::cot_event_from_ditto_document};
 
 /// Tests round-trip conversion for a location update event
 #[test]
@@ -24,6 +24,15 @@ fn test_location_update_roundtrip() -> Result<(), CotError> {
 
     // Ditto round-trip: CoT -> Ditto -> CoT -> XML
     let ditto_doc = ditto_cot::ditto::cot_to_document(&parsed, "test-peer");
+    assert!(ditto_doc.is_map_item());
+    assert!(ditto_doc.as_map_item().is_some());
+    assert!(ditto_doc.has_key("_id"));
+
+    // This verifies that Serde is serializing the JSON with the "_id" field included
+    let json = serde_json::to_string(&ditto_doc).unwrap();
+    println!("Ditto JSON: {}", json);
+    assert!(json.contains("_id"));
+
     let cot_from_ditto = cot_event_from_ditto_document(&ditto_doc);
     let xml_roundtrip = cot_from_ditto.to_xml()?;
     let parsed_roundtrip = CotEvent::from_xml(&xml_roundtrip)?;

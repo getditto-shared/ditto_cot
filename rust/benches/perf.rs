@@ -1,10 +1,12 @@
-use ditto_cot::{xml_parser::parse_cot, xml_writer::to_cot_xml, cot_events::CotEvent, cot_to_document};
 use criterion::{criterion_group, criterion_main, Criterion};
+use ditto_cot::{
+    cot_events::CotEvent, cot_to_document, xml_parser::parse_cot, xml_writer::to_cot_xml,
+};
 
 // Benchmark for XML parsing and serialization round-trip
 fn bench_xml_round_trip(c: &mut Criterion) {
     let xml = r#"<event version="2.0" uid="ABC123" type="a-h-G" time="2023-01-01T00:00:00Z" start="2023-01-01T00:00:00Z" stale="2023-01-01T01:00:00Z" how="m-g" lat="34.0" lon="-117.0" hae="100.0" ce="5.0" le="5.0"><detail><contact callsign="RAVEN"/><__group name="Blue"/></detail></event>"#;
-    
+
     c.bench_function("XML round-trip", |b| {
         b.iter(|| {
             let flat = parse_cot(xml).unwrap();
@@ -16,7 +18,7 @@ fn bench_xml_round_trip(c: &mut Criterion) {
 // Benchmark for Cot to Ditto document conversion and back
 fn bench_cot_to_document_round_trip(c: &mut Criterion) {
     let xml = r#"<event version="2.0" uid="ABC123" type="a-h-G" time="2023-01-01T00:00:00Z" start="2023-01-01T00:00:00Z" stale="2023-01-01T01:00:00Z" how="m-g" lat="34.0" lon="-117.0" hae="100.0" ce="5.0" le="5.0"><detail><contact callsign="RAVEN"/><__group name="Blue"/></detail></event>"#;
-    
+
     c.bench_function("Cot to Ditto document round-trip", |b| {
         b.iter(|| {
             let cot_event = CotEvent::from_xml(xml).unwrap();
@@ -29,15 +31,15 @@ fn bench_cot_to_document_round_trip(c: &mut Criterion) {
 // Benchmark for full pipeline: XML -> Cot -> Ditto -> Cot -> XML
 fn bench_full_pipeline(c: &mut Criterion) {
     let xml = r#"<event version="2.0" uid="ABC123" type="a-h-G" time="2023-01-01T00:00:00Z" start="2023-01-01T00:00:00Z" stale="2023-01-01T01:00:00Z" how="m-g" lat="34.0" lon="-117.0" hae="100.0" ce="5.0" le="5.0"><detail><contact callsign="RAVEN"/><__group name="Blue"/></detail></event>"#;
-    
+
     c.bench_function("Full pipeline: XML -> Cot -> Ditto -> Cot -> XML", |b| {
         b.iter(|| {
             // XML -> CotEvent
             let cot_event = CotEvent::from_xml(xml).unwrap();
-            
+
             // CotEvent -> Ditto Document
             let ditto_doc = cot_to_document(&cot_event, "test-peer");
-            
+
             // Ditto Document -> CotEvent -> XML
             let back_to_cot = ditto_doc.to_cot_event();
             let _xml_again = back_to_cot.to_xml();

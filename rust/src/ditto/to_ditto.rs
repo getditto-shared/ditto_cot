@@ -3,15 +3,12 @@
 //! This module provides functionality to transform CoT (Cursor on Target) events
 //! into Ditto documents according to the Ditto JSON schemas.
 
-pub mod schema;
-pub mod from_ditto;
-
 use crate::cot_events::CotEvent;
 
 use serde::{Deserialize, Serialize};
 // No unused imports remaining
 
-pub use schema::*;
+pub use super::schema::*;
 
 /// Convert a CoT event to the appropriate Ditto document type
 pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
@@ -44,31 +41,31 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
 pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     // Map CotEvent and peer_key to MapItem fields
     MapItem {
-        id: event.uid.clone(), // Ditto document ID
+        id: event.uid.clone(),   // Ditto document ID
         a: peer_key.to_string(), // Ditto peer key string
-        b: event.point.ce, // Circular error as a best guess
+        b: event.point.ce,       // Circular error as a best guess
         c: Some(event.detail.get("name").cloned().unwrap_or_default()), // Name/title if present
-        d: event.uid.clone(), // TAK UID of author
-        d_c: 0, // Document counter (updates), default to 0
-        d_r: false, // Soft-delete flag, default to false
-        d_v: 2, // Schema version (2)
+        d: event.uid.clone(),    // TAK UID of author
+        d_c: 0,                  // Document counter (updates), default to 0
+        d_r: false,              // Soft-delete flag, default to false
+        d_v: 2,                  // Schema version (2)
         e: event.detail.get("callsign").cloned().unwrap_or_default(), // Callsign of author
-        f: None, // Visibility flag
-        g: "".to_string(), // Version string, default empty
+        f: None,                 // Visibility flag
+        g: "".to_string(),       // Version string, default empty
         h: Some(event.point.lat), // Latitude
         i: Some(event.point.lon), // Longitude
         j: Some(event.point.hae), // Altitude
-        k: None, // Speed (not in CotEvent)
-        l: None, // Course (not in CotEvent)
+        k: None,                 // Speed (not in CotEvent)
+        l: None,                 // Course (not in CotEvent)
         n: event.start.timestamp_millis(), // Start
         o: event.stale.timestamp_millis(), // Stale
-        p: event.how.clone(), // How
-        q: "".to_string(), // Access, default empty
-        r: "".to_string(), // Detail (XML CotDetail), default empty
-        s: "".to_string(), // Opex, default empty
-        t: "".to_string(), // Qos, default empty
-        u: "".to_string(), // Caveat, default empty
-        v: "".to_string(), // Releasable to, default empty
+        p: event.how.clone(),    // How
+        q: "".to_string(),       // Access, default empty
+        r: "".to_string(),       // Detail (XML CotDetail), default empty
+        s: "".to_string(),       // Opex, default empty
+        t: "".to_string(),       // Qos, default empty
+        u: "".to_string(),       // Caveat, default empty
+        v: "".to_string(),       // Releasable to, default empty
         w: event.event_type.clone(), // Type
     }
 }
@@ -82,9 +79,12 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
     let author_callsign = event.detail.get("callsign").cloned();
     let author_uid = Some(event.uid.clone());
     let author_type = Some("user".to_string());
-    let location = Some(format!("{},{},{}", event.point.lat, event.point.lon, event.point.hae));
+    let location = Some(format!(
+        "{},{},{}",
+        event.point.lat, event.point.lon, event.point.hae
+    ));
     let time = Some(event.time.to_rfc3339());
-    
+
     // If there's no message, return None
     message.as_ref()?;
 
@@ -235,6 +235,59 @@ pub enum DittoDocument {
 }
 
 impl DittoDocument {
+    /// Returns true if this is a MapItem variant
+    pub fn is_map_item(&self) -> bool {
+        matches!(self, DittoDocument::MapItem(_))
+    }
+
+    /// Returns a reference to the inner MapItem if this is a MapItem variant
+    pub fn as_map_item(&self) -> Option<&MapItem> {
+        if let DittoDocument::MapItem(item) = self {
+            Some(item)
+        } else {
+            None
+        }
+    }
+
+    /// Returns true if this document has the specified key in its top-level fields
+    /// This is a simplified implementation that only checks a few common fields
+    pub fn has_key(&self, key: &str) -> bool {
+        match self {
+            DittoDocument::Api(_api) => match key {
+                "_id" => true,
+                "a" => true, // peer_key
+                "b" => true, // ce
+                "d" => true, // uid
+                _ => false,
+            },
+            DittoDocument::Chat(_chat) => match key {
+                "_id" => true,
+                "a" => true, // peer_key
+                "b" => true, // ce
+                "d" => true, // uid
+                "e" => true, // callsign
+                _ => false,
+            },
+            DittoDocument::File(_file) => match key {
+                "_id" => true,
+                "a" => true, // peer_key
+                "b" => true, // ce
+                "d" => true, // uid
+                "e" => true, // callsign
+                _ => false,
+            },
+            DittoDocument::MapItem(_map_item) => match key {
+                "_id" => true,
+                "a" => true, // peer_key
+                "b" => true, // ce
+                "d" => true, // uid
+                "e" => true, // callsign
+                _ => false,
+            },
+        }
+    }
+
+
     /// Converts this Ditto document back into a CoT (Cursor on Target) event.
     ///
     /// This performs a best-effort conversion, preserving as much information as possible.
@@ -261,9 +314,8 @@ mod tests {
     use super::*;
     use chrono::{DateTime, TimeZone, Utc};
     use std::collections::HashMap;
-    
+
     use crate::cot_events::CotEvent;
-    pub use schema::*;
 
     fn create_test_event(event_type: &str) -> CotEvent {
         let time = DateTime::parse_from_rfc3339("2023-01-01T00:00:00Z")
@@ -396,7 +448,7 @@ mod tests {
                 v: "".to_string(),
                 w: "a-u-emergency-g".to_string(),
                 data: Some("Test message".to_string()),
-                content_type: Some("application/json".to_string().into()),
+                content_type: Some("application/json".to_string()),
                 is_file: Some(false),
                 is_removed: Some(false),
                 tag: Some("status".to_string()),
@@ -415,14 +467,23 @@ mod tests {
             assert_eq!(event.point.hae, 100.0);
             assert_eq!(event.point.ce, 100.0);
             assert_eq!(event.point.le, 20.0);
-            
+
             // Check detail fields
-            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
-            assert_eq!(event.detail.get("contentType"), Some(&"application/json".to_string()));
-            assert_eq!(event.detail.get("message"), Some(&"Test message".to_string()));
+            assert_eq!(
+                event.detail.get("callsign"),
+                Some(&"test-callsign".to_string())
+            );
+            assert_eq!(
+                event.detail.get("contentType"),
+                Some(&"application/json".to_string())
+            );
+            assert_eq!(
+                event.detail.get("message"),
+                Some(&"Test message".to_string())
+            );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
             assert_eq!(event.detail.get("original_type"), Some(&"api".to_string()));
-            assert_eq!(event.detail.get("type"), Some(&"Test Title".to_string()));  // Mapped from title to type in conversion
+            assert_eq!(event.detail.get("type"), Some(&"Test Title".to_string())); // Mapped from title to type in conversion
             assert_eq!(event.detail.get("status"), Some(&"status".to_string()));
             assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
         }
@@ -471,17 +532,38 @@ mod tests {
             assert_eq!(event.uid, "test-chat");
             assert_eq!(event.event_type, "b-t-f");
             assert_eq!(event.how, "h-g-i-g-o");
-            
+
             // Check detail fields
-            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(
+                event.detail.get("callsign"),
+                Some(&"test-callsign".to_string())
+            );
             assert_eq!(event.detail.get("chat"), Some(&"Test message".to_string()));
             assert_eq!(event.detail.get("chatroom"), Some(&"test-room".to_string()));
-            assert_eq!(event.detail.get("chat_group_uid"), Some(&"test-room".to_string()));
-            assert_eq!(event.detail.get("author_callsign"), Some(&"test-callsign".to_string()));
-            assert_eq!(event.detail.get("author_type"), Some(&"a-f-G-U-C".to_string()));
-            assert_eq!(event.detail.get("author_uid"), Some(&"test-uid".to_string()));
-            assert_eq!(event.detail.get("location"), Some(&"41.1234,-71.1234,0.0".to_string()));
-            assert_eq!(event.detail.get("time"), Some(&"2023-01-01T00:00:00Z".to_string()));
+            assert_eq!(
+                event.detail.get("chat_group_uid"),
+                Some(&"test-room".to_string())
+            );
+            assert_eq!(
+                event.detail.get("author_callsign"),
+                Some(&"test-callsign".to_string())
+            );
+            assert_eq!(
+                event.detail.get("author_type"),
+                Some(&"a-f-G-U-C".to_string())
+            );
+            assert_eq!(
+                event.detail.get("author_uid"),
+                Some(&"test-uid".to_string())
+            );
+            assert_eq!(
+                event.detail.get("location"),
+                Some(&"41.1234,-71.1234,0.0".to_string())
+            );
+            assert_eq!(
+                event.detail.get("time"),
+                Some(&"2023-01-01T00:00:00Z".to_string())
+            );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
             assert_eq!(event.detail.get("original_type"), Some(&"chat".to_string()));
         }
@@ -528,22 +610,34 @@ mod tests {
             assert_eq!(event.uid, "test-file-id");
             assert_eq!(event.event_type, "a-f-G-U");
             assert_eq!(event.how, "h-g-i-g-o");
-            
+
             // Check point coordinates
-            assert_eq!(event.point.lat, 0.0);  // Default value when h is None
-            assert_eq!(event.point.lon, 0.0);  // Default value when i is None
-            assert_eq!(event.point.hae, 0.0);  // Default value when j is None
-            assert_eq!(event.point.ce, 1234567890.0);   // From field b in the test data
-            assert_eq!(event.point.le, 0.0);   // Default value when l is None
-            
+            assert_eq!(event.point.lat, 0.0); // Default value when h is None
+            assert_eq!(event.point.lon, 0.0); // Default value when i is None
+            assert_eq!(event.point.hae, 0.0); // Default value when j is None
+            assert_eq!(event.point.ce, 1234567890.0); // From field b in the test data
+            assert_eq!(event.point.le, 0.0); // Default value when l is None
+
             // Check detail fields
-            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(
+                event.detail.get("callsign"),
+                Some(&"test-callsign".to_string())
+            );
             assert_eq!(event.detail.get("file_name"), Some(&"test.txt".to_string()));
-            assert_eq!(event.detail.get("contentType"), Some(&"text/plain".to_string()));
+            assert_eq!(
+                event.detail.get("contentType"),
+                Some(&"text/plain".to_string())
+            );
             assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
             assert_eq!(event.detail.get("size"), Some(&"1024".to_string()));
-            assert_eq!(event.detail.get("file_token"), Some(&"file-token-123".to_string()));
-            assert_eq!(event.detail.get("item_id"), Some(&"test-item-123".to_string()));
+            assert_eq!(
+                event.detail.get("file_token"),
+                Some(&"file-token-123".to_string())
+            );
+            assert_eq!(
+                event.detail.get("item_id"),
+                Some(&"test-item-123".to_string())
+            );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
             assert_eq!(event.detail.get("original_type"), Some(&"file".to_string()));
         }
@@ -585,32 +679,38 @@ mod tests {
             assert_eq!(event.uid, "test-map-item");
             assert_eq!(event.event_type, "a-f-G-U");
             assert_eq!(event.how, "h-g-i-g-o");
-            
+
             // Check point coordinates
             assert_eq!(event.point.lat, 1.2345);
             assert_eq!(event.point.lon, 2.3456);
             assert_eq!(event.point.hae, 100.0);
             assert_eq!(event.point.ce, 1.0);
-            assert_eq!(event.point.le, 1.0);  // From field k in the test data
-            
+            assert_eq!(event.point.le, 1.0); // From field k in the test data
+
             // Check detail fields
-            assert_eq!(event.detail.get("callsign"), Some(&"test-callsign".to_string()));
+            assert_eq!(
+                event.detail.get("callsign"),
+                Some(&"test-callsign".to_string())
+            );
             assert_eq!(event.detail.get("name"), Some(&"Test Map Item".to_string()));
             assert_eq!(event.detail.get("type"), Some(&"a-f-G-U".to_string()));
             assert_eq!(event.detail.get("visible"), Some(&"true".to_string()));
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"map_item".to_string()));
+            assert_eq!(
+                event.detail.get("original_type"),
+                Some(&"map_item".to_string())
+            );
         }
 
         #[test]
         fn test_round_trip_conversion() {
             // Create a test CoT event
             let original_event = create_test_event("u-r-loc");
-            
+
             // Convert to Ditto document and back to CoT
             let doc = cot_to_document(&original_event, "test-peer");
             let round_tripped = doc.to_cot_event();
-            
+
             // Check that key fields are preserved
             assert_eq!(round_tripped.uid, original_event.uid);
             assert_eq!(round_tripped.event_type, original_event.event_type);
@@ -618,7 +718,7 @@ mod tests {
             assert_eq!(round_tripped.point.lat, original_event.point.lat);
             assert_eq!(round_tripped.point.lon, original_event.point.lon);
             assert_eq!(round_tripped.point.hae, original_event.point.hae);
-            
+
             // Check that the callsign is preserved in the detail
             assert_eq!(
                 round_tripped.detail.get("callsign"),

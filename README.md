@@ -1,6 +1,57 @@
-# cotditto
+# Ditto CoT
 
-A high-performance Rust library for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents.
+Multi-language libraries for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents.
+
+## 📁 Repository Structure
+
+```
+ditto_cot/
+├── schema/               # Shared schema definitions
+│   ├── cot_event.xsd     # XML Schema for CoT events
+│   └── ditto.schema.json # JSON Schema for Ditto documents
+├── rust/                 # Rust implementation
+├── java/                 # Java implementation
+└── csharp/              # C# implementation
+```
+
+## 🛠 Getting Started
+
+### Prerequisites
+
+- [Rust](https://www.rust-lang.org/tools/install) (for Rust implementation)
+- [Java JDK](https://adoptium.net/) 11+ (for Java implementation)
+- [.NET SDK](https://dotnet.microsoft.com/download) 6.0+ (for C# implementation)
+
+## 📚 Language-Specific Documentation
+
+### Rust
+
+See the [Rust README](rust/README.md) for detailed documentation.
+
+```toml
+[dependencies]
+cotditto = { git = "https://github.com/yourusername/ditto_cot", package = "cotditto" }
+```
+
+### Java
+
+See the [Java README](java/README.md) for detailed documentation.
+
+```xml
+<dependency>
+  <groupId>com.ditto</groupId>
+  <artifactId>ditto-cot</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
+
+### C#
+
+See the [C# README](csharp/README.md) for detailed documentation.
+
+```xml
+<PackageReference Include="Ditto.Cot" Version="1.0.0" />
+```
 
 ## ✨ Features
 
@@ -8,43 +59,15 @@ A high-performance Rust library for translating between [Cursor-on-Target (CoT)]
 - Schema-validated document types for Chat, Location, and Emergency events
 - Automatic type inference from CoT event types
 - Asynchronous Ditto SDK integration
-- Built on `serde` for flexible serialization/deserialization
-- Comprehensive test coverage
+- Comprehensive test coverage across all implementations
 
-## 📦 Installation
+## 🤝 Contributing
 
-Add to your `Cargo.toml`:
+Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-```toml
-[dependencies]
-cotditto = { git = "https://github.com/yourusername/cotditto" }
-```
+## 📄 License
 
-## 🚀 Usage
-
-### Basic Conversion
-
-Convert between CoT XML and Ditto documents:
-
-```rust
-use cotditto::{
-    cot_events::CotEvent,
-    ditto::{cot_to_document, DittoDocument},
-};
-
-// Parse CoT XML to CotEvent
-let cot_xml = r#"<event version="2.0" ...></event>"#;
-let event = CotEvent::from_xml(cot_xml)?;
-
-// Convert to Ditto document
-let doc = cot_to_document(&event, "peer-123");
-
-// Serialize to JSON
-let json = serde_json::to_string_pretty(&doc)?;
-println!("{}", json);
-```
-
-### Document Types
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 #### 1. Chat Documents
 

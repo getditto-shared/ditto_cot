@@ -31,8 +31,8 @@ jobs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          rust/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-
     
@@ -40,13 +40,16 @@ jobs:
       uses: taiki-e/install-action@nextest
     
     - name: Build
+      working-directory: ./rust
       run: cargo build --verbose --profile ci
     
     - name: Run Tests
+      working-directory: ./rust
       run: cargo nextest run --profile ci --workspace --all-features
       
     - name: Run Clippy
-      run: cargo clippy --profile ci -- -D warnings
+      working-directory: ./rust
+      run: cargo clippy --profile ci --all-targets --all-features -- -D warnings
       
     - name: Check formatting
       run: cargo fmt --all -- --check

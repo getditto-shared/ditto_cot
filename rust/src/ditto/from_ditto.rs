@@ -14,7 +14,9 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
 
     /// Helper to safely convert milliseconds since epoch to DateTime<Utc>
     fn millis_to_datetime(millis: i64) -> DateTime<Utc> {
-        Utc.timestamp_millis_opt(millis).single().unwrap_or_else(Utc::now)
+        Utc.timestamp_millis_opt(millis)
+            .single()
+            .unwrap_or_else(Utc::now)
     }
 
     /// Helper to add optional string field to detail map if it exists
@@ -38,10 +40,10 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
     match doc {
         DittoDocument::Api(api) => {
             let mut detail = HashMap::new();
-            
+
             // Map standard fields
             detail.insert("callsign".to_string(), api.e.clone());
-            
+
             // Map optional fields
             add_opt_detail(&mut detail, "type", &api.title);
             add_opt_detail(&mut detail, "message", &api.data);
@@ -49,7 +51,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "status", &api.tag);
             add_opt_detail(&mut detail, "contentType", &api.content_type);
             add_opt_num_detail(&mut detail, "timeMillis", &api.time_millis);
-            
+
             // Add any additional metadata that might be useful
             detail.insert("source".to_string(), "ditto_cot".to_string());
             detail.insert("original_type".to_string(), "api".to_string());
@@ -58,7 +60,9 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 version: "2.0".to_string(),
                 uid: api.id.clone(),
                 event_type: api.w.clone(),
-                time: api.time_millis.map_or_else(|| Utc::now(), millis_to_datetime),
+                time: api
+                    .time_millis
+                    .map_or_else(Utc::now, millis_to_datetime),
                 start: millis_to_datetime(api.n),
                 stale: millis_to_datetime(api.o),
                 how: api.p.clone(),
@@ -74,10 +78,10 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
         }
         DittoDocument::Chat(chat) => {
             let mut detail = HashMap::new();
-            
+
             // Map standard fields
             detail.insert("callsign".to_string(), chat.e.clone());
-            
+
             // Map optional chat-specific fields
             add_opt_detail(&mut detail, "chat", &chat.message);
             add_opt_detail(&mut detail, "chatroom", &chat.room);
@@ -88,18 +92,23 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "location", &chat.location);
             add_opt_detail(&mut detail, "parent", &chat.parent);
             add_opt_detail(&mut detail, "time", &chat.time);
-            
+
             // Add any additional metadata
             detail.insert("source".to_string(), "ditto_cot".to_string());
             detail.insert("original_type".to_string(), "chat".to_string());
-            
+
             // No mime field in Chat struct
 
             CotEvent {
                 version: "2.0".to_string(),
                 uid: chat.id.clone(),
                 event_type: chat.w.clone(),
-                time: chat.time.as_ref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|dt| dt.with_timezone(&Utc)).unwrap_or_else(Utc::now),
+                time: chat
+                    .time
+                    .as_ref()
+                    .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok())
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(Utc::now),
                 start: millis_to_datetime(chat.n),
                 stale: millis_to_datetime(chat.o),
                 how: chat.p.clone(),
@@ -115,10 +124,10 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
         }
         DittoDocument::File(file) => {
             let mut detail = HashMap::new();
-            
+
             // Map standard fields
             detail.insert("callsign".to_string(), file.e.clone());
-            
+
             // Map file-specific fields
             add_opt_detail(&mut detail, "file_name", &file.c);
             add_opt_detail(&mut detail, "file_token", &file.file);
@@ -126,7 +135,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "contentType", &file.content_type);
             add_opt_detail(&mut detail, "item_id", &file.item_id);
             add_opt_num_detail(&mut detail, "size", &file.sz);
-            
+
             // Add any additional metadata
             detail.insert("source".to_string(), "ditto_cot".to_string());
             detail.insert("original_type".to_string(), "file".to_string());
@@ -154,25 +163,25 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
         }
         DittoDocument::MapItem(map_item) => {
             let mut detail = HashMap::new();
-            
+
             // Map standard fields
             detail.insert("callsign".to_string(), map_item.e.clone());
-            
+
             // Map map item specific fields
             add_opt_detail(&mut detail, "name", &map_item.c);
-            
+
             // Add the event type to the detail map
             detail.insert("type".to_string(), map_item.w.clone());
-            
+
             // Add the visibility field if it exists
             if let Some(visible) = map_item.f {
                 detail.insert("visible".to_string(), visible.to_string());
             }
-            
+
             // Add any additional metadata
             detail.insert("source".to_string(), "ditto_cot".to_string());
             detail.insert("original_type".to_string(), "map_item".to_string());
-            
+
             // No mime field in MapItem struct
 
             // Use start (n) for both time and start for roundtrip fidelity
@@ -198,4 +207,3 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
         }
     }
 }
-
