@@ -176,7 +176,45 @@ cargo test test_underscore_key_handling
 
 ## 🛠️ Build System
 
-The library uses a custom build script (`build.rs`) to generate Rust code from the JSON schema. This includes special handling for underscore-prefixed fields to ensure proper serialization/deserialization.
+### Makefile
+
+The repository includes a top-level `Makefile` that provides a unified build system for all language implementations:
+
+```bash
+# Build all language libraries
+make all
+
+# Build specific language libraries
+make rust
+make java
+make csharp
+
+# Run tests
+make test        # Test all libraries
+make test-rust   # Test only Rust library
+make test-java   # Test only Java library
+make test-csharp # Test only C# library
+
+# Clean builds
+make clean        # Clean all libraries
+make clean-rust   # Clean only Rust library
+make clean-java   # Clean only Java library
+make clean-csharp # Clean only C# library
+
+# Show available commands
+make help
+```
+
+### Language-Specific Build Systems
+
+#### Rust
+The Rust library uses a custom build script (`build.rs`) to generate Rust code from the JSON schema. This includes special handling for underscore-prefixed fields to ensure proper serialization/deserialization.
+
+#### Java
+The Java library uses Gradle as its build system. The Gradle wrapper (`gradlew`) is included in the repository, so you don't need to install Gradle separately.
+
+#### C#
+The C# library uses the .NET SDK build system.
 
 ## 🤝 Contributing
 
