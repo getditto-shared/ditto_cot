@@ -6,9 +6,9 @@
       "type": "object",
       "properties": {
         "_id": { "type": "string", "description": "Ditto document ID" },
-        "d_c": { "type": "integer", "description": "Document counter (updates)" },
-        "d_v": { "type": "integer", "const": 2, "description": "Schema version (2)" },
-        "d_r": { "type": "boolean", "description": "Soft-delete flag" },
+        "_c": { "type": "integer", "description": "Document counter (updates)" },
+        "_v": { "type": "integer", "const": 2, "description": "Schema version (2)" },
+        "_r": { "type": "boolean", "description": "Soft-delete flag" },
         "a": { "type": "string", "description": "Ditto peer key string" },
         "b": { "type": "number", "description": "Millis since epoch" },
         "d": { "type": "string", "description": "TAK UID of author" },
@@ -30,7 +30,7 @@
         "v": { "type": "string", "default": "", "description": "Releasable to" },
         "w": { "type": "string", "default": "", "description": "Type" }
       },
-      "required": ["_id", "d_c", "d_v", "d_r", "a", "b", "d", "e"]
+      "required": ["_id", "_c", "_v", "_r", "a", "b", "d", "e"]
     },
     "Api": {
       "allOf": [

@@ -3,16 +3,35 @@ use std::fs::{self, File};
 use std::io::Write;
 use typify::{TypeSpace, TypeSpaceSettings};
 
-// Helper function to add serde attributes to the _id field
-fn add_serde_attributes(schema: &mut RootSchema) {
-    if let Some(Schema::Object(schema_obj)) = schema.definitions.get_mut("Common") {
-        if let Some(props) = &mut schema_obj.object {
-            if let Some(Schema::Object(schema_obj)) = props.properties.get_mut("_id") {
-                // Add serde rename attribute
-                schema_obj.extensions.insert(
+// Helper function to process underscore-prefixed keys in the Common schema
+fn process_underscore_keys(schema: &mut RootSchema) {
+    if let Some(Schema::Object(common_obj)) = schema.definitions.get_mut("Common") {
+        if let Some(props) = &mut common_obj.object {
+            // Special handling for _id - add serde rename attribute but don't rename in schema
+            if let Some(Schema::Object(id_obj)) = props.properties.get_mut("_id") {
+                id_obj.extensions.insert(
                     "x-rust-type-attributes".to_string(),
-                    serde_json::json!(["#[serde(rename = \"_id\")]", "#[schemars(rename = \"_id\")]"]),
+                    serde_json::json!([
+                        "#[serde(rename = \"_id\")]",
+                        "#[schemars(rename = \"_id\")]"
+                    ])
                 );
+            }
+            
+            // Step 2: Rename _c, _v, _r to d_c, d_v, d_r in schema (without adding x-rust-type-attributes)
+            let fields_to_rename = [("_c", "d_c"), ("_v", "d_v"), ("_r", "d_r")];
+            
+            for (old_name, new_name) in &fields_to_rename {
+                if let Some(property_schema) = props.properties.remove(*old_name) {
+                    props.properties.insert(new_name.to_string(), property_schema);
+                    
+                    // Update required fields
+                    let old_name_str = old_name.to_string();
+                    if props.required.contains(&old_name_str) {
+                        props.required.remove(&old_name_str);
+                        props.required.insert(new_name.to_string());
+                    }
+                }
             }
         }
     }
@@ -31,17 +50,27 @@ fn main() {
     let schema_str = fs::read_to_string(schema_path).expect("Failed to read schema file");
     let mut schema: RootSchema = serde_json::from_str(&schema_str).expect("Invalid JSON schema");
     
-    // Add serde attributes to the _id field
-    add_serde_attributes(&mut schema);
+    // Process underscore-prefixed keys in the Common object
+    process_underscore_keys(&mut schema);
 
     // Generate Rust code from the schema
     let mut settings = TypeSpaceSettings::default();
     settings.with_derive("schemars::JsonSchema".to_string());
     let mut type_space = TypeSpace::new(&settings);
+    
+    // Add the schema to the type space
     type_space
         .add_root_schema(schema)
         .expect("Failed to add schema");
-    let generated = type_space.to_stream().to_string();
+    
+    // Generate the Rust code
+    let mut generated = type_space.to_stream().to_string();
+    
+    // Manually patch the generated code to add serde rename attributes for d_c, d_v, d_r
+    generated = generated
+        .replace("pub d_c : i64 ,", "#[serde(rename = \"_c\")] pub d_c : i64 ,")
+        .replace("pub d_r : bool ,", "#[serde(rename = \"_r\")] pub d_r : bool ,")
+        .replace("pub d_v : i64 ,", "#[serde(rename = \"_v\")] pub d_v : i64 ,");
 
     // Write the generated code to the output file
     let mut file = File::create(out_file).expect("Failed to create output file");

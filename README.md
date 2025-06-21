@@ -58,16 +58,74 @@ See the [C# README](csharp/README.md) for detailed documentation.
 - Full CoT XML ↔ Ditto Document ↔ JSON/CRDT round-trip conversion
 - Schema-validated document types for Chat, Location, and Emergency events
 - Automatic type inference from CoT event types
+- Proper handling of underscore-prefixed fields in JSON serialization/deserialization
 - Asynchronous Ditto SDK integration
 - Comprehensive test coverage across all implementations
 
-## 🤝 Contributing
+## 🔄 Usage Examples
 
-Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+### Converting CoT XML to Ditto Documents
 
-## 📄 License
+```rust
+// Parse CoT XML into a CotEvent
+let cot_xml = "<event version='2.0' uid='ANDROID-123' type='a-f-G-U-C'...";
+let cot_event = CotEvent::from_xml(cot_xml)?;
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+// Convert to a Ditto Document
+let peer_id = "my-peer-id";
+let ditto_doc = cot_to_document(&cot_event, peer_id);
+
+// The document type is automatically inferred from the CoT event type
+match ditto_doc {
+    DittoDocument::MapItem(map_item) => {
+        println!("Received a location update");
+    },
+    DittoDocument::Chat(chat) => {
+        println!("Received a chat message");
+    },
+    // Other document types...
+}
+```
+
+### Converting Ditto Documents to CoT XML
+
+```rust
+// Convert a Ditto document to a CoT event
+let cot_event = cot_event_from_ditto_document(&ditto_doc);
+
+// Serialize to XML
+let xml = cot_event.to_xml()?;
+println!("CoT XML: {}", xml);
+```
+
+### Handling Underscore-Prefixed Fields
+
+The library properly handles underscore-prefixed fields in JSON serialization/deserialization:
+
+```rust
+// Fields with underscore prefixes in JSON are properly mapped to Rust fields
+// For example, in JSON: "_id", "_c", "_v", "_r"
+// In Rust: "id", "d_c", "d_v", "d_r"
+
+let map_item = MapItem {
+    id: "my-unique-id".to_string(),
+    d_c: 1,                        // Maps to "_c" in JSON
+    d_v: 2,                        // Maps to "_v" in JSON
+    d_r: false,                    // Maps to "_r" in JSON
+    // ... other fields
+};
+
+// When serialized to JSON, the fields will have their underscore prefixes
+let json = serde_json::to_string(&map_item)?;
+// json contains: {"_id":"my-unique-id","_c":1,"_v":2,"_r":false,...}
+
+// When deserializing from JSON, the underscore-prefixed fields are correctly mapped back
+let deserialized: MapItem = serde_json::from_str(&json)?;
+assert_eq!(deserialized.id, "my-unique-id");
+assert_eq!(deserialized.d_c, 1);
+```
+
+### Working with Document Types
 
 #### 1. Chat Documents
 
@@ -84,29 +142,49 @@ if let DittoDocument::Chat(chat) = doc {
 #### 2. Location Documents
 
 ```rust
-if let DittoDocument::Location(loc) = doc {
-    println!("Location update for {}", loc.common.author_callsign);
-    println!("Position: {},{}", 
-        loc.location.latitude, 
-        loc.location.longitude
-    );
-    println!("Accuracy: ±{}m", loc.location.circular_error);
+if let DittoDocument::MapItem(map_item) = doc {
+    println!("Location update for {}", map_item.e); // e is callsign
+    if let (Some(lat), Some(lon)) = (map_item.h, map_item.i) {
+        println!("Position: {},{}", lat, lon);
+    }
+    if let Some(ce) = map_item.k {
+        println!("Accuracy: ±{}m", ce); // circular error
+    }
 }
 ```
 
 #### 3. Emergency Documents
 
 ```rust
-if let DittoDocument::Emergency(emergency) = doc {
-    println!("EMERGENCY: {} ({})", 
-        emergency.emergency_type,
-        emergency.status
-    );
-    if let Some(details) = emergency.details {
-        println!("Details: {}", details);
-    }
+if let DittoDocument::Api(emergency) = doc {
+    println!("Emergency from {}", emergency.e); // callsign
+    // Process emergency data
 }
 ```
+
+## 🧪 Testing
+
+The library includes comprehensive tests for all functionality:
+
+```bash
+# Run all tests
+cargo test --all-targets
+
+# Run specific test
+cargo test test_underscore_key_handling
+```
+
+## 🛠️ Build System
+
+The library uses a custom build script (`build.rs`) to generate Rust code from the JSON schema. This includes special handling for underscore-prefixed fields to ensure proper serialization/deserialization.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ### Ditto Integration
 
