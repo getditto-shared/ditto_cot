@@ -12,11 +12,20 @@ use std::collections::HashMap;
 pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
     use crate::cot_events::Point;
 
-    /// Helper to safely convert milliseconds since epoch to DateTime<Utc>
-    fn millis_to_datetime(millis: i64) -> DateTime<Utc> {
-        Utc.timestamp_millis_opt(millis)
+    /// Helper to safely convert microseconds since epoch to DateTime<Utc>
+    /// Note: We use timestamp_micros to handle microsecond precision
+    fn millis_to_datetime(micros: i64) -> DateTime<Utc> {
+        // Convert microseconds to seconds and nanoseconds
+        let secs = micros / 1_000_000;
+        let nanos = ((micros % 1_000_000) * 1_000) as u32;
+        
+        // Use timestamp_opt for better error handling
+        Utc.timestamp_opt(secs, nanos)
             .single()
-            .unwrap_or_else(Utc::now)
+            .unwrap_or_else(|| {
+                eprintln!("WARN: Failed to convert timestamp {} to DateTime<Utc>", micros);
+                Utc::now()
+            })
     }
 
     /// Helper to add optional string field to detail map if it exists
@@ -52,9 +61,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "contentType", &api.content_type);
             add_opt_num_detail(&mut detail, "timeMillis", &api.time_millis);
 
-            // Add any additional metadata that might be useful
-            detail.insert("source".to_string(), "ditto_cot".to_string());
-            detail.insert("original_type".to_string(), "api".to_string());
+            // Don't add default metadata fields to preserve original detail fields
 
             CotEvent {
                 version: "2.0".to_string(),
@@ -93,9 +100,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "parent", &chat.parent);
             add_opt_detail(&mut detail, "time", &chat.time);
 
-            // Add any additional metadata
-            detail.insert("source".to_string(), "ditto_cot".to_string());
-            detail.insert("original_type".to_string(), "chat".to_string());
+            // Don't add default metadata fields to preserve original detail fields
 
             // No mime field in Chat struct
 
@@ -136,9 +141,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "item_id", &file.item_id);
             add_opt_num_detail(&mut detail, "size", &file.sz);
 
-            // Add any additional metadata
-            detail.insert("source".to_string(), "ditto_cot".to_string());
-            detail.insert("original_type".to_string(), "file".to_string());
+            // Don't add default metadata fields to preserve original detail fields
 
             // Use start (n) for both time and start for roundtrip fidelity
             let start_dt = millis_to_datetime(file.n);
@@ -164,23 +167,27 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
         DittoDocument::MapItem(map_item) => {
             let mut detail = HashMap::new();
 
-            // Map standard fields
-            detail.insert("callsign".to_string(), map_item.e.clone());
-
-            // Map map item specific fields
-            add_opt_detail(&mut detail, "name", &map_item.c);
-
-            // Add the event type to the detail map
-            detail.insert("type".to_string(), map_item.w.clone());
-
-            // Add the visibility field if it exists
-            if let Some(visible) = map_item.f {
-                detail.insert("visible".to_string(), visible.to_string());
+            // Only add callsign if it's not empty
+            if !map_item.e.is_empty() {
+                detail.insert("callsign".to_string(), map_item.e.clone());
             }
 
-            // Add any additional metadata
-            detail.insert("source".to_string(), "ditto_cot".to_string());
-            detail.insert("original_type".to_string(), "map_item".to_string());
+            // Only add name if it exists and is not empty
+            if let Some(name) = &map_item.c {
+                if !name.is_empty() {
+                    detail.insert("name".to_string(), name.clone());
+                }
+            }
+
+            // Only add type to detail if it was in the original event's detail map
+            // We don't add it by default to match the original event
+
+            // Add the visibility field if it exists and is true
+            if let Some(visible) = map_item.f {
+                if visible {
+                    detail.insert("visible".to_string(), "true".to_string());
+                }
+            }
 
             // No mime field in MapItem struct
 

@@ -12,7 +12,6 @@
 //! ## Modules
 //! - `cot_events`: Core CoT event types and parsing
 //! - `ditto`: Ditto document types and transformations
-//! - `ditto_sync`: Ditto database integration
 //! - `error`: Error types and utilities
 //! - `model`: Data models and serialization
 //! - `schema_validator`: XML schema validation
@@ -29,9 +28,6 @@ pub mod detail_parser;
 
 /// Ditto document types and transformations
 pub mod ditto;
-
-/// Ditto database integration
-pub mod ditto_sync;
 
 /// Error types and utilities
 pub mod error;

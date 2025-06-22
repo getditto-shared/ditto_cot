@@ -17,7 +17,7 @@ use uuid::Uuid;
 ///
 /// A CoT event represents a unit's status, location, or communication in a tactical network.
 /// It contains metadata about the event, location information, and a flexible detail section.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CotEvent {
     /// CoT protocol version (e.g., "2.0")
     pub version: String,
@@ -51,7 +51,7 @@ pub struct CotEvent {
 ///
 /// This is used to specify locations in the CoT protocol with associated
 /// accuracy metrics for different dimensions.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Point {
     /// Latitude in decimal degrees (WGS84)
     pub lat: f64,

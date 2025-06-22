@@ -55,10 +55,10 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         h: Some(event.point.lat), // Latitude
         i: Some(event.point.lon), // Longitude
         j: Some(event.point.hae), // Altitude
-        k: None,                 // Speed (not in CotEvent)
+        k: Some(event.point.le),  // Linear Error
         l: None,                 // Course (not in CotEvent)
-        n: event.start.timestamp_millis(), // Start
-        o: event.stale.timestamp_millis(), // Stale
+        n: event.start.timestamp_micros(), // Start (microsecond precision)
+        o: event.stale.timestamp_micros(), // Stale (microsecond precision)
         p: event.how.clone(),    // How
         q: "".to_string(),       // Access, default empty
         r: "".to_string(),       // Detail (XML CotDetail), default empty

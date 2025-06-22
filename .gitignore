@@ -2,3 +2,7 @@ target/
 
 # Generated Rust code from JSON schema
 src/ditto/schema.rs
+
+.env
+rust/.env
+java/.env
