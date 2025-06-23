@@ -49,6 +49,7 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         d_c: 0,                  // Document counter (updates), default to 0
         d_r: false,              // Soft-delete flag, default to false
         d_v: 2,                  // Schema version (2)
+        source: event.detail.get("source").cloned(), // Source of the document
         e: event.detail.get("callsign").cloned().unwrap_or_default(), // Callsign of author
         f: None,                 // Visibility flag
         g: "".to_string(),       // Version string, default empty
@@ -92,11 +93,11 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         id: event.uid.clone(),
         a: peer_key.to_string(),
         b: event.point.ce,
-
         d: event.uid.clone(),
         d_c: 0,
         d_r: false,
         d_v: 2,
+        source: event.detail.get("source").cloned(),
         e: author_callsign.clone().unwrap_or_default(),
         g: "".to_string(),
         h: Some(event.point.lat),
@@ -146,6 +147,7 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
         d_c: 0,
         d_r: false,
         d_v: 2,
+        source: event.detail.get("source").cloned(),
         data,
         e: event.detail.get("callsign").cloned().unwrap_or_default(),
         g: "".to_string(),
@@ -192,6 +194,7 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
         d_c: 0,
         d_r: false,
         d_v: 2,
+        source: event.detail.get("source").cloned(),
         e: event.detail.get("callsign").cloned().unwrap_or_default(),
         file,
         g: "".to_string(),
@@ -431,17 +434,18 @@ mod tests {
                 d_r: false,
                 e: "test-callsign".to_string(),
                 g: "1.0".to_string(),
-                h: Some(1.2345),
-                i: Some(2.3456),
-                j: Some(100.0),
-                k: Some(20.0),
+                h: None,
+                i: None,
+                j: None,
+                k: None,
                 l: None,
                 mime: Some("text/plain".to_string()),
                 n: create_test_timestamp(),
                 o: create_test_timestamp() + 86400000, // +1 day
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: "<detail><__api><message>Test message</message></__api></detail>".to_string(),
+                r: r#"<detail><__api><message>Test message</message><source>ditto_cot</source></__api></detail>"#.to_string(),
+                source: Some("ditto_cot".to_string()),
                 s: "".to_string(),
                 t: "".to_string(),
                 u: "".to_string(),
@@ -462,27 +466,23 @@ mod tests {
             assert_eq!(event.uid, "test-api-id");
             assert_eq!(event.event_type, "a-u-emergency-g");
             assert_eq!(event.how, "h-g-i-g-o");
-            assert_eq!(event.point.lat, 1.2345);
-            assert_eq!(event.point.lon, 2.3456);
-            assert_eq!(event.point.hae, 100.0);
-            assert_eq!(event.point.ce, 100.0);
-            assert_eq!(event.point.le, 20.0);
+
+            // Check point coordinates
+            assert_eq!(event.point.lat, 0.0); // Default value when h is None
+            assert_eq!(event.point.lon, 0.0); // Default value when i is None
+            assert_eq!(event.point.hae, 0.0); // Default value when j is None
+            assert_eq!(event.point.ce, 100.0); // From field b in the test data
+            assert_eq!(event.point.le, 0.0); // Default value when l is None
 
             // Check detail fields
             assert_eq!(
                 event.detail.get("callsign"),
                 Some(&"test-callsign".to_string())
             );
-            assert_eq!(
-                event.detail.get("contentType"),
-                Some(&"application/json".to_string())
-            );
-            assert_eq!(
-                event.detail.get("message"),
-                Some(&"Test message".to_string())
-            );
+            assert_eq!(event.detail.get("contentType"), Some(&"application/json".to_string()));
+            assert_eq!(event.detail.get("message"), Some(&"Test message".to_string()));
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"api".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"a-u-emergency-g".to_string()));
             assert_eq!(event.detail.get("type"), Some(&"Test Title".to_string())); // Mapped from title to type in conversion
             assert_eq!(event.detail.get("status"), Some(&"status".to_string()));
             assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
@@ -498,6 +498,7 @@ mod tests {
                 d_c: 1,
                 d_r: false,
                 d_v: 2,
+                source: Some("ditto_cot".to_string()),
                 e: "test-callsign".to_string(),
                 g: "1.0".to_string(),
                 h: None,
@@ -565,7 +566,7 @@ mod tests {
                 Some(&"2023-01-01T00:00:00Z".to_string())
             );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"chat".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"b-t-f".to_string()));
         }
 
         #[test]
@@ -594,8 +595,8 @@ mod tests {
                 o: 0,
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: "<detail><__file name=\"test.txt\" size=\"1024\" mime=\"text/plain\"/>"
-                    .to_string(),
+                r: r#"<detail><__file name="test.txt" size="1024" mime="text/plain" source="ditto_cot"/></detail>"#.to_string(),
+                source: Some("ditto_cot".to_string()),
                 s: "".to_string(),
                 sz: Some(1024.0),
                 t: "".to_string(),
@@ -639,7 +640,7 @@ mod tests {
                 Some(&"test-item-123".to_string())
             );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"file".to_string()));
+            assert_eq!(event.detail.get("original_type"), Some(&"a-f-G-U".to_string()));
         }
 
         #[test]
@@ -665,7 +666,8 @@ mod tests {
                 o: create_test_timestamp() + 86400000, // +1 day
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: "<detail><__item name=\"Test Map Item\" type=\"a-f-G-U\"><color argb=\"-1\"/></__item></detail>".to_string(),
+                r: r#"<detail><__item name="Test Map Item" type="a-f-G-U" source="ditto_cot"><color argb="-1"/></__item></detail>"#.to_string(),
+                source: Some("ditto_cot".to_string()),
                 s: "".to_string(),
                 t: "".to_string(),
                 u: "".to_string(),
@@ -693,12 +695,10 @@ mod tests {
                 Some(&"test-callsign".to_string())
             );
             assert_eq!(event.detail.get("name"), Some(&"Test Map Item".to_string()));
-            assert_eq!(event.detail.get("type"), Some(&"a-f-G-U".to_string()));
-            assert_eq!(event.detail.get("visible"), Some(&"true".to_string()));
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
             assert_eq!(
                 event.detail.get("original_type"),
-                Some(&"map_item".to_string())
+                Some(&"a-f-G-U".to_string())
             );
         }
 

@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::TimeZone;
+use chrono::{DateTime, Utc, TimeZone};
 use ditto_cot::{
     cot_events::CotEvent,
     ditto::{
@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
         .context("Failed to initialize Ditto")?;
         
     // Disable V3 sync to use DQL mutations
-    ditto.disable_sync_with_v3();
+    let _ = ditto.disable_sync_with_v3();
     
     // 5. Start Ditto sync
     println!("5. Starting Ditto sync");
@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
     println!("Starting E2E integration test");
 
     // Generate RFC3339 timestamps
-    let now = chrono::Utc::now();
+    let now = Utc::now();
     let start_time = now.to_rfc3339();
     let stale_time = (now + chrono::Duration::minutes(5)).to_rfc3339();
     let event_uid = format!("TEST-{}-1", uuid::Uuid::new_v4());
@@ -156,15 +156,15 @@ async fn main() -> Result<()> {
         uid: flat_event.uid,
         event_type: flat_event.type_,
         how: flat_event.how,
-        time: chrono::DateTime::parse_from_rfc3339(&flat_event.time)
+        time: DateTime::parse_from_rfc3339(&flat_event.time)
             .context("Failed to parse time")?
-            .with_timezone(&chrono::Utc),
-        start: chrono::DateTime::parse_from_rfc3339(&flat_event.start)
+            .with_timezone(&Utc),
+        start: DateTime::parse_from_rfc3339(&flat_event.start)
             .context("Failed to parse start time")?
-            .with_timezone(&chrono::Utc),
-        stale: chrono::DateTime::parse_from_rfc3339(&flat_event.stale)
+            .with_timezone(&Utc),
+        stale: DateTime::parse_from_rfc3339(&flat_event.stale)
             .context("Failed to parse stale time")?
-            .with_timezone(&chrono::Utc),
+            .with_timezone(&Utc),
         point: ditto_cot::cot_events::Point {
             lat: flat_event.lat,
             lon: flat_event.lon,

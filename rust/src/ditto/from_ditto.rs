@@ -61,8 +61,14 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "contentType", &api.content_type);
             add_opt_num_detail(&mut detail, "timeMillis", &api.time_millis);
 
-            // Don't add default metadata fields to preserve original detail fields
+            // Add source field if it exists in the API document
+            if let Some(source) = &api.source {
+                detail.insert("source".to_string(), source.clone());
+            }
 
+            // Add the original_type field
+            detail.insert("original_type".to_string(), api.w.clone());
+            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: api.id.clone(),
@@ -100,10 +106,16 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_detail(&mut detail, "parent", &chat.parent);
             add_opt_detail(&mut detail, "time", &chat.time);
 
-            // Don't add default metadata fields to preserve original detail fields
+            // Add source field if it exists in the chat document
+            if let Some(source) = &chat.source {
+                detail.insert("source".to_string(), source.clone());
+            }
 
             // No mime field in Chat struct
 
+            // Add the original_type field
+            detail.insert("original_type".to_string(), chat.w.clone());
+            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: chat.id.clone(),
@@ -142,16 +154,21 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             add_opt_num_detail(&mut detail, "size", &file.sz);
 
             // Don't add default metadata fields to preserve original detail fields
+            
+            // Add source field if it exists in the file
+            if let Some(source) = &file.source {
+                detail.insert("source".to_string(), source.clone());
+            }
 
-            // Use start (n) for both time and start for roundtrip fidelity
-            let start_dt = millis_to_datetime(file.n);
-
+            // Add the original_type field
+            detail.insert("original_type".to_string(), file.w.clone());
+            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: file.id.clone(),
                 event_type: file.w.clone(),
-                time: start_dt,
-                start: start_dt,
+                time: millis_to_datetime(file.n),
+                start: millis_to_datetime(file.n),
                 stale: millis_to_datetime(file.o),
                 how: file.p.clone(),
                 point: Point {
@@ -189,17 +206,22 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 }
             }
 
+            // Add source field if it exists in the map item
+            if let Some(source) = &map_item.source {
+                detail.insert("source".to_string(), source.clone());
+            }
+
             // No mime field in MapItem struct
 
-            // Use start (n) for both time and start for roundtrip fidelity
-            let start_dt = millis_to_datetime(map_item.n);
-
+            // Add the original_type field
+            detail.insert("original_type".to_string(), map_item.w.clone());
+            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: map_item.id.clone(),
                 event_type: map_item.w.clone(),
-                time: start_dt,
-                start: start_dt,
+                time: millis_to_datetime(map_item.n),
+                start: millis_to_datetime(map_item.n),
                 stale: millis_to_datetime(map_item.o),
                 how: map_item.p.clone(),
                 point: Point {

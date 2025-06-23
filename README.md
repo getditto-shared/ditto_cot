@@ -33,6 +33,15 @@ See the [Rust README](rust/README.md) for detailed documentation.
 cotditto = { git = "https://github.com/yourusername/ditto_cot", package = "cotditto" }
 ```
 
+### End-to-End (e2e) Testing for Rust
+
+The e2e test is located in `rust/examples/e2e_test.rs` and verifies integration with Ditto. To run it:
+
+- Use `cargo test --example e2e_test` from the `rust` directory.
+- Ensure Ditto dependencies are set up (e.g., via `make rust` or `cargo build`).
+
+This test checks full workflows, including schema and conversion logic.
+
 ### Java
 
 See the [Java README](java/README.md) for detailed documentation.

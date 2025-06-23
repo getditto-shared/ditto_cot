@@ -31,6 +31,7 @@ fn test_underscore_key_handling() {
         u: String::new(),
         v: String::new(),
         w: String::new(),
+        source: Some("ditto_cot".to_string()), // Add source field
     };
     
     // Serialize to JSON

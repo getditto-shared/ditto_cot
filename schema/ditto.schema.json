@@ -45,7 +45,12 @@
             "tag": { "type": "string", "description": "Optional tag" },
             "data": { "type": "string", "description": "Document data" },
             "isRemoved": { "type": "boolean", "description": "Removed on device" },
-            "timeMillis": { "type": "integer", "description": "Creation time millis" }
+            "timeMillis": { "type": "integer", "description": "Creation time millis" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
           }
         }
       ]
@@ -64,7 +69,12 @@
             "authorUid": { "type": "string", "description": "Sender UID" },
             "authorType": { "type": "string", "description": "Sender type" },
             "time": { "type": "string", "description": "Time sent" },
-            "location": { "type": "string", "description": "GeoPoint string location" }
+            "location": { "type": "string", "description": "GeoPoint string location" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
           }
         }
       ]
@@ -80,7 +90,12 @@
             "file": { "type": "string", "description": "Attachment token" },
             "mime": { "type": "string", "description": "MIME type" },
             "contentType": { "type": "string", "description": "Content type" },
-            "itemId": { "type": "string", "description": "ID of map item (if attached)" }
+            "itemId": { "type": "string", "description": "ID of map item (if attached)" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
           }
         }
       ]
@@ -92,7 +107,12 @@
           "type": "object",
           "properties": {
             "c": { "type": "string", "description": "Name or title of map item" },
-            "f": { "type": "boolean", "description": "Visibility flag" }
+            "f": { "type": "boolean", "description": "Visibility flag" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
           }
         }
       ]

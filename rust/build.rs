@@ -1,4 +1,4 @@
-use schemars::schema::{RootSchema, Schema};
+use schemars::schema::{RootSchema, Schema, SchemaObject, InstanceType, Metadata, SingleOrVec};
 use std::fs::{self, File};
 use std::io::Write;
 use typify::{TypeSpace, TypeSpaceSettings};
