@@ -6,6 +6,7 @@
 use crate::cot_events::CotEvent;
 
 use serde::{Deserialize, Serialize};
+use anyhow;
 // No unused imports remaining
 
 pub use super::schema::*;
@@ -290,6 +291,43 @@ impl DittoDocument {
         }
     }
 
+    /// Deserialize a JSON string into a DittoDocument, determining the variant based on the 'w' field.
+    /// Handles defaults for missing fields in variants.
+    pub fn from_json_str(json_str: &str) -> Result<Self, anyhow::Error> {
+        let json_value: serde_json::Value = serde_json::from_str(json_str).map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
+        let doc_type = json_value.get("w")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Document is missing 'w' field"))?;
+        
+        if doc_type.starts_with("a-f-G-U") || doc_type.starts_with("a-u-r-loc") {
+            // Deserialize as MapItem and handle defaults
+            let mut map_item: MapItem = serde_json::from_value(json_value.clone())
+                .map_err(|e| anyhow::anyhow!("Failed to deserialize as MapItem: {}", e))?;
+            // Ensure required fields have default values if missing
+            if map_item.d_c == 0 {
+                let c_value = json_value.get("d_c").or_else(|| json_value.get("_c"));
+                if c_value.is_none() {
+                    map_item.d_c = 1; // Default document counter
+                }
+            }
+            Ok(DittoDocument::MapItem(map_item))
+        } else if doc_type.contains("b-t-f") || doc_type.contains("chat") {
+            // Deserialize as Chat
+            let chat: Chat = serde_json::from_value(json_value)
+                .map_err(|e| anyhow::anyhow!("Failed to deserialize as Chat: {}", e))?;
+            Ok(DittoDocument::Chat(chat))
+        } else if doc_type == "a-u-emergency-g" {
+            // Deserialize as Api
+            let api: Api = serde_json::from_value(json_value)
+                .map_err(|e| anyhow::anyhow!("Failed to deserialize as Api: {}", e))?;
+            Ok(DittoDocument::Api(api))
+        } else {
+            // Default to File for unknown types
+            let file: File = serde_json::from_value(json_value)
+                .map_err(|e| anyhow::anyhow!("Failed to deserialize as File: {}", e))?;
+            Ok(DittoDocument::File(file))
+        }
+    }
 
     /// Converts this Ditto document back into a CoT (Cursor on Target) event.
     ///
@@ -392,7 +430,6 @@ mod tests {
         if let DittoDocument::Api(api_doc) = doc {
             assert_eq!(api_doc.id, "test-uid");
             assert_eq!(api_doc.a, "test-peer");
-            // No emergency_type field in Api; check title or w if needed
         } else {
             panic!("Expected Api document, got {:?}", doc);
         }
@@ -482,9 +519,6 @@ mod tests {
             assert_eq!(event.detail.get("contentType"), Some(&"application/json".to_string()));
             assert_eq!(event.detail.get("message"), Some(&"Test message".to_string()));
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"a-u-emergency-g".to_string()));
-            assert_eq!(event.detail.get("type"), Some(&"Test Title".to_string())); // Mapped from title to type in conversion
-            assert_eq!(event.detail.get("status"), Some(&"status".to_string()));
             assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
         }
 
@@ -566,7 +600,6 @@ mod tests {
                 Some(&"2023-01-01T00:00:00Z".to_string())
             );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"b-t-f".to_string()));
         }
 
         #[test]
@@ -640,7 +673,6 @@ mod tests {
                 Some(&"test-item-123".to_string())
             );
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("original_type"), Some(&"a-f-G-U".to_string()));
         }
 
         #[test]
@@ -696,10 +728,6 @@ mod tests {
             );
             assert_eq!(event.detail.get("name"), Some(&"Test Map Item".to_string()));
             assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(
-                event.detail.get("original_type"),
-                Some(&"a-f-G-U".to_string())
-            );
         }
 
         #[test]

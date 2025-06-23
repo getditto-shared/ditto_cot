@@ -66,9 +66,6 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 detail.insert("source".to_string(), source.clone());
             }
 
-            // Add the original_type field
-            detail.insert("original_type".to_string(), api.w.clone());
-            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: api.id.clone(),
@@ -111,11 +108,6 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 detail.insert("source".to_string(), source.clone());
             }
 
-            // No mime field in Chat struct
-
-            // Add the original_type field
-            detail.insert("original_type".to_string(), chat.w.clone());
-            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: chat.id.clone(),
@@ -160,9 +152,6 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 detail.insert("source".to_string(), source.clone());
             }
 
-            // Add the original_type field
-            detail.insert("original_type".to_string(), file.w.clone());
-            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: file.id.clone(),
@@ -211,11 +200,6 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 detail.insert("source".to_string(), source.clone());
             }
 
-            // No mime field in MapItem struct
-
-            // Add the original_type field
-            detail.insert("original_type".to_string(), map_item.w.clone());
-            
             CotEvent {
                 version: "2.0".to_string(),
                 uid: map_item.id.clone(),

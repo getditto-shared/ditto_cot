@@ -3,16 +3,18 @@ use chrono::{DateTime, Utc};
 use ditto_cot::{
     cot_events::CotEvent,
     ditto::{
-        cot_to_document, from_ditto::cot_event_from_ditto_document,
-        Api, Chat, File, MapItem, DittoDocument
+        cot_to_document, 
+        from_ditto::cot_event_from_ditto_document,
+        DittoDocument
     },
     xml_parser::parse_cot,
 };
 use dittolive_ditto::prelude::*;
 use dittolive_ditto::fs::PersistentRoot;
-use serde_json::json;
+use serde_json;
 use std::sync::Arc;
 use uuid;
+use similar::{ChangeTag, TextDiff};
 
 // Collection name for Ditto documents (unused in this example)
 #[allow(dead_code)]
@@ -202,34 +204,9 @@ async fn main() -> Result<()> {
     // Convert our DittoDocument to a serde_json::Value
     let doc_value = match ditto_doc {
         DittoDocument::MapItem(ref map_item) => {
-            let mut map = serde_json::Map::new();
-            map.insert("a".to_string(), json!(&map_item.a));
-            map.insert("b".to_string(), json!(&map_item.b));
-            if let Some(ref c) = map_item.c { map.insert("c".to_string(), json!(c)); }
-            map.insert("d".to_string(), json!(&map_item.d));
-            map.insert("_c".to_string(), json!(&map_item.d_c));
-            map.insert("_r".to_string(), json!(&map_item.d_r));
-            map.insert("_v".to_string(), json!(&map_item.d_v));
-            map.insert("e".to_string(), json!(&map_item.e));
-            if let Some(ref f) = map_item.f { map.insert("f".to_string(), json!(f)); }
-            map.insert("g".to_string(), json!(&map_item.g));
-            if let Some(ref h) = map_item.h { map.insert("h".to_string(), json!(h)); }
-            if let Some(ref i) = map_item.i { map.insert("i".to_string(), json!(i)); }
-            if let Some(ref j) = map_item.j { map.insert("j".to_string(), json!(j)); }
-            if let Some(ref k) = map_item.k { map.insert("k".to_string(), json!(k)); }
-            if let Some(ref l) = map_item.l { map.insert("l".to_string(), json!(l)); }
-            map.insert("n".to_string(), json!(&map_item.n));
-            map.insert("o".to_string(), json!(&map_item.o));
-            map.insert("p".to_string(), json!(&map_item.p));
-            map.insert("q".to_string(), json!(&map_item.q));
-            map.insert("r".to_string(), json!(&map_item.r));
-            map.insert("s".to_string(), json!(&map_item.s));
-            map.insert("t".to_string(), json!(&map_item.t));
-            map.insert("u".to_string(), json!(&map_item.u));
-            map.insert("v".to_string(), json!(&map_item.v));
-            map.insert("w".to_string(), json!(&map_item.w));
-            map.insert("_id".to_string(), json!(&doc_id));
-            serde_json::Value::Object(map)
+            let doc_value = serde_json::to_value(&map_item).unwrap();
+            // Ensure _id is explicitly set if needed, but it should be part of the serialized map_item
+            doc_value
         }
         _ => {
             println!("   Error: Expected MapItem document type");
@@ -240,9 +217,6 @@ async fn main() -> Result<()> {
     // Insert the document using DQL v2 with parameters
     let query = "INSERT INTO map_items VALUES (:document) ON ID CONFLICT DO MERGE";
     println!("Executing DQL: {}", query);
-    
-    // Convert the document to a serde_json::Value
-    let doc_value = serde_json::to_value(doc_value)?;
     
     // Execute the query with parameters
     let query_result = store.execute_v2((
@@ -284,44 +258,8 @@ async fn main() -> Result<()> {
     // 7. Convert the Ditto document back to a CotEvent
     println!("7. Converting Ditto document back to CotEvent");
     
-    // Parse the JSON into a Value first to inspect the type
-    let json_value: serde_json::Value = serde_json::from_str(&json_str)
-        .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
-    
-    // Get the document type from the 'w' field (CoT type)
-    let doc_type = json_value.get("w")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| anyhow::anyhow!("Document is missing 'w' field"))?;
-    
-    // Deserialize into the appropriate DittoDocument variant based on the type
-    let retrieved_doc = if doc_type.starts_with("a-f-G-U") || doc_type.starts_with("a-u-r-loc") {
-        // This is a MapItem - handle missing fields by providing defaults
-        let mut map_item: MapItem = serde_json::from_value(json_value.clone())
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize as MapItem: {}", e))?;
-        
-        // Ensure required fields have default values if missing
-        let c_value = json_value.get("d_c").or_else(|| json_value.get("_c"));
-        if map_item.d_c == 0 && c_value.is_none() {
-            map_item.d_c = 1; // Default document counter
-        }
-        
-        DittoDocument::MapItem(map_item)
-    } else if doc_type.contains("b-t-f") || doc_type.contains("chat") {
-        // This is a Chat
-        let chat: Chat = serde_json::from_value(json_value)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize as Chat: {}", e))?;
-        DittoDocument::Chat(chat)
-    } else if doc_type == "a-u-emergency-g" {
-        // This is an emergency (Api)
-        let api: Api = serde_json::from_value(json_value)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize as Api: {}", e))?;
-        DittoDocument::Api(api)
-    } else {
-        // Default to File for unknown types
-        let file: File = serde_json::from_value(json_value)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize as File: {}", e))?;
-        DittoDocument::File(file)
-    };
+    // Deserialize the JSON into DittoDocument using the library function
+    let retrieved_doc = DittoDocument::from_json_str(&json_str)?;
     
     let retrieved_cot_event = cot_event_from_ditto_document(&retrieved_doc);
     println!("   Successfully converted retrieved document back to CotEvent");
@@ -330,25 +268,61 @@ async fn main() -> Result<()> {
     println!("8. Verifying round-trip conversion");
     
     // Check if the original and retrieved CotEvents are equal
-    if cot_event == retrieved_cot_event {
-        println!("   SUCCESS: Original and retrieved CotEvents match!");
-        println!("\n✅ Round-trip conversion successful!");
+    println!("   Retrieved CotEvent: {:#?}", retrieved_cot_event);
+    
+    println!("   Retrieved CotEvent XML: {}", retrieved_cot_event.to_xml().unwrap_or_else(|e| format!("Error generating XML: {}", e)));
+    
+    fn compare_xml_strings(normalized_original: &str, normalized_retrieved: &str) {
+        let diff = TextDiff::from_lines(normalized_original, normalized_retrieved);
+        for change in diff.iter_all_changes() {
+            match change.tag() {
+                ChangeTag::Delete => print!("-{}", change),
+                ChangeTag::Insert => print!("+{}", change),
+                ChangeTag::Equal => print!(" {}", change),
+            }
+        }
+    }
+
+    let normalized_cot_xml = cot_xml.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+    let normalized_retrieved_xml = retrieved_cot_event.to_xml().unwrap().chars().filter(|c| !c.is_whitespace()).collect::<String>();
+    
+    if cot_event == retrieved_cot_event  {
+        println!("Original and retrieved CotEvents match!");
+        println!("Round-trip conversion successful!");
+
     } else {
-        println!("   ERROR: Original and retrieved CotEvents do not match!");
-        println!("  Original: {:#?}", cot_event);
-        println!("  Retrieved: {:#?}", retrieved_cot_event);
+        println!("ERROR: Original and retrieved CotEvents do not match!");
+        println!("Diff of CotEvent structs:");
+        println!("{:?}", cot_event);
+        println!("{:?}", retrieved_cot_event);
         println!("\n❌ Round-trip conversion failed!");
     }
     
-    println!("\nE2E test completed successfully!");
-    println!("This example demonstrated a complete round-trip conversion:");
-    println!("  - Parsed CoT XML into a FlatCotEvent");
-    println!("  - Converted to a CotEvent and then to a Ditto document");
-    println!("  - Stored in Ditto and retrieved back");
-    println!("  - Converted back to a CotEvent and verified field preservation\n");
+    // The Coup de Grace, XML in to Ditto to Ditto to XML out
+    println!("\n9. Converting CotEvent to Ditto document");
+    println!("Verifying full round-trip XML to XML conversion, will a slice of Ditto in the middle"); 
+    if normalized_cot_xml == normalized_retrieved_xml {
+        println!("SUCCESS: Original and retrieved XML strings match!");
+        println!("\n✅ Full XML to XML Round-trip conversion successful!");        
+        println!("This example demonstrated a complete round-trip conversion:");
+        println!("  - Parsed CoT XML into a FlatCotEvent");
+        println!("  - Converted to a CotEvent and then to a Ditto document");
+        println!("  - Stored in Ditto and retrieved back");
+        println!("  - Converted back to a CotEvent and verified field preservation\n");
+    } else {
+        println!("ERROR: Original and retrieved XML strings do not match!");
+        println!("Diff of XML strings:");
+        compare_xml_strings(&normalized_cot_xml, &normalized_retrieved_xml);
+        println!("\n❌ Round-trip conversion failed!");
+    }
+    
+    println!("\nE2E test completed.");
     
     println!("Note: This test uses a real Ditto instance with the online playground.");
     println!("      Make sure you have set the DITTO_APP_ID and DITTO_TOKEN environment variables.");
+    
+    // Gracefully shutdown Ditto instance
+    ditto.close();
     
     Ok(())
 }
