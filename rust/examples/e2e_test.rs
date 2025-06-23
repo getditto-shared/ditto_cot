@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc};
 use ditto_cot::{
     cot_events::CotEvent,
     ditto::{
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
     let custom_auth_url: Option<&str> = None;
     
     // Initialize Ditto with a closure that creates the identity
-    let mut ditto = Ditto::builder()
+    let ditto = Ditto::builder()
         .with_root(root.clone())
         .with_identity(|_ditto_root| {
             // This closure is called with the Ditto root
