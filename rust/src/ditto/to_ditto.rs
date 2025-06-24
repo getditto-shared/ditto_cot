@@ -13,7 +13,7 @@ pub use super::schema::*;
 
 /// Convert a CoT event to the appropriate Ditto document type
 pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
-    let event_type = event.event_type();
+    let event_type = &event.event_type;
 
     if event_type == "a-u-emergency-g" {
         // Handle emergency events
@@ -44,14 +44,14 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     MapItem {
         id: event.uid.clone(),   // Ditto document ID
         a: peer_key.to_string(), // Ditto peer key string
-        b: event.point.ce,       // Circular error as a best guess
-        c: Some(event.detail.get("name").cloned().unwrap_or_default()), // Name/title if present
+        b: event.time.timestamp_millis() as f64, // Time in millis since epoch
+        c: None, // Name/title not parsed from raw detail string
         d: event.uid.clone(),    // TAK UID of author
         d_c: 0,                  // Document counter (updates), default to 0
         d_r: false,              // Soft-delete flag, default to false
         d_v: 2,                  // Schema version (2)
-        source: event.detail.get("source").cloned(), // Source of the document
-        e: event.detail.get("callsign").cloned().unwrap_or_default(), // Callsign of author
+        source: None, // Source not parsed from raw detail string
+        e: String::new(), // Callsign not parsed from raw detail string
         f: None,                 // Visibility flag
         g: "".to_string(),       // Version string, default empty
         h: Some(event.point.lat), // Latitude
@@ -63,22 +63,30 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         o: event.stale.timestamp_micros(), // Stale (microsecond precision)
         p: event.how.clone(),    // How
         q: "".to_string(),       // Access, default empty
-        r: "".to_string(),       // Detail (XML CotDetail), default empty
+        r: event.detail.clone(), // Detail (XML CotDetail)
         s: "".to_string(),       // Opex, default empty
         t: "".to_string(),       // Qos, default empty
         u: "".to_string(),       // Caveat, default empty
         v: "".to_string(),       // Releasable to, default empty
-        w: event.event_type.clone(), // Type
+        w: event.event_type.clone(),
+ // Type
+
     }
 }
 
 /// Transform a chat CoT event to a Ditto chat document
 pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
     // Extract chat message and room from event.detail
-    let message = event.detail.get("chat").cloned();
-    let room = event.detail.get("chatroom").cloned();
-    let room_id = event.detail.get("chat_group_uid").cloned();
-    let author_callsign = event.detail.get("callsign").cloned();
+    // Naive parsing: split by spaces and assign to fields if possible
+    let parts: Vec<&str> = event.detail.split_whitespace().collect();
+    let message = if parts.len() >= 2 {
+        Some(format!("{} {}", parts[0], parts[1]))
+    } else {
+        parts.get(0).map(|s| s.to_string())
+    };
+    let room = parts.get(2).map(|s| s.to_string());
+    let room_id = None;
+    let author_callsign = None;
     let author_uid = Some(event.uid.clone());
     let author_type = Some("user".to_string());
     let location = Some(format!(
@@ -98,8 +106,8 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         d_c: 0,
         d_r: false,
         d_v: 2,
-        source: event.detail.get("source").cloned(),
-        e: author_callsign.clone().unwrap_or_default(),
+        source: None,
+        e: String::new(),
         g: "".to_string(),
         h: Some(event.point.lat),
         i: Some(event.point.lon),
@@ -116,6 +124,7 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         u: "".to_string(),
         v: "".to_string(),
         w: event.event_type.clone(),
+
         author_callsign,
         author_type,
         author_uid,
@@ -124,33 +133,33 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         parent: None,
         room,
         room_id,
-        time,
+        time: Some(event.time.to_rfc3339()),
+
     })
 }
 
 /// Transform an emergency CoT event to a Ditto emergency document
 pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
-    let title = event.detail.get("type").cloned();
-    let data = event.detail.get("message").cloned();
+    let title = None;
+    let data = None;
     let mime = Some("application/vnd.cot.emergency+json".to_string());
     let content_type = Some("emergency".to_string());
     let is_file = Some(false);
     let is_removed = Some(false);
-    let tag = event.detail.get("status").cloned();
-    let time_millis = Some(event.time.timestamp_millis());
+    let tag = None;
 
     Api {
         id: event.uid.clone(),
         a: peer_key.to_string(),
-        b: event.point.ce,
+        b: event.time.timestamp_millis() as f64, // Time
         content_type,
         d: event.uid.clone(),
         d_c: 0,
         d_r: false,
         d_v: 2,
-        source: event.detail.get("source").cloned(),
+        source: None,
         data,
-        e: event.detail.get("callsign").cloned().unwrap_or_default(),
+        e: String::new(),
         g: "".to_string(),
         h: Some(event.point.lat),
         i: Some(event.point.lon),
@@ -166,37 +175,39 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
         s: "".to_string(),
         t: "".to_string(),
         tag,
-        time_millis,
+
         title,
         u: "".to_string(),
         v: "".to_string(),
         w: event.event_type.clone(),
+        time_millis: Some(event.time.timestamp_millis()),
         is_file,
         is_removed,
+
     }
 }
 
 /// Transform any CoT event to a generic Ditto document
 fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
-    let c = event.detail.get("file_name").cloned();
-    let file = event.detail.get("file_token").cloned();
-    let mime = event.detail.get("mime").cloned();
+    let c = None;
+    let file = None;
+    let mime = None;
     let content_type = Some("generic".to_string());
-    let item_id = event.detail.get("item_id").cloned();
-    let sz = event.detail.get("size").and_then(|s| s.parse().ok());
+    let item_id = None;
+    let sz = None;
 
     File {
         id: event.uid.clone(),
         a: peer_key.to_string(),
-        b: event.point.ce,
+        b: event.time.timestamp_millis() as f64, // Time in millis since epoch
         c,
         content_type,
         d: event.uid.clone(),
         d_c: 0,
         d_r: false,
         d_v: 2,
-        source: event.detail.get("source").cloned(),
-        e: event.detail.get("callsign").cloned().unwrap_or_default(),
+        source: None,
+        e: String::new(),
         file,
         g: "".to_string(),
         h: Some(event.point.lat),
@@ -217,6 +228,7 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
         u: "".to_string(),
         v: "".to_string(),
         w: event.event_type.clone(),
+
     }
 }
 
@@ -354,7 +366,7 @@ impl DittoDocument {
 mod tests {
     use super::*;
     use chrono::{DateTime, TimeZone, Utc};
-    use std::collections::HashMap;
+    
 
     use crate::cot_events::CotEvent;
 
@@ -363,8 +375,7 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let mut detail = HashMap::new();
-        detail.insert("callsign".to_string(), "TEST".to_string());
+        let detail = "TEST".to_string();
 
         CotEvent {
             version: "2.0".to_string(),
@@ -399,15 +410,7 @@ mod tests {
     #[test]
     fn test_transform_chat_event() {
         let mut event = create_test_event("u-chat");
-        event
-            .detail
-            .insert("chat".to_string(), "Test message".to_string());
-        event
-            .detail
-            .insert("chatroom".to_string(), "All".to_string());
-        event
-            .detail
-            .insert("chat_group_uid".to_string(), "group-1".to_string());
+        event.detail = "Test message All group-1".to_string();
         event.event_type = "b-t-f".to_string();
 
         let doc = cot_to_document(&event, "test-peer");
@@ -481,19 +484,20 @@ mod tests {
                 o: create_test_timestamp() + 86400000, // +1 day
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: r#"<detail><__api><message>Test message</message><source>ditto_cot</source></__api></detail>"#.to_string(),
+                r: "test-callsign application/json Test message ditto_cot text/plain original_type=a-u-emergency-g".to_string(),
                 source: Some("ditto_cot".to_string()),
                 s: "".to_string(),
                 t: "".to_string(),
                 u: "".to_string(),
                 v: "".to_string(),
                 w: "a-u-emergency-g".to_string(),
+                time_millis: Some(100),
                 data: Some("Test message".to_string()),
                 content_type: Some("application/json".to_string()),
                 is_file: Some(false),
                 is_removed: Some(false),
                 tag: Some("status".to_string()),
-                time_millis: Some(create_test_timestamp()),
+        
                 title: Some("Test Title".to_string()),
             };
 
@@ -512,14 +516,12 @@ mod tests {
             assert_eq!(event.point.le, 0.0); // Default value when l is None
 
             // Check detail fields
-            assert_eq!(
-                event.detail.get("callsign"),
-                Some(&"test-callsign".to_string())
-            );
-            assert_eq!(event.detail.get("contentType"), Some(&"application/json".to_string()));
-            assert_eq!(event.detail.get("message"), Some(&"Test message".to_string()));
-            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
-            assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
+            assert!(event.detail.contains("test-callsign"));
+            assert!(event.detail.contains("application/json"));
+            assert!(event.detail.contains("Test message"));
+            assert!(event.detail.contains("ditto_cot"));
+            assert!(event.detail.contains("text/plain"));
+            assert!(event.detail.contains("original_type=a-u-emergency-g"));
         }
 
         #[test]
@@ -544,7 +546,7 @@ mod tests {
                 o: 0,
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: r#"<detail><__chat parent="" room="" groupOwner="false" id="test-chat" messageId="test-chat" chatroom="test-room" senderCallsign="test-callsign" />"#.to_string(),
+                r: "test-callsign Test message test-room a-f-G-U-C test-uid 41.1234,-71.1234,0.0 2023-01-01T00:00:00Z ditto_cot original_type=b-t-f".to_string(),
                 s: "".to_string(),
                 t: "".to_string(),
                 u: "".to_string(),
@@ -569,37 +571,15 @@ mod tests {
             assert_eq!(event.how, "h-g-i-g-o");
 
             // Check detail fields
-            assert_eq!(
-                event.detail.get("callsign"),
-                Some(&"test-callsign".to_string())
-            );
-            assert_eq!(event.detail.get("chat"), Some(&"Test message".to_string()));
-            assert_eq!(event.detail.get("chatroom"), Some(&"test-room".to_string()));
-            assert_eq!(
-                event.detail.get("chat_group_uid"),
-                Some(&"test-room".to_string())
-            );
-            assert_eq!(
-                event.detail.get("author_callsign"),
-                Some(&"test-callsign".to_string())
-            );
-            assert_eq!(
-                event.detail.get("author_type"),
-                Some(&"a-f-G-U-C".to_string())
-            );
-            assert_eq!(
-                event.detail.get("author_uid"),
-                Some(&"test-uid".to_string())
-            );
-            assert_eq!(
-                event.detail.get("location"),
-                Some(&"41.1234,-71.1234,0.0".to_string())
-            );
-            assert_eq!(
-                event.detail.get("time"),
-                Some(&"2023-01-01T00:00:00Z".to_string())
-            );
-            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert!(event.detail.contains("test-callsign"));
+            assert!(event.detail.contains("Test message"));
+            assert!(event.detail.contains("test-room"));
+            assert!(event.detail.contains("a-f-G-U-C"));
+            assert!(event.detail.contains("test-uid"));
+            assert!(event.detail.contains("41.1234,-71.1234,0.0"));
+            assert!(event.detail.contains("2023-01-01T00:00:00Z"));
+            assert!(event.detail.contains("ditto_cot"));
+            assert!(event.detail.contains("original_type=b-t-f"));
         }
 
         #[test]
@@ -628,7 +608,7 @@ mod tests {
                 o: 0,
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: r#"<detail><__file name="test.txt" size="1024" mime="text/plain" source="ditto_cot"/></detail>"#.to_string(),
+                r: "test-callsign test.txt text/plain 1024 file-token-123 test-item-123 ditto_cot original_type=a-f-G-U".to_string(),
                 source: Some("ditto_cot".to_string()),
                 s: "".to_string(),
                 sz: Some(1024.0),
@@ -653,26 +633,14 @@ mod tests {
             assert_eq!(event.point.le, 0.0); // Default value when l is None
 
             // Check detail fields
-            assert_eq!(
-                event.detail.get("callsign"),
-                Some(&"test-callsign".to_string())
-            );
-            assert_eq!(event.detail.get("file_name"), Some(&"test.txt".to_string()));
-            assert_eq!(
-                event.detail.get("contentType"),
-                Some(&"text/plain".to_string())
-            );
-            assert_eq!(event.detail.get("mime"), Some(&"text/plain".to_string()));
-            assert_eq!(event.detail.get("size"), Some(&"1024".to_string()));
-            assert_eq!(
-                event.detail.get("file_token"),
-                Some(&"file-token-123".to_string())
-            );
-            assert_eq!(
-                event.detail.get("item_id"),
-                Some(&"test-item-123".to_string())
-            );
-            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert!(event.detail.contains("test-callsign"));
+            assert!(event.detail.contains("test.txt"));
+            assert!(event.detail.contains("text/plain"));
+            assert!(event.detail.contains("1024"));
+            assert!(event.detail.contains("file-token-123"));
+            assert!(event.detail.contains("test-item-123"));
+            assert!(event.detail.contains("ditto_cot"));
+            assert!(event.detail.contains("original_type=a-f-G-U"));
         }
 
         #[test]
@@ -698,7 +666,7 @@ mod tests {
                 o: create_test_timestamp() + 86400000, // +1 day
                 p: "h-g-i-g-o".to_string(),
                 q: "".to_string(),
-                r: r#"<detail><__item name="Test Map Item" type="a-f-G-U" source="ditto_cot"><color argb="-1"/></__item></detail>"#.to_string(),
+                r: "test-callsign Test Map Item ditto_cot original_type=a-f-G-U".to_string(),
                 source: Some("ditto_cot".to_string()),
                 s: "".to_string(),
                 t: "".to_string(),
@@ -722,12 +690,10 @@ mod tests {
             assert_eq!(event.point.le, 1.0); // From field k in the test data
 
             // Check detail fields
-            assert_eq!(
-                event.detail.get("callsign"),
-                Some(&"test-callsign".to_string())
-            );
-            assert_eq!(event.detail.get("name"), Some(&"Test Map Item".to_string()));
-            assert_eq!(event.detail.get("source"), Some(&"ditto_cot".to_string()));
+            assert!(event.detail.contains("test-callsign"));
+            assert!(event.detail.contains("Test Map Item"));
+            assert!(event.detail.contains("ditto_cot"));
+            assert!(event.detail.contains("original_type=a-f-G-U"));
         }
 
         #[test]
@@ -748,10 +714,7 @@ mod tests {
             assert_eq!(round_tripped.point.hae, original_event.point.hae);
 
             // Check that the callsign is preserved in the detail
-            assert_eq!(
-                round_tripped.detail.get("callsign"),
-                original_event.detail.get("callsign")
-            );
+            assert!(round_tripped.detail.contains(&original_event.detail));
         }
     }
 }

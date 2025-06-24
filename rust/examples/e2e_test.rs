@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use ditto_cot::{
     cot_events::CotEvent,
     ditto::{
@@ -7,7 +7,6 @@ use ditto_cot::{
         from_ditto::cot_event_from_ditto_document,
         DittoDocument
     },
-    xml_parser::parse_cot,
 };
 use dittolive_ditto::prelude::*;
 use dittolive_ditto::fs::PersistentRoot;
@@ -135,58 +134,13 @@ async fn main() -> Result<()> {
     println!("{}", cot_xml);
     println!("--------------------------------");
     
-    // 1. Parse a CoT XML event
-    println!("1. Parsing CoT XML");
-    let flat_event = parse_cot(&cot_xml)
+    // 1. Parse a CoT XML event using the public library interface
+    println!("1. Parsing CoT XML with CotEvent::from_xml");
+    let cot_event = CotEvent::from_xml(&cot_xml)
         .with_context(|| format!("Failed to parse CoT XML: {}", cot_xml))?;
-    
-    println!("   Successfully parsed CoT XML");
-    
-    // Debug print the parsed flat event
-    println!("   Parsed FlatCotEvent: uid={}, type={}, time={}, start={}, stale={}", 
-        flat_event.uid, flat_event.type_, flat_event.time, flat_event.start, flat_event.stale);
-        
-    // Verify required fields are present
-    if flat_event.time.is_empty() || flat_event.start.is_empty() || flat_event.stale.is_empty() {
-        anyhow::bail!("Parsed event is missing required timestamp fields. Make sure the XML includes 'time', 'start', and 'stale' attributes in the event element.");
-    }
-    
-    // 2. Convert FlatCotEvent to CotEvent (manually for now)
-    println!("2. Converting FlatCotEvent to CotEvent");
-    let cot_event = CotEvent {
-        version: "2.0".to_string(),
-        uid: flat_event.uid,
-        event_type: flat_event.type_,
-        how: flat_event.how,
-        time: DateTime::parse_from_rfc3339(&flat_event.time)
-            .context("Failed to parse time")?
-            .with_timezone(&Utc),
-        start: DateTime::parse_from_rfc3339(&flat_event.start)
-            .context("Failed to parse start time")?
-            .with_timezone(&Utc),
-        stale: DateTime::parse_from_rfc3339(&flat_event.stale)
-            .context("Failed to parse stale time")?
-            .with_timezone(&Utc),
-        point: ditto_cot::cot_events::Point {
-            lat: flat_event.lat,
-            lon: flat_event.lon,
-            hae: flat_event.hae,
-            ce: flat_event.ce,
-            le: flat_event.le,
-        },
-        detail: flat_event.detail_extra
-            .into_iter()
-            .filter_map(|(k, v)| {
-                if let serde_json::Value::String(s) = v {
-                    Some((k, s))
-                } else {
-                    Some((k, v.to_string()))
-                }
-            })
-            .collect(),
-    };
-    println!("   Successfully converted to CotEvent");
-    
+    println!("   Successfully parsed CoT XML into CotEvent: uid={}, type={}, time={:?}, start={:?}, stale={:?}", 
+        cot_event.uid, cot_event.event_type, cot_event.time, cot_event.start, cot_event.stale);
+
     // 3. Convert CotEvent to Ditto document
     println!("3. Converting CotEvent to Ditto document");
     let ditto_doc = cot_to_document(&cot_event, "e2e-test-peer");

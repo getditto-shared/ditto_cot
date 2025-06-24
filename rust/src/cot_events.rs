@@ -3,11 +3,12 @@
 //! This module provides pre-defined templates for common CoT message types used in the TAK ecosystem.
 //! Each template includes the standard fields and can be customized as needed.
 
-use std::collections::HashMap;
+
 use std::io::Cursor;
 
 use chrono::{DateTime, Utc};
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
+use std::io::Write;
 use quick_xml::{Reader, Writer};
 
 use crate::error::CotError;
@@ -43,8 +44,8 @@ pub struct CotEvent {
     /// Geographic location and accuracy information
     pub point: Point,
 
-    /// Additional event-specific details as key-value pairs
-    pub detail: HashMap<String, String>,
+    /// Raw XML for the <detail> element
+    pub detail: String,
 }
 
 /// Represents a geographic point with elevation and accuracy information.
@@ -89,7 +90,7 @@ impl Default for CotEvent {
                 ce: 999999.0, // Default high error values
                 le: 999999.0,
             },
-            detail: HashMap::new(),
+            detail: String::new(),
         }
     }
 }
@@ -105,20 +106,6 @@ impl CotEvent {
         &self.uid
     }
 
-    /// Returns the callsign from the event's detail map, if available
-    pub fn callsign(&self) -> Option<&str> {
-        self.detail.get("callsign").map(|s| s.as_str())
-    }
-
-    /// Returns a reference to the event type
-    pub fn event_type(&self) -> &str {
-        &self.event_type
-    }
-
-    /// Returns the chat message from the event's detail map, if available
-    pub fn chat_message(&self) -> Option<&str> {
-        self.detail.get("chat").map(|s| s.as_str())
-    }
     /// Converts the CotEvent to an XML string
     pub fn to_xml(&self) -> Result<String, CotError> {
         let mut writer = Writer::new(Cursor::new(Vec::new()));
@@ -144,66 +131,18 @@ impl CotEvent {
         point_start.push_attribute(("le", self.point.le.to_string().as_str()));
         writer.write_event(Event::Empty(point_start))?;
 
-        // Write detail elements
+        // Write detail element as raw XML string if present
         if !self.detail.is_empty() {
-            let detail_start = BytesStart::new("detail");
-            writer.write_event(Event::Start(detail_start))?;
-
-            // Special handling for chat messages
-            if self.event_type == "b-t-f" {
-                if let Some(chat) = self.detail.get("chat") {
-                    let mut chat_elem = BytesStart::new("chat");
-                    chat_elem.push_attribute(("message", chat.as_str()));
-                    if let Some(chatroom) = self.detail.get("chatroom") {
-                        chat_elem.push_attribute(("chatroom", chatroom.as_str()));
-                    }
-                    if let Some(chatgrp) = self.detail.get("chatgrp") {
-                        chat_elem.push_attribute(("chatgrp", chatgrp.as_str()));
-                    }
-                    if let Some(sender) = self.detail.get("senderCallsign") {
-                        chat_elem.push_attribute(("senderCallsign", sender.as_str()));
-                    }
-                    writer.write_event(Event::Empty(chat_elem))?;
-                }
-            }
-            // Special handling for emergency events
-            else if self.event_type == "b-a-o-can" {
-                if let Some(emergency) = self.detail.get("emergency") {
-                    let mut emergency_elem = BytesStart::new("emergency");
-                    emergency_elem.push_attribute(("type", emergency.as_str()));
-                    writer.write_event(Event::Empty(emergency_elem))?;
-                }
-
-                if let Some(remarks) = self.detail.get("remarks") {
-                    let remarks_elem = BytesStart::new("remarks");
-                    writer.write_event(Event::Start(remarks_elem))?;
-                    writer.write_event(Event::Text(BytesText::new(remarks)))?;
-                    writer.write_event(Event::End(BytesEnd::new("remarks")))?;
-                }
+            if self.detail.trim_start().starts_with("<detail") {
+                // Inject the full <detail>...</detail> block directly, unescaped
+                writer.get_mut().write_all(self.detail.as_bytes()).map_err(|e| quick_xml::Error::Io(std::sync::Arc::new(e)))?;
             } else {
-                // Handle other detail elements
-                for (key, value) in &self.detail {
-                    if key.contains('.') {
-                        // Handle nested elements with dot notation
-                        let parts: Vec<&str> = key.splitn(2, '.').collect();
-                        if parts.len() == 2 {
-                            let elem_name = parts[0];
-                            let attr_name = parts[1];
-
-                            let mut elem = BytesStart::new(elem_name);
-                            elem.push_attribute((attr_name, value.as_str()));
-                            writer.write_event(Event::Empty(elem))?;
-                        }
-                    } else {
-                        // Handle top-level elements
-                        let mut elem = BytesStart::new(key.as_str());
-                        elem.push_attribute(("value", value.as_str()));
-                        writer.write_event(Event::Empty(elem))?;
-                    }
-                }
+                // Legacy: wrap in <detail>...</detail>
+                let detail_start = BytesStart::new("detail");
+                writer.write_event(Event::Start(detail_start))?;
+                writer.write_event(Event::Text(BytesText::new(&self.detail)))?;
+                writer.write_event(Event::End(BytesEnd::new("detail")))?;
             }
-
-            writer.write_event(Event::End(BytesEnd::new("detail")))?;
         }
 
         writer.write_event(Event::End(BytesEnd::new("event")))?;
@@ -219,10 +158,9 @@ impl CotEvent {
 
         let mut event = CotEvent::default();
         let mut buf = Vec::new();
-        let mut current_element: Option<String> = None;
         let mut in_detail = false;
+        let mut detail_buf = Vec::new();
 
-        // Parse the XML document
         loop {
             buf.clear();
             match reader.read_event_into(&mut buf) {
@@ -289,70 +227,32 @@ impl CotEvent {
                         );
                     }
                     b"detail" => {
-                        in_detail = true;
-                        // Process detail attributes if any
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            let key = format!("detail.{}", String::from_utf8(attr.key.0.to_vec())?);
-                            let value = attr.unescape_value()?.to_string();
-                            event.detail.insert(key, value);
-                        }
-                    }
-                    b"chat" => {
-                        // Special handling for chat messages
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            match attr.key.0 {
-                                b"message" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("chat".to_string(), value);
-                                }
-                                b"chatroom" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("chatroom".to_string(), value);
-                                }
-                                b"chatgrp" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("chatgrp".to_string(), value);
-                                }
-                                b"senderCallsign" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("senderCallsign".to_string(), value);
-                                }
-                                _ => {}
+                        // Capture the entire <detail>...</detail> block as a string
+                        let detail_start = reader.buffer_position() - e.name().0.len() - 2; // -2 for < and >
+                        let mut depth = 1;
+                        let mut detail_end = detail_start;
+                        
+                        loop {
+                            buf.clear();
+                            match reader.read_event_into(&mut buf) {
+                                Ok(Event::Start(ref e2)) if e2.name().as_ref() == b"detail" => depth += 1,
+                                Ok(Event::End(ref e2)) if e2.name().as_ref() == b"detail" => {
+                                    depth -= 1;
+                                    if depth == 0 {
+                                        detail_end = reader.buffer_position();
+                                        break;
+                                    }
+                                },
+                                Ok(Event::Eof) => break,
+                                Ok(_) => {},
+                                Err(_) => break,
                             }
                         }
+                        let xml_bytes = xml.as_bytes();
+                        let detail_xml = &xml_bytes[detail_start..detail_end];
+                        event.detail = String::from_utf8_lossy(detail_xml).to_string();
                     }
-                    b"emergency" => {
-                        // Special handling for emergency elements
-                        println!("Found emergency element");
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            if attr.key.0 == b"type" {
-                                let value = attr.unescape_value()?.to_string();
-                                println!("Parsed emergency type: {}", value);
-                                event.detail.insert("emergency".to_string(), value);
-                            }
-                        }
-                    }
-                    _ if in_detail => {
-                        // Inside detail element, handle nested elements
-                        let name = String::from_utf8(e.name().as_ref().to_vec())?;
-                        current_element = Some(name.clone());
-
-                        // Process attributes of this element
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            let key =
-                                format!("{}.{}", name, String::from_utf8(attr.key.0.to_vec())?);
-                            let value = attr.unescape_value()?.to_string();
-                            event.detail.insert(key, value);
-                        }
-                    }
-                    _ => {
-                        // Handle other start elements outside detail
-                        current_element = Some(String::from_utf8(e.name().as_ref().to_vec())?);
-                    }
+                    _ => {}
                 },
                 Ok(Event::Empty(e)) => {
                     // Handle self-closing elements
@@ -402,83 +302,30 @@ impl CotEvent {
                             event.point.lat, event.point.lon
                         );
                     }
-                    // Special handling for chat messages
-                    else if name == "chat" {
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            match attr.key.0 {
-                                b"message" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("chat".to_string(), value);
-                                }
-                                b"chatroom" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("chatroom".to_string(), value);
-                                }
-                                b"chatgrp" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("chatgrp".to_string(), value);
-                                }
-                                b"senderCallsign" => {
-                                    let value = attr.unescape_value()?.to_string();
-                                    event.detail.insert("senderCallsign".to_string(), value);
-                                }
-                                _ => {}
-                            }
-                        }
+                }
+                Ok(Event::End(e)) => match e.name().as_ref() {
+                    b"detail" => {
+                        in_detail = false;
+                        event.detail = String::from_utf8_lossy(&detail_buf)
+                            .replace('\n', "")
+                            .replace("\r", "")
+                            .trim()
+                            .to_string();
                     }
-                    // Special handling for emergency elements
-                    else if name == "emergency" {
-                        println!("Found emergency element (Empty)");
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            if attr.key.0 == b"type" {
-                                let value = attr.unescape_value()?.to_string();
-                                println!("Parsed emergency type (Empty): {}", value);
-                                event.detail.insert("emergency".to_string(), value);
-                            }
-                        }
-                    } else {
-                        // Handle other self-closing elements
-                        for attr in e.attributes() {
-                            let attr = attr?;
-                            let key = if in_detail {
-                                format!("{}.{}", name, String::from_utf8(attr.key.0.to_vec())?)
-                            } else {
-                                format!(
-                                    "detail.{}.{}",
-                                    name,
-                                    String::from_utf8(attr.key.0.to_vec())?
-                                )
-                            };
-                            let value = attr.unescape_value()?.to_string();
-                            event.detail.insert(key, value);
-                        }
+                    b"event" => {
+                        // End of event element, we're done
+                        return Ok(event);
                     }
-                }
-                Ok(Event::End(e)) if e.name().as_ref() == b"detail" => {
-                    // End of detail element
-                    in_detail = false;
-                }
-                Ok(Event::End(e)) if e.name().as_ref() == b"event" => {
-                    // End of event element, we're done
-                    return Ok(event);
-                }
-                Ok(Event::End(_)) => {
-                    // End of some other element
-                    current_element = None;
-                }
+                    _ => {}
+                },
                 Ok(Event::Text(e)) => {
-                    if let Some(name) = &current_element {
-                        let value = e.unescape()?.to_string();
-                        if !value.trim().is_empty() {
-                            // For elements inside detail, store with proper namespacing
-                            if in_detail {
-                                event.detail.insert(name.clone(), value);
-                            } else {
-                                event.detail.insert(format!("detail.{}", name), value);
-                            }
-                        }
+                    if in_detail {
+                        detail_buf.extend_from_slice(e.unescape()?.as_bytes());
+                    }
+                }
+                Ok(Event::CData(e)) => {
+                    if in_detail {
+                        detail_buf.extend_from_slice(e.as_ref());
                     }
                 }
                 Ok(Event::Eof) => break,
@@ -514,36 +361,23 @@ impl CotEvent {
         hae: f64,
     ) -> Self {
         let now = Utc::now();
-        let mut event = Self {
+        Self {
             version: "2.0".to_string(),
             uid: uid.to_string(),
-            event_type: "a-f-G-U-C".to_string(), // Default location update type
+            event_type: "a-f-G-U-C".to_string(),
             time: now,
             start: now,
             stale: now + chrono::Duration::minutes(5),
-            how: "h-g-i-g-o".to_string(), // Human-input GPS general
+            how: "h-g-i-g-o".to_string(),
             point: Point {
                 lat,
                 lon,
                 hae,
-                ce: 10.0, // Default circular error in meters
-                le: 10.0, // Default linear error in meters
+                ce: 10.0,
+                le: 10.0,
             },
-            detail: HashMap::new(),
-        };
-
-        // Add contact and group details
-        event
-            .detail
-            .insert("contact.callsign".to_string(), callsign.to_string());
-        event
-            .detail
-            .insert("__group.name".to_string(), team.to_string());
-        event
-            .detail
-            .insert("__group.role".to_string(), "Team Member".to_string());
-
-        event
+            detail: format!("location update: callsign={}, team={}", callsign, team),
+        }
     }
 
     /// Creates a new chat message event
@@ -555,20 +389,8 @@ impl CotEvent {
         chat_group_uid: &str,
     ) -> Self {
         let now = Utc::now();
-        let uid = format!(
-            "Chat-{}-{}-{}",
-            sender_uid,
-            uuid::Uuid::new_v4(),
-            now.timestamp_millis()
-        );
-
-        let mut detail = HashMap::new();
-        detail.insert("chat".to_string(), message.to_string());
-        detail.insert("chatroom".to_string(), chatroom.to_string());
-        detail.insert("chatgrp".to_string(), chat_group_uid.to_string());
-        detail.insert("senderCallsign".to_string(), sender_callsign.to_string());
-
-        CotEvent {
+        let uid = format!("Chat-{}-", sender_uid);
+        Self {
             version: "2.0".to_string(),
             uid,
             event_type: "b-t-f".to_string(),
@@ -576,18 +398,12 @@ impl CotEvent {
             start: now,
             stale: now + chrono::Duration::minutes(5),
             how: "h-g-i-g-o".to_string(),
-            point: Point {
-                lat: 0.0,
-                lon: 0.0,
-                hae: 0.0,
-                ce: 999999.0,
-                le: 999999.0,
-            },
-            detail,
+            point: Point::default(),
+            detail: format!("<detail>chat from={} room={} msg={}</detail>", sender_callsign, chatroom, message),
         }
     }
 
-    /// Creates a new emergency signal (911) event
+    /// Creates a new emergency event
     pub fn new_emergency(
         uid: &str,
         callsign: &str,
@@ -596,21 +412,23 @@ impl CotEvent {
         emergency_type: &str,
         message: &str,
     ) -> Self {
-        let mut detail = HashMap::new();
-        detail.insert("emergency".to_string(), emergency_type.to_string());
-        detail.insert("contact.callsign".to_string(), callsign.to_string());
-        detail.insert("remarks".to_string(), message.to_string());
-
+        let now = Utc::now();
         Self {
+            version: "2.0".to_string(),
             uid: uid.to_string(),
-            event_type: "b-a-o-can".to_string(), // Emergency
+            event_type: "b-a-o-can".to_string(),
+            time: now,
+            start: now,
+            stale: now + chrono::Duration::minutes(5),
+            how: "h-g-i-g-o".to_string(),
             point: Point {
                 lat,
                 lon,
-                ..Default::default()
+                hae: 0.0,
+                ce: 10.0,
+                le: 10.0,
             },
-            detail,
-            ..Default::default()
+            detail: format!("<detail>emergency: type={} msg={}</detail>", emergency_type, message),
         }
     }
 }
@@ -630,8 +448,7 @@ mod tests {
         assert_eq!(event.point.lat, 34.12345);
         assert_eq!(event.point.lon, -118.12345);
         assert_eq!(event.point.hae, 150.0);
-        assert_eq!(event.detail.get("contact.callsign").unwrap(), "ALPHA-1");
-        assert_eq!(event.detail.get("__group.name").unwrap(), "Cyan");
+        assert_eq!(event.detail, "location update: callsign=ALPHA-1, team=Cyan");
     }
 
     #[test]
@@ -644,10 +461,12 @@ mod tests {
             "All Chat Rooms",
         );
 
+        assert_eq!(event.uid, "Chat-USER-123-");
         assert_eq!(event.event_type, "b-t-f");
-        assert!(event.uid.contains("USER-123"));
-        assert_eq!(event.detail.get("chat").unwrap(), "Test message");
-        assert_eq!(event.detail.get("chatroom").unwrap(), "All Chat Rooms");
+        assert_eq!(event.point.lat, 0.0);
+        assert_eq!(event.point.lon, 0.0);
+        assert_eq!(event.point.hae, 0.0);
+        assert_eq!(event.detail, "<detail>chat from=ALPHA-1 room=All Chat Rooms msg=Test message</detail>");
     }
 
     #[test]
@@ -663,10 +482,6 @@ mod tests {
 
         assert_eq!(event.uid, "USER-123");
         assert_eq!(event.event_type, "b-a-o-can");
-        assert_eq!(event.detail.get("emergency").unwrap(), "Emergency-911");
-        assert_eq!(
-            event.detail.get("remarks").unwrap(),
-            "Need immediate assistance!"
-        );
+        assert_eq!(event.detail, "<detail>emergency: type=Emergency-911 msg=Need immediate assistance!</detail>");
     }
 }

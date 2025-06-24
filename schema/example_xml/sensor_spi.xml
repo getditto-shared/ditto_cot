@@ -1,0 +1,14 @@
+<event version="2.0"
+       uid="SENSOR-001"
+       type="b-m-p-s-p-i"
+       time="2025-06-24T14:15:00Z"
+       start="2025-06-24T14:15:00Z"
+       stale="2025-06-24T14:25:00Z"
+       how="m-p">
+  <point lat="35.689487" lon="139.691711" hae="150.0" ce="5.0" le="3.0"/>
+  <detail>
+    <sensor>
+      <name>ThermalCam-X</name>
+    </sensor>
+  </detail>
+</event>
