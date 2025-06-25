@@ -60,7 +60,9 @@ jobs:
         cargo clippy --profile ci --all-targets --all-features -- -D warnings
       
     - name: Check formatting
+      working-directory: ./rust
       run: cargo fmt --all -- --check
       
     - name: Run Benchmarks
+      working-directory: ./rust
       run: cargo bench --profile ci || true
