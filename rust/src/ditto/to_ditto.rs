@@ -93,7 +93,6 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         "{},{},{}",
         event.point.lat, event.point.lon, event.point.hae
     ));
-    let time = Some(event.time.to_rfc3339());
 
     // If there's no message, return None
     message.as_ref()?;

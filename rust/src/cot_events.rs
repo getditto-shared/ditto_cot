@@ -422,7 +422,7 @@ event.detail = detail_str;
         sender_callsign: &str,
         message: &str,
         chatroom: &str,
-        chat_group_uid: &str,
+        _chat_group_uid: &str,
     ) -> Self {
         let now = Utc::now();
         let uid = format!("Chat-{}-", sender_uid);
@@ -442,7 +442,7 @@ event.detail = detail_str;
     /// Creates a new emergency event
     pub fn new_emergency(
         uid: &str,
-        callsign: &str,
+        _callsign: &str,
         lat: f64,
         lon: f64,
         emergency_type: &str,

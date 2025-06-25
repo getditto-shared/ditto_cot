@@ -121,13 +121,13 @@ fn test_complete_cot_parsing() -> Result<(), CotError> {
           stale="2023-01-01T12:05:00Z" 
           how="h-g-i-g-o">
         <point lat="34.12345" lon="-118.12345" hae="150.0" ce="10.0" le="20.0"/>
-        <detail>
-            <contact callsign="ALPHA-1" phone="123-456-7890"/>
-            <__group name="Cyan" role="Team Member"/>
-            <track course="123.45" speed="5.0"/>
-            <status battery="85"/>
-            <usericon iconsetpath="COT_MAPPING_2525B/..."/>
-        </detail>
+    <detail>
+    <contact callsign="ALPHA-1" phone="123-456-7890"/>
+    <__group name="Cyan" role="Team Member"/>
+    <track course="123.45" speed="5.0"/>
+    <status battery="85"/>
+    <usericon iconsetpath="COT_MAPPING_2525B/..."/>
+    </detail>
     </event>"#;
 
     let event = CotEvent::from_xml(xml)?;

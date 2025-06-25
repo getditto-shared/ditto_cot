@@ -13,7 +13,6 @@ use dittolive_ditto::fs::PersistentRoot;
 use serde_json;
 use std::sync::Arc;
 use uuid;
-use similar::{ChangeTag, TextDiff};
 
 // Collection name for Ditto documents (unused in this example)
 #[allow(dead_code)]
