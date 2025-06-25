@@ -5,8 +5,8 @@
 
 use crate::cot_events::CotEvent;
 
-use serde::{Deserialize, Serialize};
 use anyhow;
+use serde::{Deserialize, Serialize};
 // No unused imports remaining
 
 pub use super::schema::*;
@@ -42,35 +42,34 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
 pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     // Map CotEvent and peer_key to MapItem fields
     MapItem {
-        id: event.uid.clone(),   // Ditto document ID
-        a: peer_key.to_string(), // Ditto peer key string
+        id: event.uid.clone(),                   // Ditto document ID
+        a: peer_key.to_string(),                 // Ditto peer key string
         b: event.time.timestamp_millis() as f64, // Time in millis since epoch
-        c: None, // Name/title not parsed from raw detail string
-        d: event.uid.clone(),    // TAK UID of author
-        d_c: 0,                  // Document counter (updates), default to 0
-        d_r: false,              // Soft-delete flag, default to false
-        d_v: 2,                  // Schema version (2)
-        source: None, // Source not parsed from raw detail string
-        e: String::new(), // Callsign not parsed from raw detail string
-        f: None,                 // Visibility flag
-        g: "".to_string(),       // Version string, default empty
-        h: Some(event.point.lat), // Latitude
-        i: Some(event.point.lon), // Longitude
-        j: Some(event.point.hae), // Altitude
-        k: Some(event.point.le),  // Linear Error
-        l: None,                 // Course (not in CotEvent)
-        n: event.start.timestamp_micros(), // Start (microsecond precision)
-        o: event.stale.timestamp_micros(), // Stale (microsecond precision)
-        p: event.how.clone(),    // How
-        q: "".to_string(),       // Access, default empty
-        r: event.detail.clone(), // Detail (XML CotDetail)
-        s: "".to_string(),       // Opex, default empty
-        t: "".to_string(),       // Qos, default empty
-        u: "".to_string(),       // Caveat, default empty
-        v: "".to_string(),       // Releasable to, default empty
+        c: None,                                 // Name/title not parsed from raw detail string
+        d: event.uid.clone(),                    // TAK UID of author
+        d_c: 0,                                  // Document counter (updates), default to 0
+        d_r: false,                              // Soft-delete flag, default to false
+        d_v: 2,                                  // Schema version (2)
+        source: None,                            // Source not parsed from raw detail string
+        e: String::new(),                        // Callsign not parsed from raw detail string
+        f: None,                                 // Visibility flag
+        g: "".to_string(),                       // Version string, default empty
+        h: Some(event.point.lat),                // Latitude
+        i: Some(event.point.lon),                // Longitude
+        j: Some(event.point.hae),                // Altitude
+        k: Some(event.point.le),                 // Linear Error
+        l: None,                                 // Course (not in CotEvent)
+        n: event.start.timestamp_micros(),       // Start (microsecond precision)
+        o: event.stale.timestamp_micros(),       // Stale (microsecond precision)
+        p: event.how.clone(),                    // How
+        q: "".to_string(),                       // Access, default empty
+        r: event.detail.clone(),                 // Detail (XML CotDetail)
+        s: "".to_string(),                       // Opex, default empty
+        t: "".to_string(),                       // Qos, default empty
+        u: "".to_string(),                       // Caveat, default empty
+        v: "".to_string(),                       // Releasable to, default empty
         w: event.event_type.clone(),
- // Type
-
+        // Type
     }
 }
 
@@ -82,7 +81,7 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
     let message = if parts.len() >= 2 {
         Some(format!("{} {}", parts[0], parts[1]))
     } else {
-        parts.get(0).map(|s| s.to_string())
+        parts.first().map(|s| s.to_string())
     };
     let room = parts.get(2).map(|s| s.to_string());
     let room_id = None;
@@ -133,7 +132,6 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         room,
         room_id,
         time: Some(event.time.to_rfc3339()),
-
     })
 }
 
@@ -182,7 +180,6 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
         time_millis: Some(event.time.timestamp_millis()),
         is_file,
         is_removed,
-
     }
 }
 
@@ -227,7 +224,6 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
         u: "".to_string(),
         v: "".to_string(),
         w: event.event_type.clone(),
-
     }
 }
 
@@ -305,11 +301,13 @@ impl DittoDocument {
     /// Deserialize a JSON string into a DittoDocument, determining the variant based on the 'w' field.
     /// Handles defaults for missing fields in variants.
     pub fn from_json_str(json_str: &str) -> Result<Self, anyhow::Error> {
-        let json_value: serde_json::Value = serde_json::from_str(json_str).map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
-        let doc_type = json_value.get("w")
+        let json_value: serde_json::Value = serde_json::from_str(json_str)
+            .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
+        let doc_type = json_value
+            .get("w")
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("Document is missing 'w' field"))?;
-        
+
         if doc_type.starts_with("a-f-G-U") || doc_type.starts_with("a-u-r-loc") {
             // Deserialize as MapItem and handle defaults
             let mut map_item: MapItem = serde_json::from_value(json_value.clone())
@@ -365,7 +363,6 @@ impl DittoDocument {
 mod tests {
     use super::*;
     use chrono::{DateTime, TimeZone, Utc};
-    
 
     use crate::cot_events::CotEvent;
 
@@ -496,7 +493,6 @@ mod tests {
                 is_file: Some(false),
                 is_removed: Some(false),
                 tag: Some("status".to_string()),
-        
                 title: Some("Test Title".to_string()),
             };
 

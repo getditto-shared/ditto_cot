@@ -33,15 +33,15 @@ fn test_underscore_key_handling() {
         w: String::new(),
         source: Some("ditto_cot".to_string()), // Add source field
     };
-    
+
     // Serialize to JSON
     let json = serde_json::to_string(&map_item).unwrap();
     println!("Serialized JSON: {}", json);
-    
-    // Verify that the JSON contains _id 
+
+    // Verify that the JSON contains _id
     assert!(json.contains("\"_id\":"));
     assert!(!json.contains("\"id\":"));
-    
+
     // Verify that _c, _v, _r are used in JSON (not d_c, d_v, d_r)
     assert!(json.contains("\"_c\":"));
     assert!(!json.contains("\"d_c\":"));
@@ -49,7 +49,7 @@ fn test_underscore_key_handling() {
     assert!(!json.contains("\"d_v\":"));
     assert!(json.contains("\"_r\":"));
     assert!(!json.contains("\"d_r\":"));
-    
+
     // Deserialize from JSON with underscore-prefixed keys
     let json_with_underscores = json!({
         "_id": "test-id-456",
@@ -61,12 +61,12 @@ fn test_underscore_key_handling() {
         "_v": 2,
         "e": "Author 2"
     });
-    
+
     let deserialized: MapItem = serde_json::from_value(json_with_underscores).unwrap();
-    
+
     // Verify that the underscore-prefixed fields were correctly mapped to their Rust field names
     assert_eq!(deserialized.id, "test-id-456");
     assert_eq!(deserialized.d_c, 1);
-    assert_eq!(deserialized.d_r, true);
+    assert!(deserialized.d_r);
     assert_eq!(deserialized.d_v, 2);
 }

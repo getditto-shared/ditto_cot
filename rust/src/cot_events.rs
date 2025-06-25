@@ -3,20 +3,14 @@
 //! This module provides pre-defined templates for common CoT message types used in the TAK ecosystem.
 //! Each template includes the standard fields and can be customized as needed.
 
-
-
-
 use chrono::{DateTime, Utc};
-
-
-
 
 use crate::error::CotError;
 
-use uuid::Uuid;
+use crate::xml_utils::format_cot_float;
 use quick_xml::events::Event;
 use quick_xml::Reader;
-use crate::xml_utils::format_cot_float;
+use uuid::Uuid;
 
 /// Represents a Cursor on Target (CoT) event with all standard fields.
 ///
@@ -265,28 +259,30 @@ impl CotEvent {
                         let detail_start = reader.buffer_position() - e.name().0.len() - 2; // -2 for < and >
                         let mut depth = 1;
                         let mut detail_end = detail_start;
-                        
+
                         loop {
                             buf.clear();
                             match reader.read_event_into(&mut buf) {
-                                Ok(Event::Start(ref e2)) if e2.name().as_ref() == b"detail" => depth += 1,
+                                Ok(Event::Start(ref e2)) if e2.name().as_ref() == b"detail" => {
+                                    depth += 1
+                                }
                                 Ok(Event::End(ref e2)) if e2.name().as_ref() == b"detail" => {
                                     depth -= 1;
                                     if depth == 0 {
                                         detail_end = reader.buffer_position();
                                         break;
                                     }
-                                },
+                                }
                                 Ok(Event::Eof) => break,
-                                Ok(_) => {},
+                                Ok(_) => {}
                                 Err(_) => break,
                             }
                         }
                         let xml_bytes = xml.as_bytes();
                         let detail_xml = &xml_bytes[detail_start..detail_end];
                         // Normalize whitespace: remove newlines, carriage returns, and trim
-let detail_str = String::from_utf8_lossy(detail_xml).to_string();
-event.detail = detail_str;
+                        let detail_str = String::from_utf8_lossy(detail_xml).to_string();
+                        event.detail = detail_str;
                     }
                     _ => {}
                 },
@@ -435,7 +431,10 @@ event.detail = detail_str;
             stale: now + chrono::Duration::minutes(5),
             how: "h-g-i-g-o".to_string(),
             point: Point::default(),
-            detail: format!("<detail>chat from={} room={} msg={}</detail>", sender_callsign, chatroom, message),
+            detail: format!(
+                "<detail>chat from={} room={} msg={}</detail>",
+                sender_callsign, chatroom, message
+            ),
         }
     }
 
@@ -464,7 +463,10 @@ event.detail = detail_str;
                 ce: 10.0,
                 le: 10.0,
             },
-            detail: format!("<detail>emergency: type={} msg={}</detail>", emergency_type, message),
+            detail: format!(
+                "<detail>emergency: type={} msg={}</detail>",
+                emergency_type, message
+            ),
         }
     }
 }
@@ -502,7 +504,10 @@ mod tests {
         assert_eq!(event.point.lat, 0.0);
         assert_eq!(event.point.lon, 0.0);
         assert_eq!(event.point.hae, 0.0);
-        assert_eq!(event.detail, "<detail>chat from=ALPHA-1 room=All Chat Rooms msg=Test message</detail>");
+        assert_eq!(
+            event.detail,
+            "<detail>chat from=ALPHA-1 room=All Chat Rooms msg=Test message</detail>"
+        );
     }
 
     #[test]
@@ -518,6 +523,9 @@ mod tests {
 
         assert_eq!(event.uid, "USER-123");
         assert_eq!(event.event_type, "b-a-o-can");
-        assert_eq!(event.detail, "<detail>emergency: type=Emergency-911 msg=Need immediate assistance!</detail>");
+        assert_eq!(
+            event.detail,
+            "<detail>emergency: type=Emergency-911 msg=Need immediate assistance!</detail>"
+        );
     }
 }

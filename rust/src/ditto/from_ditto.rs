@@ -11,21 +11,21 @@ use chrono::{DateTime, TimeZone, Utc};
 pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
     use crate::cot_events::Point;
 
-
     /// Helper to safely convert microseconds since epoch to DateTime<Utc>
     /// Note: We use timestamp_micros to handle microsecond precision
     fn millis_to_datetime(micros: i64) -> DateTime<Utc> {
         // Convert microseconds to seconds and nanoseconds
         let secs = micros / 1_000_000;
         let nanos = ((micros % 1_000_000) * 1_000) as u32;
-        
+
         // Use timestamp_opt for better error handling
-        Utc.timestamp_opt(secs, nanos)
-            .single()
-            .unwrap_or_else(|| {
-                eprintln!("WARN: Failed to convert timestamp {} to DateTime<Utc>", micros);
-                Utc::now()
-            })
+        Utc.timestamp_opt(secs, nanos).single().unwrap_or_else(|| {
+            eprintln!(
+                "WARN: Failed to convert timestamp {} to DateTime<Utc>",
+                micros
+            );
+            Utc::now()
+        })
     }
 
     match doc {

@@ -73,8 +73,14 @@ fn test_chat_message_roundtrip() -> Result<(), CotError> {
     // Detail is now a string; just check it's non-empty and roundtrips
     assert!(!event.detail.is_empty());
     assert_eq!(event.detail, parsed.detail);
-    assert!(event.detail.trim_start().starts_with("<detail"), "Detail should start with <detail>");
-    assert!(event.detail.trim_end().ends_with("</detail>"), "Detail should end with </detail>");
+    assert!(
+        event.detail.trim_start().starts_with("<detail"),
+        "Detail should start with <detail>"
+    );
+    assert!(
+        event.detail.trim_end().ends_with("</detail>"),
+        "Detail should end with </detail>"
+    );
 
     Ok(())
 }
@@ -103,8 +109,14 @@ fn test_emergency_roundtrip() -> Result<(), CotError> {
     // Detail is now a string; just check it's non-empty and roundtrips
     assert!(!event.detail.is_empty());
     assert_eq!(event.detail, parsed.detail);
-    assert!(event.detail.trim_start().starts_with("<detail"), "Detail should start with <detail>");
-    assert!(event.detail.trim_end().ends_with("</detail>"), "Detail should end with </detail>");
+    assert!(
+        event.detail.trim_start().starts_with("<detail"),
+        "Detail should start with <detail>"
+    );
+    assert!(
+        event.detail.trim_end().ends_with("</detail>"),
+        "Detail should end with </detail>"
+    );
 
     Ok(())
 }
@@ -143,17 +155,38 @@ fn test_complete_cot_parsing() -> Result<(), CotError> {
     if !normalized_detail.contains("<contactcallsign=\"ALPHA-1\"phone=\"123-456-7890\"/>") {
         println!("event.detail: {}", event.detail);
     }
-    assert!(normalized_detail.contains("<contactcallsign=\"ALPHA-1\"phone=\"123-456-7890\"/>") , "Detail should contain contact element as raw string");
-    assert!(event.detail.contains("<__group name=\"Cyan\""), "Detail should contain __group element as raw string");
-    assert!(event.detail.contains("<track course=\"123.45\""), "Detail should contain track element as raw string");
-    assert!(event.detail.contains("<status battery=\"85\""), "Detail should contain status element as raw string");
-    assert!(event.detail.contains("<usericon iconsetpath=\"COT_MAPPING_2525B/...\""), "Detail should contain usericon element as raw string");
+    assert!(
+        normalized_detail.contains("<contactcallsign=\"ALPHA-1\"phone=\"123-456-7890\"/>"),
+        "Detail should contain contact element as raw string"
+    );
+    assert!(
+        event.detail.contains("<__group name=\"Cyan\""),
+        "Detail should contain __group element as raw string"
+    );
+    assert!(
+        event.detail.contains("<track course=\"123.45\""),
+        "Detail should contain track element as raw string"
+    );
+    assert!(
+        event.detail.contains("<status battery=\"85\""),
+        "Detail should contain status element as raw string"
+    );
+    assert!(
+        event
+            .detail
+            .contains("<usericon iconsetpath=\"COT_MAPPING_2525B/...\""),
+        "Detail should contain usericon element as raw string"
+    );
 
     // Test round-trip
     let xml_roundtrip = event.to_xml()?;
     let event_roundtrip = CotEvent::from_xml(&xml_roundtrip)?;
     assert_eq!(event.uid, event_roundtrip.uid);
-    assert_eq!(event.detail.trim(), event_roundtrip.detail.trim(), "Detail string should roundtrip");
+    assert_eq!(
+        event.detail.trim(),
+        event_roundtrip.detail.trim(),
+        "Detail string should roundtrip"
+    );
 
     Ok(())
 }

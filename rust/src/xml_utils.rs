@@ -1,7 +1,6 @@
-/// Utility functions for XML normalization and whitespace handling.
-///
-/// Use this to flatten XML for robust roundtrip comparison and detail field normalization.
-
+//! Utility functions for XML normalization and whitespace handling.
+//!
+//! Use this to flatten XML for robust roundtrip comparison and detail field normalization.
 
 /// Format a float for CoT XML: always include decimal point, preserve precision, and ensure .0 for whole numbers.
 pub fn format_cot_float(val: f64) -> String {
@@ -17,4 +16,3 @@ pub fn format_cot_float(val: f64) -> String {
         }
     }
 }
-

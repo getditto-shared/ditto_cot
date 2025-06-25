@@ -2,6 +2,887 @@
 
 #![allow(missing_docs)]
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-# [doc = r" Error types."] pub mod error { # [doc = r" Error from a TryFrom or FromStr implementation."] pub struct ConversionError (std :: borrow :: Cow < 'static , str >) ; impl std :: error :: Error for ConversionError { } impl std :: fmt :: Display for ConversionError { fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> Result < () , std :: fmt :: Error > { std :: fmt :: Display :: fmt (& self . 0 , f) } } impl std :: fmt :: Debug for ConversionError { fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> Result < () , std :: fmt :: Error > { std :: fmt :: Debug :: fmt (& self . 0 , f) } } impl From < & 'static str > for ConversionError { fn from (value : & 'static str) -> Self { Self (value . into ()) } } impl From < String > for ConversionError { fn from (value : String) -> Self { Self (value . into ()) } } } # [doc = "Api"] # [doc = r""] # [doc = r" <details><summary>JSON schema</summary>"] # [doc = r""] # [doc = r" ```json"] # [doc = "{"] # [doc = "  \"allOf\": ["] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/Common\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"type\": \"object\","] # [doc = "      \"properties\": {"] # [doc = "        \"contentType\": {"] # [doc = "          \"description\": \"Content type\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"data\": {"] # [doc = "          \"description\": \"Document data\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"isFile\": {"] # [doc = "          \"description\": \"Is file\","] # [doc = "          \"type\": \"boolean\""] # [doc = "        },"] # [doc = "        \"isRemoved\": {"] # [doc = "          \"description\": \"Removed on device\","] # [doc = "          \"type\": \"boolean\""] # [doc = "        },"] # [doc = "        \"mime\": {"] # [doc = "          \"description\": \"MIME type\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"source\": {"] # [doc = "          \"description\": \"Source field for origin tracking\","] # [doc = "          \"type\": \"string\","] # [doc = "          \"x-rust-type-attributes\": ["] # [doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""] # [doc = "          ]"] # [doc = "        },"] # [doc = "        \"tag\": {"] # [doc = "          \"description\": \"Optional tag\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"timeMillis\": {"] # [doc = "          \"description\": \"Creation time millis\","] # [doc = "          \"type\": \"integer\""] # [doc = "        },"] # [doc = "        \"title\": {"] # [doc = "          \"description\": \"Title\","] # [doc = "          \"type\": \"string\""] # [doc = "        }"] # [doc = "      }"] # [doc = "    }"] # [doc = "  ]"] # [doc = "}"] # [doc = r" ```"] # [doc = r" </details>"] # [derive (Clone , Debug , Deserialize , Serialize , schemars :: JsonSchema)] pub struct Api { # [doc = "Ditto peer key string"] pub a : String , pub b : f64 , # [doc = "Content type"] # [serde (rename = "contentType" , default , skip_serializing_if = "Option::is_none")] pub content_type : Option < String > , # [doc = "TAK UID of author"] pub d : String , # [doc = "Document counter (updates)"] #[serde(rename = "_c")] pub d_c : i64 , # [doc = "Soft-delete flag"] #[serde(rename = "_r")] pub d_r : bool , # [doc = "Schema version (2)"] #[serde(rename = "_v")] pub d_v : i64 , # [doc = "Document data"] # [serde (default , skip_serializing_if = "Option::is_none")] pub data : Option < String > , # [doc = "Callsign of author"] pub e : String , # [doc = "Version"] # [serde (default)] pub g : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub h : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub i : Option < f64 > , # [doc = "Ditto document ID"] # [serde (rename = "_id")] pub id : String , # [doc = "Is file"] # [serde (rename = "isFile" , default , skip_serializing_if = "Option::is_none")] pub is_file : Option < bool > , # [doc = "Removed on device"] # [serde (rename = "isRemoved" , default , skip_serializing_if = "Option::is_none")] pub is_removed : Option < bool > , # [serde (default , skip_serializing_if = "Option::is_none")] pub j : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub k : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub l : Option < f64 > , # [doc = "MIME type"] # [serde (default , skip_serializing_if = "Option::is_none")] pub mime : Option < String > , # [doc = "Start"] # [serde (default)] pub n : i64 , # [doc = "Stale"] # [serde (default)] pub o : i64 , # [doc = "How"] # [serde (default)] pub p : String , # [doc = "Access"] # [serde (default)] pub q : String , # [doc = "Detail (XML CotDetail)"] # [serde (default)] pub r : String , # [doc = "Opex"] # [serde (default)] pub s : String , # [doc = "Source field for origin tracking"] # [serde (default , skip_serializing_if = "Option::is_none")] pub source : Option < String > , # [doc = "Qos"] # [serde (default)] pub t : String , # [doc = "Optional tag"] # [serde (default , skip_serializing_if = "Option::is_none")] pub tag : Option < String > , # [doc = "Creation time millis"] # [serde (rename = "timeMillis" , default , skip_serializing_if = "Option::is_none")] pub time_millis : Option < i64 > , # [doc = "Title"] # [serde (default , skip_serializing_if = "Option::is_none")] pub title : Option < String > , # [doc = "Caveat"] # [serde (default)] pub u : String , # [doc = "Releasable to"] # [serde (default)] pub v : String , # [doc = "Type"] # [serde (default)] pub w : String , } impl From < & Api > for Api { fn from (value : & Api) -> Self { value . clone () } } # [doc = "Chat"] # [doc = r""] # [doc = r" <details><summary>JSON schema</summary>"] # [doc = r""] # [doc = r" ```json"] # [doc = "{"] # [doc = "  \"allOf\": ["] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/Common\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"type\": \"object\","] # [doc = "      \"properties\": {"] # [doc = "        \"authorCallsign\": {"] # [doc = "          \"description\": \"Sender callsign\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"authorType\": {"] # [doc = "          \"description\": \"Sender type\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"authorUid\": {"] # [doc = "          \"description\": \"Sender UID\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"location\": {"] # [doc = "          \"description\": \"GeoPoint string location\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"message\": {"] # [doc = "          \"description\": \"Chat message\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"parent\": {"] # [doc = "          \"description\": \"Parent message ID\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"room\": {"] # [doc = "          \"description\": \"Room name\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"roomId\": {"] # [doc = "          \"description\": \"Room ID\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"source\": {"] # [doc = "          \"description\": \"Source field for origin tracking\","] # [doc = "          \"type\": \"string\","] # [doc = "          \"x-rust-type-attributes\": ["] # [doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""] # [doc = "          ]"] # [doc = "        },"] # [doc = "        \"time\": {"] # [doc = "          \"description\": \"Time sent\","] # [doc = "          \"type\": \"string\""] # [doc = "        }"] # [doc = "      }"] # [doc = "    }"] # [doc = "  ]"] # [doc = "}"] # [doc = r" ```"] # [doc = r" </details>"] # [derive (Clone , Debug , Deserialize , Serialize , schemars :: JsonSchema)] pub struct Chat { # [doc = "Ditto peer key string"] pub a : String , # [doc = "Sender callsign"] # [serde (rename = "authorCallsign" , default , skip_serializing_if = "Option::is_none")] pub author_callsign : Option < String > , # [doc = "Sender type"] # [serde (rename = "authorType" , default , skip_serializing_if = "Option::is_none")] pub author_type : Option < String > , # [doc = "Sender UID"] # [serde (rename = "authorUid" , default , skip_serializing_if = "Option::is_none")] pub author_uid : Option < String > , pub b : f64 , # [doc = "TAK UID of author"] pub d : String , # [doc = "Document counter (updates)"] #[serde(rename = "_c")] pub d_c : i64 , # [doc = "Soft-delete flag"] #[serde(rename = "_r")] pub d_r : bool , # [doc = "Schema version (2)"] #[serde(rename = "_v")] pub d_v : i64 , # [doc = "Callsign of author"] pub e : String , # [doc = "Version"] # [serde (default)] pub g : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub h : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub i : Option < f64 > , # [doc = "Ditto document ID"] # [serde (rename = "_id")] pub id : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub j : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub k : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub l : Option < f64 > , # [doc = "GeoPoint string location"] # [serde (default , skip_serializing_if = "Option::is_none")] pub location : Option < String > , # [doc = "Chat message"] # [serde (default , skip_serializing_if = "Option::is_none")] pub message : Option < String > , # [doc = "Start"] # [serde (default)] pub n : i64 , # [doc = "Stale"] # [serde (default)] pub o : i64 , # [doc = "How"] # [serde (default)] pub p : String , # [doc = "Parent message ID"] # [serde (default , skip_serializing_if = "Option::is_none")] pub parent : Option < String > , # [doc = "Access"] # [serde (default)] pub q : String , # [doc = "Detail (XML CotDetail)"] # [serde (default)] pub r : String , # [doc = "Room name"] # [serde (default , skip_serializing_if = "Option::is_none")] pub room : Option < String > , # [doc = "Room ID"] # [serde (rename = "roomId" , default , skip_serializing_if = "Option::is_none")] pub room_id : Option < String > , # [doc = "Opex"] # [serde (default)] pub s : String , # [doc = "Source field for origin tracking"] # [serde (default , skip_serializing_if = "Option::is_none")] pub source : Option < String > , # [doc = "Qos"] # [serde (default)] pub t : String , # [doc = "Time sent"] # [serde (default , skip_serializing_if = "Option::is_none")] pub time : Option < String > , # [doc = "Caveat"] # [serde (default)] pub u : String , # [doc = "Releasable to"] # [serde (default)] pub v : String , # [doc = "Type"] # [serde (default)] pub w : String , } impl From < & Chat > for Chat { fn from (value : & Chat) -> Self { value . clone () } } # [doc = "Common"] # [doc = r""] # [doc = r" <details><summary>JSON schema</summary>"] # [doc = r""] # [doc = r" ```json"] # [doc = "{"] # [doc = "  \"type\": \"object\","] # [doc = "  \"required\": ["] # [doc = "    \"_id\","] # [doc = "    \"a\","] # [doc = "    \"b\","] # [doc = "    \"d\","] # [doc = "    \"d_c\","] # [doc = "    \"d_r\","] # [doc = "    \"d_v\","] # [doc = "    \"e\""] # [doc = "  ],"] # [doc = "  \"properties\": {"] # [doc = "    \"_id\": {"] # [doc = "      \"description\": \"Ditto document ID\","] # [doc = "      \"type\": \"string\","] # [doc = "      \"x-rust-type-attributes\": ["] # [doc = "        \"#[serde(rename = \\\"_id\\\")]\","] # [doc = "        \"#[schemars(rename = \\\"_id\\\")]\""] # [doc = "      ]"] # [doc = "    },"] # [doc = "    \"a\": {"] # [doc = "      \"description\": \"Ditto peer key string\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"b\": {"] # [doc = "      \"description\": \"Millis since epoch\","] # [doc = "      \"type\": \"number\""] # [doc = "    },"] # [doc = "    \"d\": {"] # [doc = "      \"description\": \"TAK UID of author\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"d_c\": {"] # [doc = "      \"description\": \"Document counter (updates)\","] # [doc = "      \"type\": \"integer\""] # [doc = "    },"] # [doc = "    \"d_r\": {"] # [doc = "      \"description\": \"Soft-delete flag\","] # [doc = "      \"type\": \"boolean\""] # [doc = "    },"] # [doc = "    \"d_v\": {"] # [doc = "      \"description\": \"Schema version (2)\","] # [doc = "      \"type\": \"integer\","] # [doc = "      \"const\": 2"] # [doc = "    },"] # [doc = "    \"e\": {"] # [doc = "      \"description\": \"Callsign of author\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"g\": {"] # [doc = "      \"description\": \"Version\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"h\": {"] # [doc = "      \"description\": \"CotPoint CE\","] # [doc = "      \"default\": 0.0,"] # [doc = "      \"type\": \"number\""] # [doc = "    },"] # [doc = "    \"i\": {"] # [doc = "      \"description\": \"CotPoint HAE\","] # [doc = "      \"default\": 0.0,"] # [doc = "      \"type\": \"number\""] # [doc = "    },"] # [doc = "    \"j\": {"] # [doc = "      \"description\": \"CotPoint LAT\","] # [doc = "      \"default\": 0.0,"] # [doc = "      \"type\": \"number\""] # [doc = "    },"] # [doc = "    \"k\": {"] # [doc = "      \"description\": \"CotPoint LE\","] # [doc = "      \"default\": 0.0,"] # [doc = "      \"type\": \"number\""] # [doc = "    },"] # [doc = "    \"l\": {"] # [doc = "      \"description\": \"CotPoint LON\","] # [doc = "      \"default\": 0.0,"] # [doc = "      \"type\": \"number\""] # [doc = "    },"] # [doc = "    \"n\": {"] # [doc = "      \"description\": \"Start\","] # [doc = "      \"default\": 0,"] # [doc = "      \"type\": \"integer\""] # [doc = "    },"] # [doc = "    \"o\": {"] # [doc = "      \"description\": \"Stale\","] # [doc = "      \"default\": 0,"] # [doc = "      \"type\": \"integer\""] # [doc = "    },"] # [doc = "    \"p\": {"] # [doc = "      \"description\": \"How\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"q\": {"] # [doc = "      \"description\": \"Access\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"r\": {"] # [doc = "      \"description\": \"Detail (XML CotDetail)\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"s\": {"] # [doc = "      \"description\": \"Opex\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"t\": {"] # [doc = "      \"description\": \"Qos\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"u\": {"] # [doc = "      \"description\": \"Caveat\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"v\": {"] # [doc = "      \"description\": \"Releasable to\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    },"] # [doc = "    \"w\": {"] # [doc = "      \"description\": \"Type\","] # [doc = "      \"default\": \"\","] # [doc = "      \"type\": \"string\""] # [doc = "    }"] # [doc = "  }"] # [doc = "}"] # [doc = r" ```"] # [doc = r" </details>"] # [derive (Clone , Debug , Deserialize , Serialize , schemars :: JsonSchema)] pub struct Common { # [doc = "Ditto peer key string"] pub a : String , pub b : f64 , # [doc = "TAK UID of author"] pub d : String , # [doc = "Document counter (updates)"] #[serde(rename = "_c")] pub d_c : i64 , # [doc = "Soft-delete flag"] #[serde(rename = "_r")] pub d_r : bool , # [doc = "Schema version (2)"] #[serde(rename = "_v")] pub d_v : i64 , # [doc = "Callsign of author"] pub e : String , # [doc = "Version"] # [serde (default)] pub g : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub h : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub i : Option < f64 > , # [doc = "Ditto document ID"] # [serde (rename = "_id")] pub id : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub j : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub k : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub l : Option < f64 > , # [doc = "Start"] # [serde (default)] pub n : i64 , # [doc = "Stale"] # [serde (default)] pub o : i64 , # [doc = "How"] # [serde (default)] pub p : String , # [doc = "Access"] # [serde (default)] pub q : String , # [doc = "Detail (XML CotDetail)"] # [serde (default)] pub r : String , # [doc = "Opex"] # [serde (default)] pub s : String , # [doc = "Qos"] # [serde (default)] pub t : String , # [doc = "Caveat"] # [serde (default)] pub u : String , # [doc = "Releasable to"] # [serde (default)] pub v : String , # [doc = "Type"] # [serde (default)] pub w : String , } impl From < & Common > for Common { fn from (value : & Common) -> Self { value . clone () } } # [doc = "DittoDocumentRootSchema"] # [doc = r""] # [doc = r" <details><summary>JSON schema</summary>"] # [doc = r""] # [doc = r" ```json"] # [doc = "{"] # [doc = "  \"title\": \"Ditto Document Root Schema\","] # [doc = "  \"oneOf\": ["] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/Api\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/Chat\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/File\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/MapItem\""] # [doc = "    }"] # [doc = "  ]"] # [doc = "}"] # [doc = r" ```"] # [doc = r" </details>"] # [derive (Clone , Debug , Deserialize , Serialize , schemars :: JsonSchema)] # [serde (untagged)] pub enum DittoDocumentRootSchema { Api (Api) , Chat (Chat) , File (File) , MapItem (MapItem) , } impl From < & DittoDocumentRootSchema > for DittoDocumentRootSchema { fn from (value : & DittoDocumentRootSchema) -> Self { value . clone () } } impl From < Api > for DittoDocumentRootSchema { fn from (value : Api) -> Self { Self :: Api (value) } } impl From < Chat > for DittoDocumentRootSchema { fn from (value : Chat) -> Self { Self :: Chat (value) } } impl From < File > for DittoDocumentRootSchema { fn from (value : File) -> Self { Self :: File (value) } } impl From < MapItem > for DittoDocumentRootSchema { fn from (value : MapItem) -> Self { Self :: MapItem (value) } } # [doc = "File"] # [doc = r""] # [doc = r" <details><summary>JSON schema</summary>"] # [doc = r""] # [doc = r" ```json"] # [doc = "{"] # [doc = "  \"allOf\": ["] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/Common\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"type\": \"object\","] # [doc = "      \"properties\": {"] # [doc = "        \"c\": {"] # [doc = "          \"description\": \"File name\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"contentType\": {"] # [doc = "          \"description\": \"Content type\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"file\": {"] # [doc = "          \"description\": \"Attachment token\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"itemId\": {"] # [doc = "          \"description\": \"ID of map item (if attached)\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"mime\": {"] # [doc = "          \"description\": \"MIME type\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"source\": {"] # [doc = "          \"description\": \"Source field for origin tracking\","] # [doc = "          \"type\": \"string\","] # [doc = "          \"x-rust-type-attributes\": ["] # [doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""] # [doc = "          ]"] # [doc = "        },"] # [doc = "        \"sz\": {"] # [doc = "          \"description\": \"File size in bytes\","] # [doc = "          \"type\": \"number\""] # [doc = "        }"] # [doc = "      }"] # [doc = "    }"] # [doc = "  ]"] # [doc = "}"] # [doc = r" ```"] # [doc = r" </details>"] # [derive (Clone , Debug , Deserialize , Serialize , schemars :: JsonSchema)] pub struct File { # [doc = "Ditto peer key string"] pub a : String , pub b : f64 , # [doc = "File name"] # [serde (default , skip_serializing_if = "Option::is_none")] pub c : Option < String > , # [doc = "Content type"] # [serde (rename = "contentType" , default , skip_serializing_if = "Option::is_none")] pub content_type : Option < String > , # [doc = "TAK UID of author"] pub d : String , # [doc = "Document counter (updates)"] #[serde(rename = "_c")] pub d_c : i64 , # [doc = "Soft-delete flag"] #[serde(rename = "_r")] pub d_r : bool , # [doc = "Schema version (2)"] #[serde(rename = "_v")] pub d_v : i64 , # [doc = "Callsign of author"] pub e : String , # [doc = "Attachment token"] # [serde (default , skip_serializing_if = "Option::is_none")] pub file : Option < String > , # [doc = "Version"] # [serde (default)] pub g : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub h : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub i : Option < f64 > , # [doc = "Ditto document ID"] # [serde (rename = "_id")] pub id : String , # [doc = "ID of map item (if attached)"] # [serde (rename = "itemId" , default , skip_serializing_if = "Option::is_none")] pub item_id : Option < String > , # [serde (default , skip_serializing_if = "Option::is_none")] pub j : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub k : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub l : Option < f64 > , # [doc = "MIME type"] # [serde (default , skip_serializing_if = "Option::is_none")] pub mime : Option < String > , # [doc = "Start"] # [serde (default)] pub n : i64 , # [doc = "Stale"] # [serde (default)] pub o : i64 , # [doc = "How"] # [serde (default)] pub p : String , # [doc = "Access"] # [serde (default)] pub q : String , # [doc = "Detail (XML CotDetail)"] # [serde (default)] pub r : String , # [doc = "Opex"] # [serde (default)] pub s : String , # [doc = "Source field for origin tracking"] # [serde (default , skip_serializing_if = "Option::is_none")] pub source : Option < String > , # [serde (default , skip_serializing_if = "Option::is_none")] pub sz : Option < f64 > , # [doc = "Qos"] # [serde (default)] pub t : String , # [doc = "Caveat"] # [serde (default)] pub u : String , # [doc = "Releasable to"] # [serde (default)] pub v : String , # [doc = "Type"] # [serde (default)] pub w : String , } impl From < & File > for File { fn from (value : & File) -> Self { value . clone () } } # [doc = "MapItem"] # [doc = r""] # [doc = r" <details><summary>JSON schema</summary>"] # [doc = r""] # [doc = r" ```json"] # [doc = "{"] # [doc = "  \"allOf\": ["] # [doc = "    {"] # [doc = "      \"$ref\": \"#/$defs/Common\""] # [doc = "    },"] # [doc = "    {"] # [doc = "      \"type\": \"object\","] # [doc = "      \"properties\": {"] # [doc = "        \"c\": {"] # [doc = "          \"description\": \"Name or title of map item\","] # [doc = "          \"type\": \"string\""] # [doc = "        },"] # [doc = "        \"f\": {"] # [doc = "          \"description\": \"Visibility flag\","] # [doc = "          \"type\": \"boolean\""] # [doc = "        },"] # [doc = "        \"source\": {"] # [doc = "          \"description\": \"Source field for origin tracking\","] # [doc = "          \"type\": \"string\","] # [doc = "          \"x-rust-type-attributes\": ["] # [doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""] # [doc = "          ]"] # [doc = "        }"] # [doc = "      }"] # [doc = "    }"] # [doc = "  ]"] # [doc = "}"] # [doc = r" ```"] # [doc = r" </details>"] # [derive (Clone , Debug , Deserialize , Serialize , schemars :: JsonSchema)] pub struct MapItem { # [doc = "Ditto peer key string"] pub a : String , pub b : f64 , # [doc = "Name or title of map item"] # [serde (default , skip_serializing_if = "Option::is_none")] pub c : Option < String > , # [doc = "TAK UID of author"] pub d : String , # [doc = "Document counter (updates)"] #[serde(rename = "_c")] pub d_c : i64 , # [doc = "Soft-delete flag"] #[serde(rename = "_r")] pub d_r : bool , # [doc = "Schema version (2)"] #[serde(rename = "_v")] pub d_v : i64 , # [doc = "Callsign of author"] pub e : String , # [doc = "Visibility flag"] # [serde (default , skip_serializing_if = "Option::is_none")] pub f : Option < bool > , # [doc = "Version"] # [serde (default)] pub g : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub h : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub i : Option < f64 > , # [doc = "Ditto document ID"] # [serde (rename = "_id")] pub id : String , # [serde (default , skip_serializing_if = "Option::is_none")] pub j : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub k : Option < f64 > , # [serde (default , skip_serializing_if = "Option::is_none")] pub l : Option < f64 > , # [doc = "Start"] # [serde (default)] pub n : i64 , # [doc = "Stale"] # [serde (default)] pub o : i64 , # [doc = "How"] # [serde (default)] pub p : String , # [doc = "Access"] # [serde (default)] pub q : String , # [doc = "Detail (XML CotDetail)"] # [serde (default)] pub r : String , # [doc = "Opex"] # [serde (default)] pub s : String , # [doc = "Source field for origin tracking"] # [serde (default , skip_serializing_if = "Option::is_none")] pub source : Option < String > , # [doc = "Qos"] # [serde (default)] pub t : String , # [doc = "Caveat"] # [serde (default)] pub u : String , # [doc = "Releasable to"] # [serde (default)] pub v : String , # [doc = "Type"] # [serde (default)] pub w : String , } impl From < & MapItem > for MapItem { fn from (value : & MapItem) -> Self { value . clone () } }
+#[doc = r" Error types."]
+pub mod error {
+    #[doc = r" Error from a TryFrom or FromStr implementation."]
+    pub struct ConversionError(std::borrow::Cow<'static, str>);
+    impl std::error::Error for ConversionError {}
+    impl std::fmt::Display for ConversionError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+            std::fmt::Display::fmt(&self.0, f)
+        }
+    }
+    impl std::fmt::Debug for ConversionError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+            std::fmt::Debug::fmt(&self.0, f)
+        }
+    }
+    impl From<&'static str> for ConversionError {
+        fn from(value: &'static str) -> Self {
+            Self(value.into())
+        }
+    }
+    impl From<String> for ConversionError {
+        fn from(value: String) -> Self {
+            Self(value.into())
+        }
+    }
+}
+#[doc = "Api"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"allOf\": ["]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/Common\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"type\": \"object\","]
+#[doc = "      \"properties\": {"]
+#[doc = "        \"contentType\": {"]
+#[doc = "          \"description\": \"Content type\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"data\": {"]
+#[doc = "          \"description\": \"Document data\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"isFile\": {"]
+#[doc = "          \"description\": \"Is file\","]
+#[doc = "          \"type\": \"boolean\""]
+#[doc = "        },"]
+#[doc = "        \"isRemoved\": {"]
+#[doc = "          \"description\": \"Removed on device\","]
+#[doc = "          \"type\": \"boolean\""]
+#[doc = "        },"]
+#[doc = "        \"mime\": {"]
+#[doc = "          \"description\": \"MIME type\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"source\": {"]
+#[doc = "          \"description\": \"Source field for origin tracking\","]
+#[doc = "          \"type\": \"string\","]
+#[doc = "          \"x-rust-type-attributes\": ["]
+#[doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""]
+#[doc = "          ]"]
+#[doc = "        },"]
+#[doc = "        \"tag\": {"]
+#[doc = "          \"description\": \"Optional tag\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"timeMillis\": {"]
+#[doc = "          \"description\": \"Creation time millis\","]
+#[doc = "          \"type\": \"integer\""]
+#[doc = "        },"]
+#[doc = "        \"title\": {"]
+#[doc = "          \"description\": \"Title\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        }"]
+#[doc = "      }"]
+#[doc = "    }"]
+#[doc = "  ]"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars :: JsonSchema)]
+pub struct Api {
+    #[doc = "Ditto peer key string"]
+    pub a: String,
+    pub b: f64,
+    #[doc = "Content type"]
+    #[serde(
+        rename = "contentType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub content_type: Option<String>,
+    #[doc = "TAK UID of author"]
+    pub d: String,
+    #[doc = "Document counter (updates)"]
+    #[serde(rename = "_c")]
+    pub d_c: i64,
+    #[doc = "Soft-delete flag"]
+    #[serde(rename = "_r")]
+    pub d_r: bool,
+    #[doc = "Schema version (2)"]
+    #[serde(rename = "_v")]
+    pub d_v: i64,
+    #[doc = "Document data"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<String>,
+    #[doc = "Callsign of author"]
+    pub e: String,
+    #[doc = "Version"]
+    #[serde(default)]
+    pub g: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub h: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i: Option<f64>,
+    #[doc = "Ditto document ID"]
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[doc = "Is file"]
+    #[serde(rename = "isFile", default, skip_serializing_if = "Option::is_none")]
+    pub is_file: Option<bool>,
+    #[doc = "Removed on device"]
+    #[serde(rename = "isRemoved", default, skip_serializing_if = "Option::is_none")]
+    pub is_removed: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub j: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub k: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l: Option<f64>,
+    #[doc = "MIME type"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime: Option<String>,
+    #[doc = "Start"]
+    #[serde(default)]
+    pub n: i64,
+    #[doc = "Stale"]
+    #[serde(default)]
+    pub o: i64,
+    #[doc = "How"]
+    #[serde(default)]
+    pub p: String,
+    #[doc = "Access"]
+    #[serde(default)]
+    pub q: String,
+    #[doc = "Detail (XML CotDetail)"]
+    #[serde(default)]
+    pub r: String,
+    #[doc = "Opex"]
+    #[serde(default)]
+    pub s: String,
+    #[doc = "Source field for origin tracking"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[doc = "Qos"]
+    #[serde(default)]
+    pub t: String,
+    #[doc = "Optional tag"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+    #[doc = "Creation time millis"]
+    #[serde(
+        rename = "timeMillis",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub time_millis: Option<i64>,
+    #[doc = "Title"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[doc = "Caveat"]
+    #[serde(default)]
+    pub u: String,
+    #[doc = "Releasable to"]
+    #[serde(default)]
+    pub v: String,
+    #[doc = "Type"]
+    #[serde(default)]
+    pub w: String,
+}
+impl From<&Api> for Api {
+    fn from(value: &Api) -> Self {
+        value.clone()
+    }
+}
+#[doc = "Chat"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"allOf\": ["]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/Common\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"type\": \"object\","]
+#[doc = "      \"properties\": {"]
+#[doc = "        \"authorCallsign\": {"]
+#[doc = "          \"description\": \"Sender callsign\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"authorType\": {"]
+#[doc = "          \"description\": \"Sender type\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"authorUid\": {"]
+#[doc = "          \"description\": \"Sender UID\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"location\": {"]
+#[doc = "          \"description\": \"GeoPoint string location\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"message\": {"]
+#[doc = "          \"description\": \"Chat message\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"parent\": {"]
+#[doc = "          \"description\": \"Parent message ID\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"room\": {"]
+#[doc = "          \"description\": \"Room name\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"roomId\": {"]
+#[doc = "          \"description\": \"Room ID\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"source\": {"]
+#[doc = "          \"description\": \"Source field for origin tracking\","]
+#[doc = "          \"type\": \"string\","]
+#[doc = "          \"x-rust-type-attributes\": ["]
+#[doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""]
+#[doc = "          ]"]
+#[doc = "        },"]
+#[doc = "        \"time\": {"]
+#[doc = "          \"description\": \"Time sent\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        }"]
+#[doc = "      }"]
+#[doc = "    }"]
+#[doc = "  ]"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars :: JsonSchema)]
+pub struct Chat {
+    #[doc = "Ditto peer key string"]
+    pub a: String,
+    #[doc = "Sender callsign"]
+    #[serde(
+        rename = "authorCallsign",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub author_callsign: Option<String>,
+    #[doc = "Sender type"]
+    #[serde(
+        rename = "authorType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub author_type: Option<String>,
+    #[doc = "Sender UID"]
+    #[serde(rename = "authorUid", default, skip_serializing_if = "Option::is_none")]
+    pub author_uid: Option<String>,
+    pub b: f64,
+    #[doc = "TAK UID of author"]
+    pub d: String,
+    #[doc = "Document counter (updates)"]
+    #[serde(rename = "_c")]
+    pub d_c: i64,
+    #[doc = "Soft-delete flag"]
+    #[serde(rename = "_r")]
+    pub d_r: bool,
+    #[doc = "Schema version (2)"]
+    #[serde(rename = "_v")]
+    pub d_v: i64,
+    #[doc = "Callsign of author"]
+    pub e: String,
+    #[doc = "Version"]
+    #[serde(default)]
+    pub g: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub h: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i: Option<f64>,
+    #[doc = "Ditto document ID"]
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub j: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub k: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l: Option<f64>,
+    #[doc = "GeoPoint string location"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location: Option<String>,
+    #[doc = "Chat message"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[doc = "Start"]
+    #[serde(default)]
+    pub n: i64,
+    #[doc = "Stale"]
+    #[serde(default)]
+    pub o: i64,
+    #[doc = "How"]
+    #[serde(default)]
+    pub p: String,
+    #[doc = "Parent message ID"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+    #[doc = "Access"]
+    #[serde(default)]
+    pub q: String,
+    #[doc = "Detail (XML CotDetail)"]
+    #[serde(default)]
+    pub r: String,
+    #[doc = "Room name"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub room: Option<String>,
+    #[doc = "Room ID"]
+    #[serde(rename = "roomId", default, skip_serializing_if = "Option::is_none")]
+    pub room_id: Option<String>,
+    #[doc = "Opex"]
+    #[serde(default)]
+    pub s: String,
+    #[doc = "Source field for origin tracking"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[doc = "Qos"]
+    #[serde(default)]
+    pub t: String,
+    #[doc = "Time sent"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
+    #[doc = "Caveat"]
+    #[serde(default)]
+    pub u: String,
+    #[doc = "Releasable to"]
+    #[serde(default)]
+    pub v: String,
+    #[doc = "Type"]
+    #[serde(default)]
+    pub w: String,
+}
+impl From<&Chat> for Chat {
+    fn from(value: &Chat) -> Self {
+        value.clone()
+    }
+}
+#[doc = "Common"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"type\": \"object\","]
+#[doc = "  \"required\": ["]
+#[doc = "    \"_id\","]
+#[doc = "    \"a\","]
+#[doc = "    \"b\","]
+#[doc = "    \"d\","]
+#[doc = "    \"d_c\","]
+#[doc = "    \"d_r\","]
+#[doc = "    \"d_v\","]
+#[doc = "    \"e\""]
+#[doc = "  ],"]
+#[doc = "  \"properties\": {"]
+#[doc = "    \"_id\": {"]
+#[doc = "      \"description\": \"Ditto document ID\","]
+#[doc = "      \"type\": \"string\","]
+#[doc = "      \"x-rust-type-attributes\": ["]
+#[doc = "        \"#[serde(rename = \\\"_id\\\")]\","]
+#[doc = "        \"#[schemars(rename = \\\"_id\\\")]\""]
+#[doc = "      ]"]
+#[doc = "    },"]
+#[doc = "    \"a\": {"]
+#[doc = "      \"description\": \"Ditto peer key string\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"b\": {"]
+#[doc = "      \"description\": \"Millis since epoch\","]
+#[doc = "      \"type\": \"number\""]
+#[doc = "    },"]
+#[doc = "    \"d\": {"]
+#[doc = "      \"description\": \"TAK UID of author\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"d_c\": {"]
+#[doc = "      \"description\": \"Document counter (updates)\","]
+#[doc = "      \"type\": \"integer\""]
+#[doc = "    },"]
+#[doc = "    \"d_r\": {"]
+#[doc = "      \"description\": \"Soft-delete flag\","]
+#[doc = "      \"type\": \"boolean\""]
+#[doc = "    },"]
+#[doc = "    \"d_v\": {"]
+#[doc = "      \"description\": \"Schema version (2)\","]
+#[doc = "      \"type\": \"integer\","]
+#[doc = "      \"const\": 2"]
+#[doc = "    },"]
+#[doc = "    \"e\": {"]
+#[doc = "      \"description\": \"Callsign of author\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"g\": {"]
+#[doc = "      \"description\": \"Version\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"h\": {"]
+#[doc = "      \"description\": \"CotPoint CE\","]
+#[doc = "      \"default\": 0.0,"]
+#[doc = "      \"type\": \"number\""]
+#[doc = "    },"]
+#[doc = "    \"i\": {"]
+#[doc = "      \"description\": \"CotPoint HAE\","]
+#[doc = "      \"default\": 0.0,"]
+#[doc = "      \"type\": \"number\""]
+#[doc = "    },"]
+#[doc = "    \"j\": {"]
+#[doc = "      \"description\": \"CotPoint LAT\","]
+#[doc = "      \"default\": 0.0,"]
+#[doc = "      \"type\": \"number\""]
+#[doc = "    },"]
+#[doc = "    \"k\": {"]
+#[doc = "      \"description\": \"CotPoint LE\","]
+#[doc = "      \"default\": 0.0,"]
+#[doc = "      \"type\": \"number\""]
+#[doc = "    },"]
+#[doc = "    \"l\": {"]
+#[doc = "      \"description\": \"CotPoint LON\","]
+#[doc = "      \"default\": 0.0,"]
+#[doc = "      \"type\": \"number\""]
+#[doc = "    },"]
+#[doc = "    \"n\": {"]
+#[doc = "      \"description\": \"Start\","]
+#[doc = "      \"default\": 0,"]
+#[doc = "      \"type\": \"integer\""]
+#[doc = "    },"]
+#[doc = "    \"o\": {"]
+#[doc = "      \"description\": \"Stale\","]
+#[doc = "      \"default\": 0,"]
+#[doc = "      \"type\": \"integer\""]
+#[doc = "    },"]
+#[doc = "    \"p\": {"]
+#[doc = "      \"description\": \"How\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"q\": {"]
+#[doc = "      \"description\": \"Access\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"r\": {"]
+#[doc = "      \"description\": \"Detail (XML CotDetail)\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"s\": {"]
+#[doc = "      \"description\": \"Opex\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"t\": {"]
+#[doc = "      \"description\": \"Qos\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"u\": {"]
+#[doc = "      \"description\": \"Caveat\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"v\": {"]
+#[doc = "      \"description\": \"Releasable to\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    },"]
+#[doc = "    \"w\": {"]
+#[doc = "      \"description\": \"Type\","]
+#[doc = "      \"default\": \"\","]
+#[doc = "      \"type\": \"string\""]
+#[doc = "    }"]
+#[doc = "  }"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars :: JsonSchema)]
+pub struct Common {
+    #[doc = "Ditto peer key string"]
+    pub a: String,
+    pub b: f64,
+    #[doc = "TAK UID of author"]
+    pub d: String,
+    #[doc = "Document counter (updates)"]
+    #[serde(rename = "_c")]
+    pub d_c: i64,
+    #[doc = "Soft-delete flag"]
+    #[serde(rename = "_r")]
+    pub d_r: bool,
+    #[doc = "Schema version (2)"]
+    #[serde(rename = "_v")]
+    pub d_v: i64,
+    #[doc = "Callsign of author"]
+    pub e: String,
+    #[doc = "Version"]
+    #[serde(default)]
+    pub g: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub h: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i: Option<f64>,
+    #[doc = "Ditto document ID"]
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub j: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub k: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l: Option<f64>,
+    #[doc = "Start"]
+    #[serde(default)]
+    pub n: i64,
+    #[doc = "Stale"]
+    #[serde(default)]
+    pub o: i64,
+    #[doc = "How"]
+    #[serde(default)]
+    pub p: String,
+    #[doc = "Access"]
+    #[serde(default)]
+    pub q: String,
+    #[doc = "Detail (XML CotDetail)"]
+    #[serde(default)]
+    pub r: String,
+    #[doc = "Opex"]
+    #[serde(default)]
+    pub s: String,
+    #[doc = "Qos"]
+    #[serde(default)]
+    pub t: String,
+    #[doc = "Caveat"]
+    #[serde(default)]
+    pub u: String,
+    #[doc = "Releasable to"]
+    #[serde(default)]
+    pub v: String,
+    #[doc = "Type"]
+    #[serde(default)]
+    pub w: String,
+}
+impl From<&Common> for Common {
+    fn from(value: &Common) -> Self {
+        value.clone()
+    }
+}
+#[doc = "DittoDocumentRootSchema"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"title\": \"Ditto Document Root Schema\","]
+#[doc = "  \"oneOf\": ["]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/Api\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/Chat\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/File\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/MapItem\""]
+#[doc = "    }"]
+#[doc = "  ]"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars :: JsonSchema)]
+#[serde(untagged)]
+pub enum DittoDocumentRootSchema {
+    Api(Api),
+    Chat(Chat),
+    File(File),
+    MapItem(MapItem),
+}
+impl From<&DittoDocumentRootSchema> for DittoDocumentRootSchema {
+    fn from(value: &DittoDocumentRootSchema) -> Self {
+        value.clone()
+    }
+}
+impl From<Api> for DittoDocumentRootSchema {
+    fn from(value: Api) -> Self {
+        Self::Api(value)
+    }
+}
+impl From<Chat> for DittoDocumentRootSchema {
+    fn from(value: Chat) -> Self {
+        Self::Chat(value)
+    }
+}
+impl From<File> for DittoDocumentRootSchema {
+    fn from(value: File) -> Self {
+        Self::File(value)
+    }
+}
+impl From<MapItem> for DittoDocumentRootSchema {
+    fn from(value: MapItem) -> Self {
+        Self::MapItem(value)
+    }
+}
+#[doc = "File"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"allOf\": ["]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/Common\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"type\": \"object\","]
+#[doc = "      \"properties\": {"]
+#[doc = "        \"c\": {"]
+#[doc = "          \"description\": \"File name\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"contentType\": {"]
+#[doc = "          \"description\": \"Content type\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"file\": {"]
+#[doc = "          \"description\": \"Attachment token\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"itemId\": {"]
+#[doc = "          \"description\": \"ID of map item (if attached)\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"mime\": {"]
+#[doc = "          \"description\": \"MIME type\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"source\": {"]
+#[doc = "          \"description\": \"Source field for origin tracking\","]
+#[doc = "          \"type\": \"string\","]
+#[doc = "          \"x-rust-type-attributes\": ["]
+#[doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""]
+#[doc = "          ]"]
+#[doc = "        },"]
+#[doc = "        \"sz\": {"]
+#[doc = "          \"description\": \"File size in bytes\","]
+#[doc = "          \"type\": \"number\""]
+#[doc = "        }"]
+#[doc = "      }"]
+#[doc = "    }"]
+#[doc = "  ]"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars :: JsonSchema)]
+pub struct File {
+    #[doc = "Ditto peer key string"]
+    pub a: String,
+    pub b: f64,
+    #[doc = "File name"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub c: Option<String>,
+    #[doc = "Content type"]
+    #[serde(
+        rename = "contentType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub content_type: Option<String>,
+    #[doc = "TAK UID of author"]
+    pub d: String,
+    #[doc = "Document counter (updates)"]
+    #[serde(rename = "_c")]
+    pub d_c: i64,
+    #[doc = "Soft-delete flag"]
+    #[serde(rename = "_r")]
+    pub d_r: bool,
+    #[doc = "Schema version (2)"]
+    #[serde(rename = "_v")]
+    pub d_v: i64,
+    #[doc = "Callsign of author"]
+    pub e: String,
+    #[doc = "Attachment token"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+    #[doc = "Version"]
+    #[serde(default)]
+    pub g: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub h: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i: Option<f64>,
+    #[doc = "Ditto document ID"]
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[doc = "ID of map item (if attached)"]
+    #[serde(rename = "itemId", default, skip_serializing_if = "Option::is_none")]
+    pub item_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub j: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub k: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l: Option<f64>,
+    #[doc = "MIME type"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime: Option<String>,
+    #[doc = "Start"]
+    #[serde(default)]
+    pub n: i64,
+    #[doc = "Stale"]
+    #[serde(default)]
+    pub o: i64,
+    #[doc = "How"]
+    #[serde(default)]
+    pub p: String,
+    #[doc = "Access"]
+    #[serde(default)]
+    pub q: String,
+    #[doc = "Detail (XML CotDetail)"]
+    #[serde(default)]
+    pub r: String,
+    #[doc = "Opex"]
+    #[serde(default)]
+    pub s: String,
+    #[doc = "Source field for origin tracking"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sz: Option<f64>,
+    #[doc = "Qos"]
+    #[serde(default)]
+    pub t: String,
+    #[doc = "Caveat"]
+    #[serde(default)]
+    pub u: String,
+    #[doc = "Releasable to"]
+    #[serde(default)]
+    pub v: String,
+    #[doc = "Type"]
+    #[serde(default)]
+    pub w: String,
+}
+impl From<&File> for File {
+    fn from(value: &File) -> Self {
+        value.clone()
+    }
+}
+#[doc = "MapItem"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"allOf\": ["]
+#[doc = "    {"]
+#[doc = "      \"$ref\": \"#/$defs/Common\""]
+#[doc = "    },"]
+#[doc = "    {"]
+#[doc = "      \"type\": \"object\","]
+#[doc = "      \"properties\": {"]
+#[doc = "        \"c\": {"]
+#[doc = "          \"description\": \"Name or title of map item\","]
+#[doc = "          \"type\": \"string\""]
+#[doc = "        },"]
+#[doc = "        \"f\": {"]
+#[doc = "          \"description\": \"Visibility flag\","]
+#[doc = "          \"type\": \"boolean\""]
+#[doc = "        },"]
+#[doc = "        \"source\": {"]
+#[doc = "          \"description\": \"Source field for origin tracking\","]
+#[doc = "          \"type\": \"string\","]
+#[doc = "          \"x-rust-type-attributes\": ["]
+#[doc = "            \"#[serde(default, skip_serializing_if = \\\"Option::is_none\\\")]\""]
+#[doc = "          ]"]
+#[doc = "        }"]
+#[doc = "      }"]
+#[doc = "    }"]
+#[doc = "  ]"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars :: JsonSchema)]
+pub struct MapItem {
+    #[doc = "Ditto peer key string"]
+    pub a: String,
+    pub b: f64,
+    #[doc = "Name or title of map item"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub c: Option<String>,
+    #[doc = "TAK UID of author"]
+    pub d: String,
+    #[doc = "Document counter (updates)"]
+    #[serde(rename = "_c")]
+    pub d_c: i64,
+    #[doc = "Soft-delete flag"]
+    #[serde(rename = "_r")]
+    pub d_r: bool,
+    #[doc = "Schema version (2)"]
+    #[serde(rename = "_v")]
+    pub d_v: i64,
+    #[doc = "Callsign of author"]
+    pub e: String,
+    #[doc = "Visibility flag"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub f: Option<bool>,
+    #[doc = "Version"]
+    #[serde(default)]
+    pub g: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub h: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub i: Option<f64>,
+    #[doc = "Ditto document ID"]
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub j: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub k: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l: Option<f64>,
+    #[doc = "Start"]
+    #[serde(default)]
+    pub n: i64,
+    #[doc = "Stale"]
+    #[serde(default)]
+    pub o: i64,
+    #[doc = "How"]
+    #[serde(default)]
+    pub p: String,
+    #[doc = "Access"]
+    #[serde(default)]
+    pub q: String,
+    #[doc = "Detail (XML CotDetail)"]
+    #[serde(default)]
+    pub r: String,
+    #[doc = "Opex"]
+    #[serde(default)]
+    pub s: String,
+    #[doc = "Source field for origin tracking"]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[doc = "Qos"]
+    #[serde(default)]
+    pub t: String,
+    #[doc = "Caveat"]
+    #[serde(default)]
+    pub u: String,
+    #[doc = "Releasable to"]
+    #[serde(default)]
+    pub v: String,
+    #[doc = "Type"]
+    #[serde(default)]
+    pub w: String,
+}
+impl From<&MapItem> for MapItem {
+    fn from(value: &MapItem) -> Self {
+        value.clone()
+    }
+}
