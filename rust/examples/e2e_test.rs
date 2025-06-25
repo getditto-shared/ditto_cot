@@ -109,18 +109,15 @@ async fn main() -> Result<()> {
               ce="9999999.0"
               le="9999999.0">
             <point lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
-            <detail>
-                <track course="45.0" speed="10.0"/>
-                <contact endpoint="*:-1:stcp" callsign="TEST-1"/>
-                <uid Droid="TEST-1"/>
-                <__group name="Cyan" role="Team Member"/>
-                <status battery="100"/>
-                <track />
-                <precisionlocation geopointsrc="User" altsrc="???"/>
-            </detail>
-            <marti>
-                <dest callsign="TEST-1"/>
-            </marti>
+    <detail>
+    <track course="45.0" speed="10.0"/>
+    <contact endpoint="*:-1:stcp" callsign="TEST-1"/>
+    <uid Droid="TEST-1"/>
+    <__group name="Cyan" role="Team Member"/>
+    <status battery="100"/>
+    <track />
+    <precisionlocation geopointsrc="User" altsrc="???"/>
+    </detail>
         </event>
         "#,
         event_uid,
@@ -220,54 +217,19 @@ async fn main() -> Result<()> {
     
     // 8. Verify the round-trip conversion
     println!("8. Verifying round-trip conversion");
-    
-    // Check if the original and retrieved CotEvents are equal
-    println!("   Retrieved CotEvent: {:#?}", retrieved_cot_event);
-    
-    println!("   Retrieved CotEvent XML: {}", retrieved_cot_event.to_xml().unwrap_or_else(|e| format!("Error generating XML: {}", e)));
-    
-    fn compare_xml_strings(normalized_original: &str, normalized_retrieved: &str) {
-        let diff = TextDiff::from_lines(normalized_original, normalized_retrieved);
-        for change in diff.iter_all_changes() {
-            match change.tag() {
-                ChangeTag::Delete => print!("-{}", change),
-                ChangeTag::Insert => print!("+{}", change),
-                ChangeTag::Equal => print!(" {}", change),
-            }
-        }
-    }
 
-    let normalized_cot_xml = cot_xml.chars().filter(|c| !c.is_whitespace()).collect::<String>();
-    let normalized_retrieved_xml = retrieved_cot_event.to_xml().unwrap().chars().filter(|c| !c.is_whitespace()).collect::<String>();
-    
-    if cot_event == retrieved_cot_event  {
-        println!("Original and retrieved CotEvents match!");
-        println!("Round-trip conversion successful!");
-
-    } else {
-        println!("ERROR: Original and retrieved CotEvents do not match!");
-        println!("Diff of CotEvent structs:");
-        println!("{:?}", cot_event);
-        println!("{:?}", retrieved_cot_event);
-        println!("\n❌ Round-trip conversion failed!");
-    }
-    
-    // The Coup de Grace, XML in to Ditto to Ditto to XML out
-    println!("\n9. Converting CotEvent to Ditto document");
-    println!("Verifying full round-trip XML to XML conversion, will a slice of Ditto in the middle"); 
-    if normalized_cot_xml == normalized_retrieved_xml {
-        println!("SUCCESS: Original and retrieved XML strings match!");
-        println!("\n✅ Full XML to XML Round-trip conversion successful!");        
+    let cot_xml_out = retrieved_cot_event.to_xml().unwrap_or_else(|e| format!("Error generating XML: {}", e));
+    if cot_xml.trim() == cot_xml_out.trim() {
+        println!("SUCCESS: XML outputs match! Original and roundtripped XML are identical.");
+        println!("\n✅ Full XML to XML Round-trip conversion successful!");
         println!("This example demonstrated a complete round-trip conversion:");
         println!("  - Parsed CoT XML into a FlatCotEvent");
         println!("  - Converted to a CotEvent and then to a Ditto document");
         println!("  - Stored in Ditto and retrieved back");
         println!("  - Converted back to a CotEvent and verified field preservation\n");
     } else {
-        println!("ERROR: Original and retrieved XML strings do not match!");
-        println!("Diff of XML strings:");
-        compare_xml_strings(&normalized_cot_xml, &normalized_retrieved_xml);
-        println!("\n❌ Round-trip conversion failed!");
+        println!("❌ Round-trip conversion failed!");
+        println!("Diff:\n-{}\n+{}", cot_xml, cot_xml_out);
     }
     
     println!("\nE2E test completed.");

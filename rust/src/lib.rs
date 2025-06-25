@@ -38,6 +38,9 @@ pub mod model;
 /// XML schema validation
 pub mod schema_validator;
 
+/// XML normalization utilities
+pub mod xml_utils;
+
 /// XML parsing utilities
 pub mod xml_parser;
 

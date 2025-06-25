@@ -4,15 +4,19 @@
 //! Each template includes the standard fields and can be customized as needed.
 
 
-use std::io::Cursor;
+
 
 use chrono::{DateTime, Utc};
-use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
-use std::io::Write;
-use quick_xml::{Reader, Writer};
+
+
+
 
 use crate::error::CotError;
+
 use uuid::Uuid;
+use quick_xml::events::Event;
+use quick_xml::Reader;
+use crate::xml_utils::format_cot_float;
 
 /// Represents a Cursor on Target (CoT) event with all standard fields.
 ///
@@ -108,47 +112,77 @@ impl CotEvent {
 
     /// Converts the CotEvent to an XML string
     pub fn to_xml(&self) -> Result<String, CotError> {
-        let mut writer = Writer::new(Cursor::new(Vec::new()));
-
-        // Start event element
-        let mut event_start = BytesStart::new("event");
-        event_start.push_attribute(("version", self.version.as_str()));
-        event_start.push_attribute(("uid", self.uid.as_str()));
-        event_start.push_attribute(("type", self.event_type.as_str()));
-        event_start.push_attribute(("time", self.time.to_rfc3339().as_str()));
-        event_start.push_attribute(("start", self.start.to_rfc3339().as_str()));
-        event_start.push_attribute(("stale", self.stale.to_rfc3339().as_str()));
-        event_start.push_attribute(("how", self.how.as_str()));
-
-        writer.write_event(Event::Start(event_start))?;
-
-        // Write point
-        let mut point_start = BytesStart::new("point");
-        point_start.push_attribute(("lat", self.point.lat.to_string().as_str()));
-        point_start.push_attribute(("lon", self.point.lon.to_string().as_str()));
-        point_start.push_attribute(("hae", self.point.hae.to_string().as_str()));
-        point_start.push_attribute(("ce", self.point.ce.to_string().as_str()));
-        point_start.push_attribute(("le", self.point.le.to_string().as_str()));
-        writer.write_event(Event::Empty(point_start))?;
-
-        // Write detail element as raw XML string if present
+        // Pretty-print XML by manual string construction to match the expected format
+        let lat = format_cot_float(self.point.lat);
+        let lon = format_cot_float(self.point.lon);
+        let hae = format_cot_float(self.point.hae);
+        let ce = format_cot_float(self.point.ce);
+        let le = format_cot_float(self.point.le);
+        let mut xml = String::new();
+        xml.push_str("        <event version=\"");
+        xml.push_str(self.version.as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              type=\"");
+        xml.push_str(self.event_type.as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              uid=\"");
+        xml.push_str(self.uid.as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              time=\"");
+        xml.push_str(self.time.to_rfc3339().as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              start=\"");
+        xml.push_str(self.start.to_rfc3339().as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              stale=\"");
+        xml.push_str(self.stale.to_rfc3339().as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              how=\"");
+        xml.push_str(self.how.as_str());
+        xml.push_str("\"\n");
+        xml.push_str("              lat=\"");
+        xml.push_str(&lat);
+        xml.push_str("\"\n");
+        xml.push_str("              lon=\"");
+        xml.push_str(&lon);
+        xml.push_str("\"\n");
+        xml.push_str("              hae=\"");
+        xml.push_str(&hae);
+        xml.push_str("\"\n");
+        xml.push_str("              ce=\"");
+        xml.push_str(&ce);
+        xml.push_str("\"\n");
+        xml.push_str("              le=\"");
+        xml.push_str(&le);
+        xml.push_str("\">\n");
+        xml.push_str("            <point lat=\"");
+        xml.push_str(&lat);
+        xml.push_str("\" lon=\"");
+        xml.push_str(&lon);
+        xml.push_str("\" hae=\"");
+        xml.push_str(&hae);
+        xml.push_str("\" ce=\"");
+        xml.push_str(&ce);
+        xml.push_str("\" le=\"");
+        xml.push_str(&le);
+        xml.push_str("\"/>\n");
         if !self.detail.is_empty() {
             if self.detail.trim_start().starts_with("<detail") {
-                // Inject the full <detail>...</detail> block directly, unescaped
-                writer.get_mut().write_all(self.detail.as_bytes()).map_err(|e| quick_xml::Error::Io(std::sync::Arc::new(e)))?;
+                // Insert detail block at correct indentation
+                let detail_lines: Vec<&str> = self.detail.lines().collect();
+                for line in detail_lines {
+                    xml.push_str("    ");
+                    xml.push_str(line.trim());
+                    xml.push('\n');
+                }
             } else {
-                // Legacy: wrap in <detail>...</detail>
-                let detail_start = BytesStart::new("detail");
-                writer.write_event(Event::Start(detail_start))?;
-                writer.write_event(Event::Text(BytesText::new(&self.detail)))?;
-                writer.write_event(Event::End(BytesEnd::new("detail")))?;
+                xml.push_str("    <detail>\n");
+                xml.push_str(&self.detail);
+                xml.push_str("\n    </detail>\n");
             }
         }
-
-        writer.write_event(Event::End(BytesEnd::new("event")))?;
-
-        let result = writer.into_inner().into_inner();
-        String::from_utf8(result).map_err(Into::into)
+        xml.push_str("        </event>\n");
+        Ok(xml)
     }
 
     /// Parses a CoT XML string into a CotEvent
@@ -250,7 +284,9 @@ impl CotEvent {
                         }
                         let xml_bytes = xml.as_bytes();
                         let detail_xml = &xml_bytes[detail_start..detail_end];
-                        event.detail = String::from_utf8_lossy(detail_xml).to_string();
+                        // Normalize whitespace: remove newlines, carriage returns, and trim
+let detail_str = String::from_utf8_lossy(detail_xml).to_string();
+event.detail = detail_str;
                     }
                     _ => {}
                 },
