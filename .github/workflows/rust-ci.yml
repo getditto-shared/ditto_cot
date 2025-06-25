@@ -12,6 +12,27 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.86
+        components: rustfmt, clippy
+        override: true
+
+    - name: Check formatting
+      working-directory: ./rust
+      run: cargo fmt --all -- --check
+
+    - name: Lint
+      working-directory: ./rust
+      run: cargo clippy --profile ci --all-targets --all-features -- -D warnings
+
+
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -56,12 +77,7 @@ jobs:
         # Nextest will automatically use the optimized build from the CI profile
         cargo nextest run --workspace --all-features
         
-        # Run Clippy with the same profile
-        cargo clippy --profile ci --all-targets --all-features -- -D warnings
       
-    - name: Check formatting
-      working-directory: ./rust
-      run: cargo fmt --all -- --check
       
     - name: Run Benchmarks
       working-directory: ./rust
