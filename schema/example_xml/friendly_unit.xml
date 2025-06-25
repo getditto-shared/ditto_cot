@@ -1,0 +1,12 @@
+<event version="2.0"
+       uid="Alpha1"
+       type="a-f-G-U-C"
+       time="2025-06-24T14:10:00Z"
+       start="2025-06-24T14:10:00Z"
+       stale="2025-06-24T14:20:00Z"
+       how="m-g">
+  <point lat="34.052235" lon="-118.243683" hae="100.0" ce="10.0" le="5.0"/>
+  <detail>
+    <contact callsign="Alpha1"/>
+  </detail>
+</event>

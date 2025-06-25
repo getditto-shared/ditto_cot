@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+  RUST_BACKTRACE: 1
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.86
+        components: rustfmt, clippy
+        override: true
+
+    - name: Check formatting
+      working-directory: ./rust
+      run: cargo fmt --all -- --check
+
+    - name: Lint
+      working-directory: ./rust
+      run: cargo clippy --profile ci --all-targets --all-features -- -D warnings
+
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.86
+        components: rustfmt, clippy
+        override: true
+    
+    - name: Cache cargo registry and target directory
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          rust/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@nextest
+    
+    - name: Build and Test
+      working-directory: ./rust
+      env:
+        # Use environment variables to control the build profile
+        CARGO_PROFILE_CI_LTO: "thin"
+        CARGO_PROFILE_CI_CODEGEN_UNITS: "1"
+        CARGO_PROFILE_CI_DEBUG: "false"
+        CARGO_PROFILE_CI_OPT_LEVEL: "3"
+        CARGO_PROFILE_CI_OVERFLOW_CHECKS: "true"
+      run: |
+        # Build with the CI profile
+        cargo build --profile ci
+        
+        # Run tests with nextest using the release profile
+        # Nextest will automatically use the optimized build from the CI profile
+        cargo nextest run --workspace --all-features
+        
+      
+      
+    - name: Run Benchmarks
+      working-directory: ./rust
+      run: cargo bench --profile ci || true

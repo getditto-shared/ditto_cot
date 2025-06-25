@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ditto Document Root Schema",
+  "$defs": {
+    "Common": {
+      "type": "object",
+      "properties": {
+        "_id": { "type": "string", "description": "Ditto document ID" },
+        "_c": { "type": "integer", "description": "Document counter (updates)" },
+        "_v": { "type": "integer", "const": 2, "description": "Schema version (2)" },
+        "_r": { "type": "boolean", "description": "Soft-delete flag" },
+        "a": { "type": "string", "description": "Ditto peer key string" },
+        "b": { "type": "number", "description": "Millis since epoch" },
+        "d": { "type": "string", "description": "TAK UID of author" },
+        "e": { "type": "string", "description": "Callsign of author" },
+        "g": { "type": "string", "default": "", "description": "Version" },
+        "h": { "type": "number", "default": 0.0, "description": "CotPoint CE" },
+        "i": { "type": "number", "default": 0.0, "description": "CotPoint HAE" },
+        "j": { "type": "number", "default": 0.0, "description": "CotPoint LAT" },
+        "k": { "type": "number", "default": 0.0, "description": "CotPoint LE" },
+        "l": { "type": "number", "default": 0.0, "description": "CotPoint LON" },
+        "n": { "type": "integer", "default": 0, "description": "Start" },
+        "o": { "type": "integer", "default": 0, "description": "Stale" },
+        "p": { "type": "string", "default": "", "description": "How" },
+        "q": { "type": "string", "default": "", "description": "Access" },
+        "r": { "type": "string", "default": "", "description": "Detail (XML CotDetail)" },
+        "s": { "type": "string", "default": "", "description": "Opex" },
+        "t": { "type": "string", "default": "", "description": "Qos" },
+        "u": { "type": "string", "default": "", "description": "Caveat" },
+        "v": { "type": "string", "default": "", "description": "Releasable to" },
+        "w": { "type": "string", "default": "", "description": "Type" }
+      },
+      "required": ["_id", "_c", "_v", "_r", "a", "b", "d", "e"]
+    },
+    "Api": {
+      "allOf": [
+        { "$ref": "#/$defs/Common" },
+        {
+          "type": "object",
+          "properties": {
+            "isFile": { "type": "boolean", "description": "Is file" },
+            "title": { "type": "string", "description": "Title" },
+            "mime": { "type": "string", "description": "MIME type" },
+            "contentType": { "type": "string", "description": "Content type" },
+            "tag": { "type": "string", "description": "Optional tag" },
+            "data": { "type": "string", "description": "Document data" },
+            "isRemoved": { "type": "boolean", "description": "Removed on device" },
+            "timeMillis": { "type": "integer", "description": "Creation time millis" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
+          }
+        }
+      ]
+    },
+    "Chat": {
+      "allOf": [
+        { "$ref": "#/$defs/Common" },
+        {
+          "type": "object",
+          "properties": {
+            "message": { "type": "string", "description": "Chat message" },
+            "room": { "type": "string", "description": "Room name" },
+            "parent": { "type": "string", "description": "Parent message ID" },
+            "roomId": { "type": "string", "description": "Room ID" },
+            "authorCallsign": { "type": "string", "description": "Sender callsign" },
+            "authorUid": { "type": "string", "description": "Sender UID" },
+            "authorType": { "type": "string", "description": "Sender type" },
+            "time": { "type": "string", "description": "Time sent" },
+            "location": { "type": "string", "description": "GeoPoint string location" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
+          }
+        }
+      ]
+    },
+    "File": {
+      "allOf": [
+        { "$ref": "#/$defs/Common" },
+        {
+          "type": "object",
+          "properties": {
+            "c": { "type": "string", "description": "File name" },
+            "sz": { "type": "number", "description": "File size in bytes" },
+            "file": { "type": "string", "description": "Attachment token" },
+            "mime": { "type": "string", "description": "MIME type" },
+            "contentType": { "type": "string", "description": "Content type" },
+            "itemId": { "type": "string", "description": "ID of map item (if attached)" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
+          }
+        }
+      ]
+    },
+    "MapItem": {
+      "allOf": [
+        { "$ref": "#/$defs/Common" },
+        {
+          "type": "object",
+          "properties": {
+            "c": { "type": "string", "description": "Name or title of map item" },
+            "f": { "type": "boolean", "description": "Visibility flag" },
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/Api" },
+    { "$ref": "#/$defs/Chat" },
+    { "$ref": "#/$defs/File" },
+    { "$ref": "#/$defs/MapItem" }
+  ]
+}

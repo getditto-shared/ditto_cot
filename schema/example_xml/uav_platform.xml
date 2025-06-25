@@ -1,0 +1,14 @@
+<event version="2.0"
+       uid="UAV-PLATFORM-001"
+       type="a-f-A-M-F-Q"
+       time="2025-06-24T14:25:00Z"
+       start="2025-06-24T14:25:00Z"
+       stale="2025-06-24T14:35:00Z"
+       how="m-g">
+  <point lat="48.856613" lon="2.352222" hae="5000.0" ce="15.0" le="10.0"/>
+  <detail>
+    <platform>
+      <name>MQ-9 Reaper</name>
+    </platform>
+  </detail>
+</event>
