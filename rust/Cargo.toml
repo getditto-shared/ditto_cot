@@ -42,6 +42,9 @@ inherits = "release"
 codegen-units = 1  # Slower builds but faster code
 incremental = false  # Disable incremental compilation for CI
 lto = "thin"  # Thin LTO for better optimization
+debug = false
+opt-level = 3
+overflow-checks = true
 
 [lib]
 bench = false

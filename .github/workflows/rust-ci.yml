@@ -41,7 +41,7 @@ jobs:
     
     - name: Build
       working-directory: ./rust
-      run: cargo build --verbose --profile ci
+      run: cargo build --profile ci
     
     - name: Run Tests
       working-directory: ./rust
