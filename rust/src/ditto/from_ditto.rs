@@ -48,8 +48,18 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 ce: api.b,
                 le: api.k.unwrap_or(0.0),
             },
-            // Preserve detail exactly as in Ditto document, trimming whitespace
-            detail: api.r.clone(),
+            // Serialize detail map to XML for round-trip fidelity
+            detail: {
+                use crate::ditto::from_ditto_util::flat_cot_event_from_ditto;
+                use crate::xml_writer::to_cot_xml;
+                let flat = flat_cot_event_from_ditto(doc);
+                // Extract only the <detail>...</detail> section
+                let xml = to_cot_xml(&flat);
+                // Find <detail>...</detail>
+                let start = xml.find("<detail>").unwrap_or(0);
+                let end = xml.find("</detail>").map(|i| i+"</detail>".len()).unwrap_or(xml.len());
+                xml[start..end].to_string()
+            },
         },
         DittoDocument::Chat(chat) => CotEvent {
             version: "2.0".to_string(),
@@ -70,7 +80,16 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 ce: chat.b,
                 le: chat.k.unwrap_or(0.0),
             },
-            detail: chat.r.clone(),
+            // Serialize detail map to XML for round-trip fidelity
+            detail: {
+                use crate::ditto::from_ditto_util::flat_cot_event_from_ditto;
+                use crate::xml_writer::to_cot_xml;
+                let flat = flat_cot_event_from_ditto(doc);
+                let xml = to_cot_xml(&flat);
+                let start = xml.find("<detail>").unwrap_or(0);
+                let end = xml.find("</detail>").map(|i| i+"</detail>".len()).unwrap_or(xml.len());
+                xml[start..end].to_string()
+            },
         },
         DittoDocument::File(file) => CotEvent {
             version: "2.0".to_string(),
@@ -91,7 +110,16 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 ce: file.b,
                 le: file.k.unwrap_or(0.0),
             },
-            detail: file.r.clone(),
+            // Serialize detail map to XML for round-trip fidelity
+            detail: {
+                use crate::ditto::from_ditto_util::flat_cot_event_from_ditto;
+                use crate::xml_writer::to_cot_xml;
+                let flat = flat_cot_event_from_ditto(doc);
+                let xml = to_cot_xml(&flat);
+                let start = xml.find("<detail>").unwrap_or(0);
+                let end = xml.find("</detail>").map(|i| i+"</detail>".len()).unwrap_or(xml.len());
+                xml[start..end].to_string()
+            },
         },
         DittoDocument::MapItem(map_item) => CotEvent {
             version: "2.0".to_string(),
@@ -112,7 +140,16 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 ce: map_item.k.unwrap_or(0.0),
                 le: map_item.k.unwrap_or(0.0),
             },
-            detail: map_item.r.clone(),
+            // Serialize detail map to XML for round-trip fidelity
+            detail: {
+                use crate::ditto::from_ditto_util::flat_cot_event_from_ditto;
+                use crate::xml_writer::to_cot_xml;
+                let flat = flat_cot_event_from_ditto(doc);
+                let xml = to_cot_xml(&flat);
+                let start = xml.find("<detail>").unwrap_or(0);
+                let end = xml.find("</detail>").map(|i| i+"</detail>".len()).unwrap_or(xml.len());
+                xml[start..end].to_string()
+            },
         },
     }
 }

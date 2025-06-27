@@ -25,7 +25,7 @@ fn test_underscore_key_handling() {
         o: 0,
         p: String::new(),
         q: String::new(),
-        r: String::new(),
+        r: std::collections::HashMap::new(),
         s: String::new(),
         t: String::new(),
         u: String::new(),

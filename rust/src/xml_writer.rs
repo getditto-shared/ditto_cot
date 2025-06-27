@@ -52,22 +52,80 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
         event.lat, event.lon, event.hae, event.ce, event.le
     ));
     xml.push_str("<detail>");
-    if let Some(ref cs) = event.callsign {
-        xml.push_str(&format!(r#"<contact callsign="{}"/>"#, cs));
-    }
-    if let Some(ref group) = event.group_name {
-        xml.push_str(&format!(r#"<__group name="{}"/>"#, group));
-    }
-    for (k, v) in &event.detail_extra {
+
+    // Helper for recursive serialization of detail_extra
+    use std::collections::BTreeMap;
+    fn write_detail_xml(xml: &mut String, k: &str, v: &serde_json::Value) {
+        println!("[DEBUG] write_detail_xml: key = {} | value = {:?}", k, v);
         if let Some(obj) = v.as_object() {
-            xml.push_str(&format!(r#"<{}"#, k));
-            for (key, val) in obj {
-                if let Some(s) = val.as_str() {
-                    xml.push_str(&format!(r#" {}="{}""#, key, s));
+            // If all values are string and no _text, treat as attributes
+            let mut attrs = vec![];
+            let mut children = vec![];
+            let mut text = None;
+            // Sort keys for canonical order
+            let mut keys: Vec<_> = obj.keys().collect();
+            keys.sort();
+            for key in keys {
+                let val = &obj[key];
+                if key == "_text" {
+                    if let Some(s) = val.as_str() {
+                        text = Some(s);
+                    }
+                } else if let Some(s) = val.as_str() {
+                    attrs.push((key.as_str(), s));
+                } else {
+                    children.push((key, val));
                 }
             }
-            xml.push_str("/>");
+            attrs.sort_by_key(|(k, _)| *k);
+            children.sort_by_key(|(k, _)| *k);
+            if children.is_empty() && text.is_none() {
+                // Only attributes
+                println!("[DEBUG] write_detail_xml: <{}> only attributes: {:?}", k, attrs);
+                let tag_str = {
+                    let mut s = format!("<{}", k);
+                    for (key, val) in &attrs {
+                        s.push_str(&format!(" {}=\"{}\"", key, val));
+                    }
+                    s.push_str("/>");
+                    s
+                };
+                println!("[DEBUG] write_detail_xml: emitting tag: {}", tag_str);
+                xml.push_str(&tag_str);
+            } else {
+                // Start tag with attributes
+                println!("[DEBUG] write_detail_xml: <{}> attrs: {:?}, children: {:?}, text: {:?}", k, attrs, children, text);
+                xml.push_str(&format!(r#"<{}"#, k));
+                for (key, val) in &attrs {
+                    xml.push_str(&format!(r#" {}=\"{}\""#, key, val));
+                }
+                xml.push('>');
+                // Optional text
+                if let Some(t) = text {
+                    xml.push_str(t);
+                }
+                // Children
+                for (child_k, child_v) in children {
+                    write_detail_xml(xml, child_k, child_v);
+                }
+                xml.push_str(&format!("</{}>", k));
+            }
+        } else if let Some(s) = v.as_str() {
+            println!("[DEBUG] write_detail_xml: <{}> string value: {}", k, s);
+            xml.push_str(&format!("<{}>{}</{}>", k, s, k));
+        } else if let Some(n) = v.as_f64() {
+            println!("[DEBUG] write_detail_xml: <{}> number value: {}", k, n);
+            xml.push_str(&format!("<{}>{}</{}>", k, n, k));
+        } else if let Some(b) = v.as_bool() {
+            println!("[DEBUG] write_detail_xml: <{}> bool value: {}", k, b);
+            xml.push_str(&format!("<{}>{}</{}>", k, b, k));
         }
+    }
+    let mut detail_keys: Vec<_> = event.detail_extra.keys().collect();
+    detail_keys.sort();
+    for k in detail_keys {
+        let v = &event.detail_extra[k];
+        write_detail_xml(&mut xml, k, v);
     }
     xml.push_str("</detail>");
     xml.push_str("</event>");

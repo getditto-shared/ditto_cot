@@ -97,9 +97,7 @@ pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
 
                 // Get the inner XML as a string
                 let inner_xml = String::from_utf8_lossy(&detail_buf);
-                let (callsign, group_name, extras) = parse_detail_section(&inner_xml);
-                flat.callsign = callsign;
-                flat.group_name = group_name;
+                let extras = parse_detail_section(&inner_xml);
                 flat.detail_extra = extras;
             }
             Event::Eof => break,

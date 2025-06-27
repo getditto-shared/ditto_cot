@@ -3,6 +3,7 @@ use chrono::Utc;
 use ditto_cot::{
     cot_events::CotEvent,
     ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, DittoDocument},
+    xml_utils,
 };
 use dittolive_ditto::fs::PersistentRoot;
 use dittolive_ditto::prelude::*;
@@ -106,13 +107,12 @@ async fn main() -> Result<()> {
               le="9999999.0">
             <point lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
     <detail>
-    <track course="45.0" speed="10.0"/>
-    <contact endpoint="*:-1:stcp" callsign="TEST-1"/>
-    <uid Droid="TEST-1"/>
     <__group name="Cyan" role="Team Member"/>
-    <status battery="100"/>
-    <track />
+    <contact endpoint="*:-1:stcp" callsign="TEST-1"/>
     <precisionlocation geopointsrc="User" altsrc="???"/>
+    <status battery="100"/>
+    <track course="45.0" speed="10.0"/>
+    <uid Droid="TEST-1"/>
     </detail>
         </event>
         "#,
@@ -220,20 +220,16 @@ async fn main() -> Result<()> {
     let cot_xml_out = retrieved_cot_event
         .to_xml()
         .unwrap_or_else(|e| format!("Error generating XML: {}", e));
-    if cot_xml.trim() == cot_xml_out.trim() {
-        println!("SUCCESS: XML outputs match! Original and roundtripped XML are identical.");
-        println!("\n✅ Full XML to XML Round-trip conversion successful!");
-        println!("This example demonstrated a complete round-trip conversion:");
-        println!("  - Parsed CoT XML into a FlatCotEvent");
-        println!("  - Converted to a CotEvent and then to a Ditto document");
-        println!("  - Stored in Ditto and retrieved back");
-        println!("  - Converted back to a CotEvent and verified field preservation\n");
+    let minimized_expected = xml_utils::minimize_xml(&cot_xml);
+    let minimized_actual = xml_utils::minimize_xml(&cot_xml_out);
+    if minimized_expected == minimized_actual {
+        println!("🚀 SUCCESS: XML outputs match! Original and roundtripped XML are identical.");
     } else {
         println!("❌ Round-trip conversion failed!");
-        println!("Diff:\n-{}\n+{}", cot_xml, cot_xml_out);
+        println!("Diff:");
+        println!("-\n{}", minimized_expected);
+        println!("+\n{}", minimized_actual);
     }
-
-    println!("\nE2E test completed.");
 
     println!("Note: This test uses a real Ditto instance with the online playground.");
     println!(

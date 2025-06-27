@@ -4,6 +4,7 @@
 //! into Ditto documents according to the Ditto JSON schemas.
 
 pub mod from_ditto;
+pub mod from_ditto_util;
 pub mod schema;
 pub mod to_ditto;
 

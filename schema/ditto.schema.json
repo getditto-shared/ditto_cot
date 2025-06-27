@@ -23,7 +23,11 @@
         "o": { "type": "integer", "default": 0, "description": "Stale" },
         "p": { "type": "string", "default": "", "description": "How" },
         "q": { "type": "string", "default": "", "description": "Access" },
-        "r": { "type": "string", "default": "", "description": "Detail (XML CotDetail)" },
+        "r": {
+  "type": "object",
+  "description": "Detail (dynamic map of CoT detail fields, supports CRDT MAP for fine-grained sync)",
+  "additionalProperties": { "type": ["string", "number", "boolean", "object", "array", "null"] }
+},
         "s": { "type": "string", "default": "", "description": "Opex" },
         "t": { "type": "string", "default": "", "description": "Qos" },
         "u": { "type": "string", "default": "", "description": "Caveat" },
