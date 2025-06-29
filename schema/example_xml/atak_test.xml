@@ -1,0 +1,17 @@
+<event version="2.0"
+              type="a-f-G-U-C"
+              uid="ANDROID-121304b069b9e23b"
+              time="2025-06-24T14:20:00Z"
+              start="2025-06-24T14:20:00Z"
+              stale="2025-06-24T14:30:00Z"
+              how="h-g-i-g-o"
+              lat="1.2345"
+              lon="2.3456"
+              hae="9999999.0"
+              ce="9999999.0"
+              le="9999999.0">
+            <point lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
+    <detail>
+    <takv os='35' version='5.4.0.11 (ba911fe4).1747466699-CIV' device='GOOGLE PIXEL 7' platform='ATAK-CIV'/><contact endpoint='192.168.5.241:4242:tcp' callsign='BRAMA'/><uid Droid='BRAMA'/><precisionlocation altsrc='GPS' geopointsrc='GPS'/><__group role='Team Member' name='Cyan'/><status battery='100'/><ditto a='pkAocCgkMC3Uymd76teCMwUWbsIPgrSlOekNbwJ84SKmbn91crZdg' ip='192.168.5.241' version='AndJ4.10.2_90aa996a2e' deviceName='T9b9e23b'/>
+    </detail>
+</event>

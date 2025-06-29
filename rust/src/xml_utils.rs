@@ -89,3 +89,8 @@ pub fn minimize_xml(xml: &str) -> String {
     }
     out
 }
+
+/// Performs a semantic equality check on two XML strings, ignoring attribute order and whitespace by leveraging minimize_xml for normalization.
+pub fn semantic_xml_eq(xml1: &str, xml2: &str) -> bool {
+    minimize_xml(xml1) == minimize_xml(xml2)
+}
