@@ -46,7 +46,7 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     MapItem {
         id: event.uid.clone(),                   // Ditto document ID
         a: peer_key.to_string(),                 // Ditto peer key string
-        b: event.time.timestamp_millis() as f64, // Time in millis since epoch
+        b: event.point.ce,                       // Circular error (ce) value
         c: None,                                 // Name/title not parsed from raw detail string
         d: event.uid.clone(),                    // TAK UID of author
         d_c: 0,                                  // Document counter (updates), default to 0

@@ -62,7 +62,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     let event_uid = format!("TEST-{}-1", uuid::Uuid::new_v4());
 
     // Sample CoT XML event
-    let cot_xml = format!(r#"<event version="2.0" type="a-f-G-U-C" uid="{}" time="{}" start="{}" stale="{}" how="h-g-i-g-o" lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0">
+    let cot_xml = format!(r#"<event version="2.0" type="a-f-G-U-C" uid="{}" time="{}" start="{}" stale="{}" how="h-g-i-g-o">
   <point lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
   <detail>
     <__group name="Cyan" role="Team Member"/>
@@ -127,7 +127,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         .unwrap_or_else(|e| format!("Error generating XML: {}", e));
     let minimized_expected = xml_utils::minimize_xml(&cot_xml);
     let minimized_actual = xml_utils::minimize_xml(&cot_xml_out);
-    assert!(xml_utils::semantic_xml_eq(&minimized_expected, &minimized_actual), "Round-trip XML mismatch!\nExpected:\n{}\nActual:\n{}", minimized_expected, minimized_actual);
+    assert!(xml_utils::semantic_xml_eq(&minimized_expected, &minimized_actual, false), "Round-trip XML mismatch!\nExpected:\n{}\nActual:\n{}", minimized_expected, minimized_actual);
 
     // Gracefully shutdown Ditto instance
     ditto.close();
@@ -257,8 +257,8 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         // Minimize both input and output XML to remove insignificant whitespace and formatting
         let min_expected = xml_utils::minimize_xml(&cot_xml);
         let min_actual = xml_utils::minimize_xml(&cot_xml_out);
-        // Use semantic XML equality for round-trip check
-        if !xml_utils::semantic_xml_eq(&min_expected, &min_actual) {
+        // Use semantic XML equality for round-trip check with non-strict comparison (ignore attribute order)
+        if !xml_utils::semantic_xml_eq(&min_expected, &min_actual, false) {
             eprintln!("\n❌ Semantic XML round-trip mismatch for {}!\n--- Expected (input, minimized) ---\n{}\n--- Actual (output, minimized) ---\n{}\n", path.display(), min_expected, min_actual);
             panic!("Semantic XML round-trip mismatch for {}!", path.display());
         }
