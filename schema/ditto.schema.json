@@ -115,7 +115,22 @@
             "source": {
               "type": "string",
               "description": "Source field for origin tracking",
-              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"]
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"] 
+            }
+          }
+        }
+      ]
+    },
+    "Generic": {
+      "allOf": [
+        { "$ref": "#/$defs/Common" },
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "Source field for origin tracking",
+              "x-rust-type-attributes": ["#[serde(default, skip_serializing_if = \"Option::is_none\")]"] 
             }
           }
         }
@@ -126,6 +141,7 @@
     { "$ref": "#/$defs/Api" },
     { "$ref": "#/$defs/Chat" },
     { "$ref": "#/$defs/File" },
-    { "$ref": "#/$defs/MapItem" }
+    { "$ref": "#/$defs/MapItem" },
+    { "$ref": "#/$defs/Generic" }
   ]
 }
