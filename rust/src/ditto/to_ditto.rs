@@ -135,9 +135,12 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
                 serde_json::Value::String(s) => ChatRValue::String(s),
                 serde_json::Value::Bool(b) => ChatRValue::from(b),
                 serde_json::Value::Number(n) => ChatRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => ChatRValue::from(obj.clone()),
-                serde_json::Value::Array(arr) => ChatRValue::from(arr.clone()),
-                _ => ChatRValue::from(false),
+                serde_json::Value::Object(obj) => {
+                    let map = serde_json::Map::from_iter(obj.clone());
+                    ChatRValue::Object(map)
+                },
+                serde_json::Value::Array(arr) => ChatRValue::Array(arr.clone()),
+                _ => ChatRValue::Null,
             })).collect()
         },
         s: "".to_string(),
@@ -198,9 +201,12 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
                 serde_json::Value::String(s) => ApiRValue::String(s),
                 serde_json::Value::Bool(b) => ApiRValue::from(b),
                 serde_json::Value::Number(n) => ApiRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => ApiRValue::from(obj.clone()),
-                serde_json::Value::Array(arr) => ApiRValue::from(arr.clone()),
-                _ => ApiRValue::from(false),
+                serde_json::Value::Object(obj) => {
+                    let map = serde_json::Map::from_iter(obj.clone());
+                    ApiRValue::Object(map)
+                },
+                serde_json::Value::Array(arr) => ApiRValue::Array(arr.clone()),
+                _ => ApiRValue::Null,
             })).collect()
         },
         s: "".to_string(),
@@ -258,9 +264,12 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
                 serde_json::Value::String(s) => FileRValue::String(s),
                 serde_json::Value::Bool(b) => FileRValue::from(b),
                 serde_json::Value::Number(n) => FileRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => FileRValue::from(obj.clone()),
-                serde_json::Value::Array(arr) => FileRValue::from(arr.clone()),
-                _ => FileRValue::from(false),
+                serde_json::Value::Object(obj) => {
+                    let map = serde_json::Map::from_iter(obj.clone());
+                    FileRValue::Object(map)
+                },
+                serde_json::Value::Array(arr) => FileRValue::Array(arr.clone()),
+                _ => FileRValue::Null,
             })).collect()
         },
         s: "".to_string(),
