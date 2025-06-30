@@ -1,14 +1,14 @@
-//! Convert DittoDocument back into CotEvent for round-trip tests
+//! Convert CotDocument back into CotEvent for round-trip tests
 use crate::cot_events::CotEvent;
-use crate::ditto::{DittoDocument, File, FileRValue};
+use crate::ditto::{CotDocument, File, FileRValue};
 use chrono::{DateTime, TimeZone, Utc};
 
-/// Convert a DittoDocument back into a CotEvent (best-effort mapping for round-trip tests)
+/// Convert a CotDocument back into a CotEvent (best-effort mapping for round-trip tests)
 ///
-/// This function attempts to reconstruct a CotEvent from a DittoDocument with the best possible
+/// This function attempts to reconstruct a CotEvent from a CotDocument with the best possible
 /// fidelity. Not all fields may be perfectly preserved in the round-trip conversion due to
 /// differences in the data models.
-pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
+pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
     use crate::cot_events::Point;
 
     /// Helper to safely convert microseconds since epoch to DateTime<Utc>
@@ -29,7 +29,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
     }
 
     match doc {
-        DittoDocument::Api(api) => CotEvent {
+        CotDocument::Api(api) => CotEvent {
             version: "2.0".to_string(),
             uid: api.id.clone(),
             event_type: api.w.clone(),
@@ -61,7 +61,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 xml[start..end].to_string()
             },
         },
-        DittoDocument::Chat(chat) => CotEvent {
+        CotDocument::Chat(chat) => CotEvent {
             version: "2.0".to_string(),
             uid: chat.id.clone(),
             event_type: chat.w.clone(),
@@ -91,7 +91,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 xml[start..end].to_string()
             },
         },
-        DittoDocument::File(file) => {
+        CotDocument::File(file) => {
             // Extract the ce value from the _ce field in the detail map if it exists
             let ce = match &file.r.get("_ce") {
                 Some(FileRValue::Number(n)) => *n,
@@ -138,7 +138,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
             detail_map.remove("_stale");
             
             // Create a modified File with the cleaned detail map for XML generation
-            let modified_file = DittoDocument::File(File {
+            let modified_file = CotDocument::File(File {
                 r: detail_map,
                 ..file.clone()
             });
@@ -170,7 +170,7 @@ pub fn cot_event_from_ditto_document(doc: &DittoDocument) -> CotEvent {
                 },
             }
         },
-        DittoDocument::MapItem(map_item) => CotEvent {
+        CotDocument::MapItem(map_item) => CotEvent {
             version: "2.0".to_string(),
             uid: map_item.id.clone(),
             event_type: map_item.w.clone(),

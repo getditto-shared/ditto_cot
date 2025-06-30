@@ -14,17 +14,17 @@ use serde::{Deserialize, Serialize};
 pub use super::schema::*;
 
 /// Convert a CoT event to the appropriate Ditto document type
-pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
+pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
     let event_type = &event.event_type;
 
     if event_type == "a-u-emergency-g" {
         // Handle emergency events
-        DittoDocument::Api(transform_emergency_event(event, peer_key))
+        CotDocument::Api(transform_emergency_event(event, peer_key))
     } else if event_type.contains("b-t-f") || event_type.contains("chat") {
         // Handle chat events
         match transform_chat_event(event, peer_key) {
-            Some(chat_doc) => DittoDocument::Chat(chat_doc),
-            None => DittoDocument::File(transform_generic_event(event, peer_key)),
+            Some(chat_doc) => CotDocument::Chat(chat_doc),
+            None => CotDocument::File(transform_generic_event(event, peer_key)),
         }
     } else if event_type.contains("a-u-r-loc-g")
         || event_type.contains("a-f-G-U-C")
@@ -33,10 +33,10 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> DittoDocument {
         || event_type.contains("a-f-G-U-T")
     {
         // Handle location update events
-        DittoDocument::MapItem(transform_location_event(event, peer_key))
+        CotDocument::MapItem(transform_location_event(event, peer_key))
     } else {
         // Fall back to generic document for all other event types
-        DittoDocument::File(transform_generic_event(event, peer_key))
+        CotDocument::File(transform_generic_event(event, peer_key))
     }
 }
 
@@ -302,7 +302,7 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
 /// without an additional type tag in the JSON representation.
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(untagged)]
-pub enum DittoDocument {
+pub enum CotDocument {
     /// API document type
     Api(Api),
     /// Chat message document type
@@ -313,15 +313,15 @@ pub enum DittoDocument {
     MapItem(MapItem),
 }
 
-impl DittoDocument {
+impl CotDocument {
     /// Returns true if this is a MapItem variant
     pub fn is_map_item(&self) -> bool {
-        matches!(self, DittoDocument::MapItem(_))
+        matches!(self, CotDocument::MapItem(_))
     }
 
     /// Returns a reference to the inner MapItem if this is a MapItem variant
     pub fn as_map_item(&self) -> Option<&MapItem> {
-        if let DittoDocument::MapItem(item) = self {
+        if let CotDocument::MapItem(item) = self {
             Some(item)
         } else {
             None
@@ -332,22 +332,14 @@ impl DittoDocument {
     /// This is a simplified implementation that only checks a few common fields
     pub fn has_key(&self, key: &str) -> bool {
         match self {
-            DittoDocument::Api(_api) => match key {
+            CotDocument::Api(_api) => match key {
                 "_id" => true,
                 "a" => true, // peer_key
                 "b" => true, // ce
                 "d" => true, // uid
                 _ => false,
             },
-            DittoDocument::Chat(_chat) => match key {
-                "_id" => true,
-                "a" => true, // peer_key
-                "b" => true, // ce
-                "d" => true, // uid
-                "e" => true, // callsign
-                _ => false,
-            },
-            DittoDocument::File(_file) => match key {
+            CotDocument::Chat(_chat) => match key {
                 "_id" => true,
                 "a" => true, // peer_key
                 "b" => true, // ce
@@ -355,7 +347,15 @@ impl DittoDocument {
                 "e" => true, // callsign
                 _ => false,
             },
-            DittoDocument::MapItem(_map_item) => match key {
+            CotDocument::File(_file) => match key {
+                "_id" => true,
+                "a" => true, // peer_key
+                "b" => true, // ce
+                "d" => true, // uid
+                "e" => true, // callsign
+                _ => false,
+            },
+            CotDocument::MapItem(_map_item) => match key {
                 "_id" => true,
                 "a" => true, // peer_key
                 "b" => true, // ce
@@ -366,7 +366,7 @@ impl DittoDocument {
         }
     }
 
-    /// Deserialize a JSON string into a DittoDocument, determining the variant based on the 'w' field.
+    /// Deserialize a JSON string into a CotDocument, determining the variant based on the 'w' field.
     /// Handles defaults for missing fields in variants.
     pub fn from_json_str(json_str: &str) -> Result<Self, anyhow::Error> {
         let json_value: serde_json::Value = serde_json::from_str(json_str)
@@ -387,22 +387,22 @@ impl DittoDocument {
                     map_item.d_c = 1; // Default document counter
                 }
             }
-            Ok(DittoDocument::MapItem(map_item))
+            Ok(CotDocument::MapItem(map_item))
         } else if doc_type.contains("b-t-f") || doc_type.contains("chat") {
             // Deserialize as Chat
             let chat: Chat = serde_json::from_value(json_value)
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize as Chat: {}", e))?;
-            Ok(DittoDocument::Chat(chat))
+            Ok(CotDocument::Chat(chat))
         } else if doc_type == "a-u-emergency-g" {
             // Deserialize as Api
             let api: Api = serde_json::from_value(json_value)
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize as Api: {}", e))?;
-            Ok(DittoDocument::Api(api))
+            Ok(CotDocument::Api(api))
         } else {
             // Default to File for unknown types
             let file: File = serde_json::from_value(json_value)
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize as File: {}", e))?;
-            Ok(DittoDocument::File(file))
+            Ok(CotDocument::File(file))
         }
     }
 
@@ -414,9 +414,9 @@ impl DittoDocument {
     /// # Examples
     ///
     /// ```no_run
-    /// # use ditto_cot::ditto::DittoDocument;
+    /// # use ditto_cot::ditto::CotDocument;
     /// # use ditto_cot::cot_events::CotEvent;
-    /// # fn example(doc: DittoDocument) -> CotEvent {
+    /// # fn example(doc: CotDocument) -> CotEvent {
     /// let cot_event = doc.to_cot_event();
     /// // Now you can work with the CoT event
     /// cot_event
@@ -479,7 +479,7 @@ mod tests {
 
         let doc = cot_to_document(&event, "test-peer");
 
-        if let DittoDocument::Chat(chat_doc) = doc {
+        if let CotDocument::Chat(chat_doc) = doc {
             assert_eq!(chat_doc.id, "test-uid");
             assert_eq!(chat_doc.a, "test-peer");
             assert_eq!(chat_doc.message, Some("Test message".to_string()));
@@ -494,7 +494,7 @@ mod tests {
         let event = create_test_event("u-emergency");
         let doc = cot_to_document(&event, "test-peer");
 
-        if let DittoDocument::Api(api_doc) = doc {
+        if let CotDocument::Api(api_doc) = doc {
             assert_eq!(api_doc.id, "test-uid");
             assert_eq!(api_doc.a, "test-peer");
         } else {
@@ -507,7 +507,7 @@ mod tests {
         let event = create_test_event("u-generic");
         let doc = cot_to_document(&event, "test-peer");
 
-        if let DittoDocument::File(file_doc) = doc {
+        if let CotDocument::File(file_doc) = doc {
             assert_eq!(file_doc.id, "test-uid");
             assert_eq!(file_doc.a, "test-peer");
             assert_eq!(file_doc.w, "a-u-generic-g");
@@ -572,7 +572,7 @@ mod tests {
                 title: Some("Test Title".to_string()),
             };
 
-            let doc = DittoDocument::Api(api);
+            let doc = CotDocument::Api(api);
             let event = doc.to_cot_event();
 
             assert_eq!(event.uid, "test-api-id");
@@ -646,7 +646,7 @@ mod tests {
                 time: Some("2023-01-01T00:00:00Z".to_string()),
             };
 
-            let doc = DittoDocument::Chat(chat);
+            let doc = CotDocument::Chat(chat);
             let event = doc.to_cot_event();
 
             assert_eq!(event.uid, "test-chat");
@@ -714,7 +714,7 @@ mod tests {
                 w: "a-f-G-U".to_string(),
             };
 
-            let doc = DittoDocument::File(file);
+            let doc = CotDocument::File(file);
             let event = doc.to_cot_event();
 
             assert_eq!(event.uid, "test-file-id");
@@ -784,7 +784,7 @@ mod tests {
                 w: "a-f-G-U".to_string(),
             };
 
-            let doc = DittoDocument::MapItem(map_item);
+            let doc = CotDocument::MapItem(map_item);
             let event = doc.to_cot_event();
 
             assert_eq!(event.uid, "test-map-item");
@@ -817,16 +817,16 @@ mod tests {
 
         // Print the r map for debugging
         match &doc {
-            DittoDocument::MapItem(map_item) => {
+            CotDocument::MapItem(map_item) => {
                 println!("DEBUG: r map: {:?}", map_item.r);
             }
-            DittoDocument::Api(api) => {
+            CotDocument::Api(api) => {
                 println!("DEBUG: r map: {:?}", api.r);
             }
-            DittoDocument::Chat(chat) => {
+            CotDocument::Chat(chat) => {
                 println!("DEBUG: r map: {:?}", chat.r);
             }
-            DittoDocument::File(file) => {
+            CotDocument::File(file) => {
                 println!("DEBUG: r map: {:?}", file.r);
             }
         }

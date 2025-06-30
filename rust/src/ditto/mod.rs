@@ -11,7 +11,7 @@ pub mod to_ditto;
 // Re-export the main types and functions from to_ditto
 pub use to_ditto::{
     cot_to_document, transform_chat_event, transform_emergency_event, transform_location_event,
-    DittoDocument,
+    CotDocument,
 };
 
 // Re-export the schema types

@@ -48,4 +48,4 @@ pub mod xml_parser;
 pub mod xml_writer;
 
 // Re-export commonly used types
-pub use ditto::{cot_to_document, DittoDocument};
+pub use ditto::{cot_to_document, CotDocument};

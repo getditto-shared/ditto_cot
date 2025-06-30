@@ -1,36 +1,36 @@
-//! Utility to convert DittoDocument + r map to FlatCotEvent for XML serialization
+//! Utility to convert CotDocument + r map to FlatCotEvent for XML serialization
 use crate::model::FlatCotEvent;
-use crate::ditto::DittoDocument;
+use crate::ditto::CotDocument;
 use serde_json::Value;
 use std::collections::HashMap;
 use chrono::TimeZone;
 
-/// Convert a DittoDocument to a FlatCotEvent for XML serialization
-pub fn flat_cot_event_from_ditto(doc: &DittoDocument) -> FlatCotEvent {
+/// Convert a CotDocument to a FlatCotEvent for XML serialization
+pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
     use std::collections::HashMap;
     use serde_json::Value;
     // Debug: print r field if present
     match doc {
-        DittoDocument::Api(api) => {
+        CotDocument::Api(api) => {
             let map: HashMap<String, Value> = api.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
             println!("[DEBUG] flat_cot_event_from_ditto: Api.r = {:?}", map);
         },
-        DittoDocument::Chat(chat) => {
+        CotDocument::Chat(chat) => {
             let map: HashMap<String, Value> = chat.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
             println!("[DEBUG] flat_cot_event_from_ditto: Chat.r = {:?}", map);
         },
-        DittoDocument::File(file) => {
+        CotDocument::File(file) => {
             let map: HashMap<String, Value> = file.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
             println!("[DEBUG] flat_cot_event_from_ditto: File.r = {:?}", map);
         },
-        DittoDocument::MapItem(map_item) => {
+        CotDocument::MapItem(map_item) => {
             let map: HashMap<String, Value> = map_item.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
             println!("[DEBUG] flat_cot_event_from_ditto: MapItem.r = {:?}", map);
         },
     }
 
     match doc {
-        DittoDocument::Api(api) => FlatCotEvent {
+        CotDocument::Api(api) => FlatCotEvent {
             uid: api.id.clone(),
             type_: api.w.clone(),
             time: chrono::Utc.timestamp_millis_opt(api.n).unwrap().to_rfc3339(),
@@ -52,7 +52,7 @@ pub fn flat_cot_event_from_ditto(doc: &DittoDocument) -> FlatCotEvent {
                 map
             },
         },
-        DittoDocument::Chat(chat) => FlatCotEvent {
+        CotDocument::Chat(chat) => FlatCotEvent {
             uid: chat.id.clone(),
             type_: chat.w.clone(),
             time: chrono::Utc.timestamp_millis_opt(chat.n).unwrap().to_rfc3339(),
@@ -74,7 +74,7 @@ pub fn flat_cot_event_from_ditto(doc: &DittoDocument) -> FlatCotEvent {
                 map
             },
         },
-        DittoDocument::File(file) => FlatCotEvent {
+        CotDocument::File(file) => FlatCotEvent {
             uid: file.id.clone(),
             type_: file.w.clone(),
             time: chrono::Utc.timestamp_millis_opt(file.n).unwrap().to_rfc3339(),
@@ -96,7 +96,7 @@ pub fn flat_cot_event_from_ditto(doc: &DittoDocument) -> FlatCotEvent {
                 map
             },
         },
-        DittoDocument::MapItem(map_item) => FlatCotEvent {
+        CotDocument::MapItem(map_item) => FlatCotEvent {
             uid: map_item.id.clone(),
             type_: map_item.w.clone(),
             time: chrono::Utc.timestamp_millis_opt(map_item.n).unwrap().to_rfc3339(),

@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use ditto_cot::{
     cot_events::CotEvent,
-    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, DittoDocument},
+    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, CotDocument},
     xml_utils,
 };
 use dittolive_ditto::fs::PersistentRoot;
@@ -87,7 +87,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     // 5. Insert document into Ditto using DQL
     let doc_id = cot_event.uid.clone();
     let doc_value = match ditto_doc {
-        DittoDocument::MapItem(ref map_item) => {
+        CotDocument::MapItem(ref map_item) => {
             serde_json::to_value(map_item).unwrap()
         }
         _ => {
@@ -118,7 +118,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     let json_str = doc.json_string();
 
     // 7. Convert the Ditto document back to a CotEvent
-    let retrieved_doc = DittoDocument::from_json_str(&json_str)?;
+    let retrieved_doc = CotDocument::from_json_str(&json_str)?;
     let retrieved_cot_event = cot_event_from_ditto_document(&retrieved_doc);
 
     // 8. Verify the round-trip conversion (assertion added here)
@@ -213,8 +213,8 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         let _roundtrip_cot_event = cot_event_from_ditto_document(&ditto_doc);
         let doc_id = cot_event.uid.clone();
         let (doc_value, collection_name) = match ditto_doc {
-            DittoDocument::MapItem(ref map_item) => (serde_json::to_value(map_item).unwrap(), "map_items"),
-            DittoDocument::File(ref file) => (serde_json::to_value(file).unwrap(), "files"),
+            CotDocument::MapItem(ref map_item) => (serde_json::to_value(map_item).unwrap(), "map_items"),
+            CotDocument::File(ref file) => (serde_json::to_value(file).unwrap(), "files"),
             _ => {
                 eprintln!("   Error: Expected MapItem or File document type for file {}", path.display());
                 continue;
@@ -245,10 +245,10 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
             }
         };
         let json_str = doc.json_string();
-        let retrieved_doc = match DittoDocument::from_json_str(&json_str) {
+        let retrieved_doc = match CotDocument::from_json_str(&json_str) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("❌ Failed to parse DittoDocument from JSON for file {}: {}", path.display(), e);
+                eprintln!("❌ Failed to parse CotDocument from JSON for file {}: {}", path.display(), e);
                 continue;
             }
         };

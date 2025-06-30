@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use ditto_cot::{
     cot_events::CotEvent,
-    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, DittoDocument},
+    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, CotDocument},
     xml_utils,
 };
 use dittolive_ditto::fs::PersistentRoot;
@@ -145,9 +145,9 @@ async fn main() -> Result<()> {
     println!("5. Inserting document into Ditto");
     let doc_id = cot_event.uid.clone();
 
-    // Convert our DittoDocument to a serde_json::Value
+    // Convert our CotDocument to a serde_json::Value
     let doc_value = match ditto_doc {
-        DittoDocument::MapItem(ref map_item) => {
+        CotDocument::MapItem(ref map_item) => {
             // Ensure _id is explicitly set if needed, but it should be part of the serialized map_item
             serde_json::to_value(map_item).unwrap()
         }
@@ -208,8 +208,8 @@ async fn main() -> Result<()> {
     // 7. Convert the Ditto document back to a CotEvent
     println!("7. Converting Ditto document back to CotEvent");
 
-    // Deserialize the JSON into DittoDocument using the library function
-    let retrieved_doc = DittoDocument::from_json_str(&json_str)?;
+    // Deserialize the JSON into CotDocument using the library function
+    let retrieved_doc = CotDocument::from_json_str(&json_str)?;
 
     let retrieved_cot_event = cot_event_from_ditto_document(&retrieved_doc);
     println!("   Successfully converted retrieved document back to CotEvent");

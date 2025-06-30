@@ -1,7 +1,7 @@
 use anyhow::Result;
 use ditto_cot::{
     cot_events::CotEvent,
-    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, DittoDocument},
+    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, CotDocument},
     xml_utils,
 };
 
@@ -26,12 +26,12 @@ fn test_generic_roundtrip() -> Result<()> {
     // Parse the XML into a CotEvent
     let cot_event = CotEvent::from_xml(cot_xml)?;
     
-    // Convert to DittoDocument
+    // Convert to CotDocument
     let ditto_doc = cot_to_document(&cot_event, "test-peer");
     
     // Verify it's a File variant (Generic type)
     match &ditto_doc {
-        DittoDocument::File(_) => println!("✓ Correctly mapped to File variant"),
+        CotDocument::File(_) => println!("✓ Correctly mapped to File variant"),
         _ => panic!("Expected File variant for Generic type"),
     }
     
