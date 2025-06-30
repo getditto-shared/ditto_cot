@@ -237,30 +237,49 @@ fn nodes_equal(node1: &roxmltree::Node, node2: &roxmltree::Node, strict: bool) -
     true
 }
 
-/// Normalize datetime strings to a consistent format by converting all UTC timezone
-/// indicators to 'Z' format. This handles both '+00:00' and 'Z' formats.
+/// Normalize datetime strings to a consistent format by:
+/// 1. Trimming nanoseconds to microseconds (6 decimal places)
+/// 2. Converting all UTC timezone indicators to 'Z' format
+///
+/// This handles both '+00:00' and 'Z' formats.
 fn normalize_datetime(datetime: &str) -> String {
-    // Handle the case where the datetime is empty or doesn't contain timezone info
+    // Handle the case where the datetime is empty
     if datetime.is_empty() {
         return datetime.to_string();
     }
 
-    // If it already ends with Z, return as is
-    if datetime.ends_with('Z') {
-        return datetime.to_string();
-    }
+    // Extract the base datetime part (before timezone)
+    let (base, tz) = if let Some(plus_pos) = datetime.find('+') {
+        (&datetime[..plus_pos], &datetime[plus_pos..])
+    } else if let Some(z_pos) = datetime.find('Z') {
+        (&datetime[..z_pos], "Z")
+    } else if let Some(minus_pos) = datetime.rfind('-') {
+        // Check if this is a timezone offset (must have : in the timezone part)
+        if datetime[minus_pos..].contains(':') {
+            (&datetime[..minus_pos], &datetime[minus_pos..])
+        } else {
+            (datetime, "")
+        }
+    } else {
+        (datetime, "")
+    };
 
-    // Check for +00:00 timezone format
-    if datetime.ends_with("+00:00") {
-        // Convert +00:00 to Z
-        return format!("{0}Z", datetime.trim_end_matches("+00:00"));
-    }
+    // Process the base datetime to handle nanosecond precision
+    let normalized_base = if let Some(dot_pos) = base.find('.') {
+        let seconds = &base[..dot_pos];
+        let nanos = &base[dot_pos + 1..];
+        let micros = if nanos.len() > 6 { &nanos[..6] } else { nanos };
+        format!("{}.{}", seconds, micros)
+    } else {
+        base.to_string()
+    };
 
-    // Check for -00:00 timezone format (should be normalized to Z)
-    if datetime.ends_with("-00:00") {
-        return format!("{0}Z", datetime.trim_end_matches("-00:00"));
-    }
+    // Normalize timezone to 'Z' for UTC
+    let normalized_tz = if tz == "+00:00" || tz == "-00:00" || tz == "Z" {
+        "Z"
+    } else {
+        tz
+    };
 
-    // For any other timezone format, leave as is
-    datetime.to_string()
+    format!("{}{}", normalized_base, normalized_tz)
 }
