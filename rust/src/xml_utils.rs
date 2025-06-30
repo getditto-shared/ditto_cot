@@ -237,20 +237,30 @@ fn nodes_equal(node1: &roxmltree::Node, node2: &roxmltree::Node, strict: bool) -
     true
 }
 
-/// Normalize datetime strings to a consistent format
+/// Normalize datetime strings to a consistent format by converting all UTC timezone
+/// indicators to 'Z' format. This handles both '+00:00' and 'Z' formats.
 fn normalize_datetime(datetime: &str) -> String {
-    // Handle both "Z" and "+00:00" formats
-    if datetime.ends_with('Z') {
-        datetime.to_string()
-    } else if datetime.contains('+') || datetime.contains('-') {
-        // Check if it's UTC (+00:00)
-        if datetime.ends_with("+00:00") {
-            // Convert to Z format
-            format!("{0}Z", datetime.strip_suffix("+00:00").unwrap_or(datetime))
-        } else {
-            datetime.to_string()
-        }
-    } else {
-        datetime.to_string()
+    // Handle the case where the datetime is empty or doesn't contain timezone info
+    if datetime.is_empty() {
+        return datetime.to_string();
     }
+
+    // If it already ends with Z, return as is
+    if datetime.ends_with('Z') {
+        return datetime.to_string();
+    }
+
+    // Check for +00:00 timezone format
+    if datetime.ends_with("+00:00") {
+        // Convert +00:00 to Z
+        return format!("{0}Z", datetime.trim_end_matches("+00:00"));
+    }
+
+    // Check for -00:00 timezone format (should be normalized to Z)
+    if datetime.ends_with("-00:00") {
+        return format!("{0}Z", datetime.trim_end_matches("-00:00"));
+    }
+
+    // For any other timezone format, leave as is
+    datetime.to_string()
 }
