@@ -26,7 +26,7 @@ use std::collections::HashMap;
 /// use std::collections::HashMap;
 /// use serde_json::Value;
 ///
-/// let detail = r#"<contact callsign="TEST-123"/><__group name="Blue"/><status readiness="true"/>"#;
+/// let detail = r#"<detail><contact callsign="TEST-123"/><__group name="Blue"/><status readiness="true"/></detail>"#;
 /// let extras = parse_detail_section(detail);
 /// assert_eq!(extras.get("contact").unwrap()["callsign"], Value::String("TEST-123".to_string()));
 /// assert_eq!(extras.get("__group").unwrap()["name"], Value::String("Blue".to_string()));

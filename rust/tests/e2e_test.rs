@@ -103,6 +103,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         CotDocument::Chat(_) => "chat_messages",
         CotDocument::File(_) => "files",
         CotDocument::Api(_) => "api_events",
+        CotDocument::Generic(_) => "generic_documents",
     };
 
     // Convert the document to a JSON value for insertion
@@ -111,6 +112,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         CotDocument::Chat(chat) => serde_json::to_value(chat)?,
         CotDocument::File(file) => serde_json::to_value(file)?,
         CotDocument::Api(api) => serde_json::to_value(api)?,
+        CotDocument::Generic(generic) => serde_json::to_value(generic)?,
     };
 
     // Insert the document using DQL

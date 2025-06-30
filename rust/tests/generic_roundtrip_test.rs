@@ -29,10 +29,10 @@ fn test_generic_roundtrip() -> Result<()> {
     // Convert to CotDocument
     let ditto_doc = cot_to_document(&cot_event, "test-peer");
 
-    // Verify it's a File variant (Generic type)
+    // Verify it's a Generic variant
     match &ditto_doc {
-        CotDocument::File(_) => println!("✓ Correctly mapped to File variant"),
-        _ => panic!("Expected File variant for Generic type"),
+        CotDocument::Generic(_) => println!("✓ Correctly mapped to Generic variant"),
+        _ => panic!("Expected Generic variant for Generic type"),
     }
 
     // Convert back to CotEvent

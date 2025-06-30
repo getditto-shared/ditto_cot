@@ -47,14 +47,33 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
     let mut xml = String::new();
     xml.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
     xml.push_str(&format!(
-        r#"<event version="2.0" uid="{}" type="{}" time="{}" start="{}" stale="{}" how="{}" lat="{}" lon="{}" hae="{}" ce="{}" le="{}">"#,
-        event.uid, event.type_, event.time, event.start, event.stale, event.how,
+        r#"<event version="2.0" uid="{}" type="{}" time="{}" start="{}" stale="{}" how="{}">"#,
+        event.uid, event.type_, event.time, event.start, event.stale, event.how
+    ));
+
+    // Add point element with coordinates
+    xml.push_str(&format!(
+        r#"<point lat="{}" lon="{}" hae="{}" ce="{}" le="{}"/>"#,
         event.lat, event.lon, event.hae, event.ce, event.le
     ));
+
     xml.push_str("<detail>");
 
-    // Helper for recursive serialization of detail_extra
+    // Add callsign if present and not empty
+    if let Some(callsign) = &event.callsign {
+        if !callsign.is_empty() {
+            xml.push_str(&format!(r#"<contact callsign="{}"/>"#, callsign));
+        }
+    }
 
+    // Add group_name if present and not empty
+    if let Some(group_name) = &event.group_name {
+        if !group_name.is_empty() {
+            xml.push_str(&format!(r#"<__group name="{}"/>"#, group_name));
+        }
+    }
+
+    // Helper for recursive serialization of detail_extra
     fn write_detail_xml(xml: &mut String, k: &str, v: &serde_json::Value) {
         println!("[DEBUG] write_detail_xml: key = {} | value = {:?}", k, v);
         if let Some(obj) = v.as_object() {
@@ -72,80 +91,74 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
             }
 
             // If all values are string and no _text, treat as attributes
-            let mut attrs = vec![];
-            let mut children = vec![];
+            let mut attrs = Vec::new();
+            let mut children = Vec::new();
             let mut text = None;
             // Sort keys for canonical order
             let mut keys: Vec<_> = obj.keys().collect();
             keys.sort();
+
             for key in keys {
                 let val = &obj[key];
                 if key == "_text" {
                     if let Some(s) = val.as_str() {
-                        text = Some(s);
+                        text = Some(s.to_string());
                     }
+                } else if val.is_object() || val.is_array() {
+                    children.push((key.as_str(), val));
                 } else if let Some(s) = val.as_str() {
-                    attrs.push((key.as_str(), s));
-                } else {
-                    children.push((key, val));
+                    attrs.push((key.as_str(), s.to_string()));
+                } else if let Some(n) = val.as_f64() {
+                    let n_str = n.to_string();
+                    attrs.push((key.as_str(), n_str));
+                } else if let Some(b) = val.as_bool() {
+                    let b_str = b.to_string();
+                    attrs.push((key.as_str(), b_str));
                 }
             }
-            attrs.sort_by_key(|(k, _)| *k);
-            children.sort_by_key(|(k, _)| *k);
 
-            // For certain elements, always use nested format even if only attributes
-            let force_nested = matches!(k, "sensor" | "platform" | "nested");
-
-            if children.is_empty() && text.is_none() && !force_nested {
-                // Only attributes
-                println!(
-                    "[DEBUG] write_detail_xml: <{}> only attributes: {:?}",
-                    k, attrs
-                );
-                let tag_str = {
-                    let mut s = format!("<{}", k);
-                    for (key, val) in &attrs {
-                        s.push_str(&format!(" {}=\"{}\"", key, val));
-                    }
-                    s.push_str("/>");
-                    s
-                };
-                println!("[DEBUG] write_detail_xml: emitting tag: {}", tag_str);
-                xml.push_str(&tag_str);
-            } else {
-                // Start tag with attributes
+            // If we have children or text, we need a full element
+            if !children.is_empty() || text.is_some() {
                 println!(
                     "[DEBUG] write_detail_xml: <{}> attrs: {:?}, children: {:?}, text: {:?}",
                     k, attrs, children, text
                 );
+                // Start tag with attributes
                 xml.push_str(&format!("<{}", k));
-                for (key, val) in &attrs {
-                    // For certain elements, convert attributes to nested elements
-                    if force_nested && key == &"name" {
-                        continue; // Skip adding as attribute, will add as nested element below
-                    }
-                    xml.push_str(&format!(" {}=\"{}\"", key, val));
+                for (attr_k, attr_v) in &attrs {
+                    xml.push_str(&format!(" {}=\"{}\"", attr_k, attr_v));
                 }
                 xml.push('>');
 
-                // For certain elements, convert attributes to nested elements
-                if force_nested {
-                    for (key, val) in &attrs {
-                        if key == &"name" {
-                            xml.push_str(&format!("<n>{}</n>", val));
-                        }
-                    }
+                // Add text if any
+                if let Some(t) = text {
+                    xml.push_str(&t);
                 }
 
-                // Optional text
-                if let Some(t) = text {
-                    xml.push_str(t);
-                }
-                // Children
+                // Add children
                 for (child_k, child_v) in children {
                     write_detail_xml(xml, child_k, child_v);
                 }
+
+                // Close tag
                 xml.push_str(&format!("</{}>", k));
+            } else {
+                // Just attributes, no children or text
+                println!(
+                    "[DEBUG] write_detail_xml: <{}> only attributes: {:?}",
+                    k, attrs
+                );
+                xml.push_str(&format!("<{}", k));
+                for (attr_k, attr_v) in &attrs {
+                    xml.push_str(&format!(" {}=\"{}\"", attr_k, attr_v));
+                }
+                xml.push_str("/>");
+                println!("[DEBUG] write_detail_xml: emitting tag: <{}/>", k);
+            }
+        } else if let Some(arr) = v.as_array() {
+            println!("[DEBUG] write_detail_xml: <{}> array value: {:?}", k, arr);
+            for item in arr {
+                write_detail_xml(xml, k, item);
             }
         } else if let Some(s) = v.as_str() {
             println!("[DEBUG] write_detail_xml: <{}> string value: {}", k, s);

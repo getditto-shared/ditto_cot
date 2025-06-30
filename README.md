@@ -65,7 +65,7 @@ See the [C# README](csharp/README.md) for detailed documentation.
 ## ✨ Features
 
 - Full CoT XML ↔ Ditto Document ↔ JSON/CRDT round-trip conversion
-- Schema-validated document types for Chat, Location, and Emergency events
+- Schema-validated document types for Chat, Location, Emergency, File, and Generic events
 - Automatic type inference from CoT event types
 - Proper handling of underscore-prefixed fields in JSON serialization/deserialization
 - Asynchronous Ditto SDK integration
@@ -82,15 +82,23 @@ let cot_event = CotEvent::from_xml(cot_xml)?;
 
 // Convert to a Ditto Document
 let peer_id = "my-peer-id";
-let ditto_doc = cot_to_document(&cot_event, peer_id);
+let cot_doc = cot_to_document(&cot_event, peer_id); // Returns a CotDocument
 
 // The document type is automatically inferred from the CoT event type
-match ditto_doc {
-    DittoDocument::MapItem(map_item) => {
+// CotDocument is the document type used for CoT transformations
+// (Note: DittoDocument is the Ditto-specific API document used with DQL)
+match cot_doc {
+    CotDocument::MapItem(map_item) => {
         println!("Received a location update");
     },
-    DittoDocument::Chat(chat) => {
+    CotDocument::Chat(chat) => {
         println!("Received a chat message");
+    },
+    CotDocument::File(file) => {
+        println!("Received a file: {}", file.file.unwrap_or_default());
+    },
+    CotDocument::Generic(generic) => {
+        println!("Received a generic event of type: {}", generic.t);
     },
     // Other document types...
 }
@@ -99,11 +107,11 @@ match ditto_doc {
 ### Converting Ditto Documents to CoT XML
 
 ```rust
-// Convert a Ditto document to a CoT event
-let cot_event = cot_event_from_ditto_document(&ditto_doc);
+// Convert a CotDocument to a CotEvent
+let roundtrip_event = cot_event_from_ditto_document(&cot_doc);
 
 // Serialize to XML
-let xml = cot_event.to_xml()?;
+let xml = roundtrip_event.to_xml()?;
 println!("CoT XML: {}", xml);
 ```
 
@@ -134,12 +142,12 @@ assert_eq!(deserialized.id, "my-unique-id");
 assert_eq!(deserialized.d_c, 1);
 ```
 
-### Working with Document Types
+### Working with CotDocument Types
 
 #### 1. Chat Documents
 
 ```rust
-if let DittoDocument::Chat(chat) = doc {
+if let CotDocument::Chat(chat) = doc {
     println!("Chat from {}: {}", chat.author_callsign, chat.message);
     println!("Room: {} (ID: {})", chat.room, chat.room_id);
     if let Some(loc) = chat.location {
@@ -151,7 +159,7 @@ if let DittoDocument::Chat(chat) = doc {
 #### 2. Location Documents
 
 ```rust
-if let DittoDocument::MapItem(map_item) = doc {
+if let CotDocument::MapItem(map_item) = doc {
     println!("Location update for {}", map_item.e); // e is callsign
     if let (Some(lat), Some(lon)) = (map_item.h, map_item.i) {
         println!("Position: {},{}", lat, lon);
@@ -165,9 +173,48 @@ if let DittoDocument::MapItem(map_item) = doc {
 #### 3. Emergency Documents
 
 ```rust
-if let DittoDocument::Api(emergency) = doc {
+if let CotDocument::Api(emergency) = doc {
     println!("Emergency from {}", emergency.e); // callsign
     // Process emergency data
+}
+```
+
+#### 4. File Documents
+
+```rust
+if let CotDocument::File(file) = doc {
+    println!("File: {}", file.file.unwrap_or_default()); // filename
+    println!("MIME Type: {}", file.mime.unwrap_or_default()); // MIME type
+    println!("Size: {}", file.sz.unwrap_or_default()); // file size
+    println!("ID: {}", file.id); // unique identifier
+    
+    // File documents are created from CoT events with type "b-f-t-file"
+    // and extract metadata from the <fileshare> element in the detail section
+}
+```
+
+#### 5. Generic Documents
+
+```rust
+if let CotDocument::Generic(generic) = doc {
+    println!("Generic document with ID: {}", generic.id);
+    println!("Type: {}", generic.t); // CoT event type
+    
+    // Access point coordinates
+    if let (Some(lat), Some(lon)) = (generic.a, generic.b) {
+        println!("Position: {},{}", lat, lon);
+    }
+    
+    // Access detail fields from the detail_map
+    if let Some(detail_map) = &generic.detail_map {
+        if let Some(value) = detail_map.get("_ce") {
+            println!("Circular Error: {}", value);
+        }
+        // Access any other fields from the detail section
+    }
+    
+    // Generic documents are a fallback for CoT events that don't match other specific types
+    // They preserve all fields from the original CoT event for maximum flexibility
 }
 ```
 
@@ -252,6 +299,7 @@ async fn store_cot_event(ditto: &DittoContext, cot_xml: &str) -> Result<(), Ditt
 }
 
 async fn query_chat_messages(ditto: &DittoContext, room: &str) -> Result<Vec<ChatDocument>, DittoError> {
+    // Query using DQL to retrieve CotDocument instances of type ChatDocument
     ditto.query_documents::<ChatDocument>(json!({ "room": room })).await
 }
 ```
@@ -275,20 +323,20 @@ let cot_xml = r#"
 // Parse to CotEvent
 let event = CotEvent::from_xml(cot_xml)?;
 
-// Convert to Ditto document
+// Convert to CoT document (CotDocument)
 let doc = cot_to_document(&event, "peer-123");
 
-// Convert back to CotEvent
+// Convert CotDocument back to CotEvent
 let event_again = doc.to_cot_event()?;
 
 // Serialize back to XML
 let xml_again = event_again.to_xml()?;
 ```
 
-## 📚 Document Schema
+## 📚 CotDocument Schema
 
 ### Common Fields
-All Ditto documents include these common fields:
+All CotDocument instances include these common fields (Note: DittoDocument is the Ditto-specific API document used with DQL):
 
 - `_id`: Unique document identifier
 - `_c`: Document counter (updates)
@@ -300,9 +348,9 @@ All Ditto documents include these common fields:
 - `e`: Author callsign
 - `h`: Circular error (CE) in meters
 
-### Document Types
+### CotDocument Types
 
-#### 1. Chat Document (`DittoDocument::Chat`)
+#### 1. Chat Document (`CotDocument::Chat`)
 
 ```json
 {
@@ -318,7 +366,7 @@ All Ditto documents include these common fields:
 }
 ```
 
-#### 2. Location Document (`DittoDocument::Location`)
+#### 2. Location Document (`CotDocument::Location`)
 
 ```json
 {
@@ -335,7 +383,7 @@ All Ditto documents include these common fields:
 }
 ```
 
-#### 3. Emergency Document (`DittoDocument::Emergency`)
+#### 3. Emergency Document (`CotDocument::Emergency`)
 
 ```json
 {

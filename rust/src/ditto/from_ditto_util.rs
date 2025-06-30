@@ -33,6 +33,14 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                 .collect();
             println!("[DEBUG] flat_cot_event_from_ditto: File.r = {:?}", map);
         }
+        CotDocument::Generic(generic) => {
+            let map: HashMap<String, Value> = generic
+                .r
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                .collect();
+            println!("[DEBUG] flat_cot_event_from_ditto: Generic.r = {:?}", map);
+        }
         CotDocument::MapItem(map_item) => {
             let map: HashMap<String, Value> = map_item
                 .r
@@ -145,6 +153,44 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                     .collect();
                 if file.r.contains_key("original_type") {
                     map.insert("original_type".to_string(), Value::String(file.w.clone()));
+                }
+                map
+            },
+        },
+        CotDocument::Generic(generic) => FlatCotEvent {
+            uid: generic.id.clone(),
+            type_: generic.w.clone(),
+            time: chrono::Utc
+                .timestamp_millis_opt(generic.n)
+                .unwrap()
+                .to_rfc3339(),
+            start: chrono::Utc
+                .timestamp_millis_opt(generic.n)
+                .unwrap()
+                .to_rfc3339(),
+            stale: chrono::Utc
+                .timestamp_millis_opt(generic.o)
+                .unwrap()
+                .to_rfc3339(),
+            how: generic.p.clone(),
+            lat: generic.h.unwrap_or(0.0),
+            lon: generic.i.unwrap_or(0.0),
+            hae: generic.j.unwrap_or(0.0),
+            ce: generic.b,
+            le: generic.k.unwrap_or(0.0),
+            callsign: generic.e.clone().into(),
+            group_name: generic.g.clone().into(),
+            detail_extra: {
+                let mut map: HashMap<String, Value> = generic
+                    .r
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                    .collect();
+                if generic.r.contains_key("original_type") {
+                    map.insert(
+                        "original_type".to_string(),
+                        Value::String(generic.w.clone()),
+                    );
                 }
                 map
             },

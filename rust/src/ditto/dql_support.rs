@@ -52,6 +52,7 @@ impl DittoDocument for CotDocument {
             CotDocument::Api(api) => api.id.clone(),
             CotDocument::Chat(chat) => chat.id.clone(),
             CotDocument::File(file) => file.id.clone(),
+            CotDocument::Generic(generic) => generic.id.clone(),
             CotDocument::MapItem(map_item) => map_item.id.clone(),
         };
 
@@ -69,6 +70,7 @@ impl DittoDocument for CotDocument {
             CotDocument::Api(api) => serde_json::to_value(api),
             CotDocument::Chat(chat) => serde_json::to_value(chat),
             CotDocument::File(file) => serde_json::to_value(file),
+            CotDocument::Generic(generic) => serde_json::to_value(generic),
             CotDocument::MapItem(map_item) => serde_json::to_value(map_item),
         }
         .map_err(|_| DittoError::from(ErrorKind::InvalidInput))?;
@@ -83,6 +85,7 @@ impl DittoDocument for CotDocument {
             CotDocument::Api(api) => serde_json::to_value(api),
             CotDocument::Chat(chat) => serde_json::to_value(chat),
             CotDocument::File(file) => serde_json::to_value(file),
+            CotDocument::Generic(generic) => serde_json::to_value(generic),
             CotDocument::MapItem(map_item) => serde_json::to_value(map_item),
         }
         .map_err(|_| DittoError::from(ErrorKind::InvalidInput))?;
@@ -95,6 +98,7 @@ impl DittoDocument for CotDocument {
                     CotDocument::Api(api) => serde_json::to_value(&api.id),
                     CotDocument::Chat(chat) => serde_json::to_value(&chat.id),
                     CotDocument::File(file) => serde_json::to_value(&file.id),
+                    CotDocument::Generic(generic) => serde_json::to_value(&generic.id),
                     CotDocument::MapItem(map_item) => serde_json::to_value(&map_item.id),
                 }
                 .map_err(|_| DittoError::from(ErrorKind::NonExtant))?
@@ -122,6 +126,7 @@ impl DittoDocument for CotDocument {
             CotDocument::Api(api) => serde_json::to_value(api),
             CotDocument::Chat(chat) => serde_json::to_value(chat),
             CotDocument::File(file) => serde_json::to_value(file),
+            CotDocument::Generic(generic) => serde_json::to_value(generic),
             CotDocument::MapItem(map_item) => serde_json::to_value(map_item),
         }
         .map_err(|_| DittoError::from(ErrorKind::InvalidInput))?;

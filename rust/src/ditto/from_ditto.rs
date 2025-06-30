@@ -232,5 +232,38 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 xml[start..end].to_string()
             },
         },
+        CotDocument::Generic(generic) => CotEvent {
+            version: "2.0".to_string(),
+            uid: generic.id.clone(),
+            event_type: generic.w.clone(),
+            time: if generic.n != 0 {
+                millis_to_datetime(generic.n)
+            } else {
+                Utc::now()
+            },
+            start: millis_to_datetime(generic.n),
+            stale: millis_to_datetime(generic.o),
+            how: generic.p.clone(),
+            point: Point {
+                lat: generic.h.unwrap_or(0.0),
+                lon: generic.i.unwrap_or(0.0),
+                hae: generic.j.unwrap_or(0.0),
+                ce: generic.b,
+                le: generic.k.unwrap_or(0.0),
+            },
+            // Serialize detail map to XML for round-trip fidelity
+            detail: {
+                use crate::ditto::from_ditto_util::flat_cot_event_from_ditto;
+                use crate::xml_writer::to_cot_xml;
+                let flat = flat_cot_event_from_ditto(doc);
+                let xml = to_cot_xml(&flat);
+                let start = xml.find("<detail>").unwrap_or(0);
+                let end = xml
+                    .find("</detail>")
+                    .map(|i| i + "</detail>".len())
+                    .unwrap_or(xml.len());
+                xml[start..end].to_string()
+            },
+        },
     }
 }

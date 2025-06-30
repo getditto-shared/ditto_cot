@@ -3,15 +3,16 @@
 //! This module provides functionality to transform CoT (Cursor on Target) events
 //! into Ditto documents according to the Ditto JSON schemas.
 
-use crate::detail_parser::parse_detail_section;
-
 use crate::cot_events::CotEvent;
+use crate::detail_parser::parse_detail_section;
 
 use anyhow;
 use serde::{Deserialize, Serialize};
 // No unused imports remaining
 
 pub use super::schema::*;
+
+// Removed unused imports
 
 /// Convert a CoT event to the appropriate Ditto document type
 pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
@@ -24,7 +25,7 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
         // Handle chat events
         match transform_chat_event(event, peer_key) {
             Some(chat_doc) => CotDocument::Chat(chat_doc),
-            None => CotDocument::File(transform_generic_event(event, peer_key)),
+            None => CotDocument::Generic(transform_generic_event(event, peer_key)),
         }
     } else if event_type.contains("a-u-r-loc-g")
         || event_type.contains("a-f-G-U-C")
@@ -34,9 +35,12 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
     {
         // Handle location update events
         CotDocument::MapItem(transform_location_event(event, peer_key))
+    } else if event_type.contains("file") || event_type.contains("attachment") {
+        // Handle file events
+        CotDocument::File(transform_file_event(event, peer_key))
     } else {
         // Fall back to generic document for all other event types
-        CotDocument::File(transform_generic_event(event, peer_key))
+        CotDocument::Generic(transform_generic_event(event, peer_key))
     }
 }
 
@@ -253,17 +257,62 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
     }
 }
 
-/// Transform any CoT event to a generic Ditto document
-fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
+/// Transform a file CoT event to a Ditto file document
+fn transform_file_event(event: &CotEvent, peer_key: &str) -> File {
     let c = None;
-    let file = None;
-    let mime = None;
-    let content_type = Some("generic".to_string());
-    let item_id = None;
-    let sz = None;
+
+    // Parse the detail section to extract file metadata
+    let mut extras = parse_detail_section(&event.detail);
+
+    // Extract filename from fileshare element if it exists
+    let file = if let Some(fileshare) = extras.get("fileshare") {
+        if let Some(filename) = fileshare.get("filename") {
+            if let Some(name) = filename.as_str() {
+                Some(name.to_string())
+            } else {
+                Some(event.uid.clone())
+            }
+        } else {
+            Some(event.uid.clone())
+        }
+    } else {
+        Some(event.uid.clone())
+    };
+
+    // Extract MIME type from fileshare element if it exists
+    let mime = if let Some(fileshare) = extras.get("fileshare") {
+        if let Some(mime_type) = fileshare.get("mime") {
+            if let Some(m) = mime_type.as_str() {
+                Some(m.to_string())
+            } else {
+                Some("application/octet-stream".to_string())
+            }
+        } else {
+            Some("application/octet-stream".to_string())
+        }
+    } else {
+        Some("application/octet-stream".to_string())
+    };
+
+    // Extract file size from fileshare element if it exists
+    let sz = if let Some(fileshare) = extras.get("fileshare") {
+        if let Some(size) = fileshare.get("size") {
+            if let Some(s) = size.as_str() {
+                s.parse::<f64>().ok().map(Some).unwrap_or(None)
+            } else {
+                size.as_f64()
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let content_type = Some("file".to_string());
+    let item_id = Some(event.uid.clone());
 
     // Store the circular error in a special key in the r map to avoid field overloading
-    let mut extras = parse_detail_section(&event.detail);
     // Add ce as a special field in the detail map to preserve it during round-trip
     extras.insert(
         "_ce".to_string(),
@@ -274,7 +323,6 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
 
     // Store timestamps in microseconds for better precision
     let time_micros = event.time.timestamp_micros();
-    let _start_micros = event.start.timestamp_micros();
     let stale_micros = event.stale.timestamp_micros();
 
     // Store timestamp values in special fields in the detail map to preserve them during round-trip
@@ -294,7 +342,7 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
     File {
         id: event.uid.clone(),
         a: peer_key.to_string(),
-        b: 0.0, // We're not using b for time anymore to avoid field overloading
+        b: event.point.ce, // Store CE in b field for roundtrip compatibility
         c,
         content_type,
         d: event.uid.clone(),
@@ -349,6 +397,89 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
     }
 }
 
+/// Transform any CoT event to a generic Ditto document
+fn transform_generic_event(event: &CotEvent, peer_key: &str) -> Generic {
+    // Store the circular error in a special key in the r map to avoid field overloading
+    let mut extras = parse_detail_section(&event.detail);
+    // Add ce as a special field in the detail map to preserve it during round-trip
+    extras.insert(
+        "_ce".to_string(),
+        serde_json::Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+
+    // Store timestamps in microseconds for better precision
+    let time_micros = event.time.timestamp_micros();
+    let _start_micros = event.start.timestamp_micros();
+    let stale_micros = event.stale.timestamp_micros();
+
+    // Store timestamp values in special fields in the detail map to preserve them during round-trip
+    extras.insert(
+        "_time".to_string(),
+        serde_json::Value::String(event.time.to_rfc3339()),
+    );
+    extras.insert(
+        "_start".to_string(),
+        serde_json::Value::String(event.start.to_rfc3339()),
+    );
+    extras.insert(
+        "_stale".to_string(),
+        serde_json::Value::String(event.stale.to_rfc3339()),
+    );
+
+    Generic {
+        id: event.uid.clone(),
+        a: peer_key.to_string(),
+        b: event.point.ce, // Store CE in b field for roundtrip compatibility
+        d: event.uid.clone(),
+        d_c: 0,
+        d_r: false,
+        d_v: 2,
+        source: None,
+        e: String::new(),
+        g: "".to_string(),
+        h: Some(event.point.lat),
+        i: Some(event.point.lon),
+        j: Some(event.point.hae),
+        k: Some(event.point.le), // Store le properly
+        l: None,
+        n: time_micros,  // Store time in microseconds
+        o: stale_micros, // Store stale in microseconds
+        p: event.how.clone(),
+        q: "".to_string(),
+        // Parse detail XML into map for CRDT support
+        r: {
+            extras
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        k,
+                        match v {
+                            serde_json::Value::String(s) => GenericRValue::String(s),
+                            serde_json::Value::Bool(b) => GenericRValue::from(b),
+                            serde_json::Value::Number(n) => {
+                                GenericRValue::from(n.as_f64().unwrap_or(0.0))
+                            }
+                            serde_json::Value::Object(obj) => {
+                                let map = serde_json::Map::from_iter(obj.clone());
+                                GenericRValue::Object(map)
+                            }
+                            serde_json::Value::Array(arr) => GenericRValue::Array(arr.clone()),
+                            _ => GenericRValue::Null,
+                        },
+                    )
+                })
+                .collect()
+        },
+        s: "".to_string(),
+        t: "".to_string(),
+        u: "".to_string(),
+        v: "".to_string(),
+        w: event.event_type.clone(),
+    }
+}
+
 /// Represents a Ditto document that can be one of several specific types.
 ///
 /// This is the main enum used when working with Ditto documents in the system.
@@ -363,6 +494,8 @@ pub enum CotDocument {
     Chat(Chat),
     /// File document type
     File(File),
+    /// Generic document type
+    Generic(Generic),
     /// Map item document type
     MapItem(MapItem),
 }
@@ -402,6 +535,14 @@ impl CotDocument {
                 _ => false,
             },
             CotDocument::File(_file) => match key {
+                "_id" => true,
+                "a" => true, // peer_key
+                "b" => true, // ce
+                "d" => true, // uid
+                "e" => true, // callsign
+                _ => false,
+            },
+            CotDocument::Generic(_generic) => match key {
                 "_id" => true,
                 "a" => true, // peer_key
                 "b" => true, // ce

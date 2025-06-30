@@ -74,6 +74,7 @@ async fn test_dql_integration() -> Result<()> {
         CotDocument::Chat(chat) => serde_json::to_string_pretty(chat)?,
         CotDocument::File(file) => serde_json::to_string_pretty(file)?,
         CotDocument::Api(api) => serde_json::to_string_pretty(api)?,
+        CotDocument::Generic(generic) => serde_json::to_string_pretty(generic)?,
     };
     println!("Document structure: \n{}", doc_json);
 
