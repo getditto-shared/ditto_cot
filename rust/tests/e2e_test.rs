@@ -16,14 +16,15 @@ const COLLECTION_NAME: &str = "cot_events";
 
 #[tokio::test]
 async fn e2e_xml_roundtrip() -> Result<()> {
-    // Load environment variables from .env file in the current directory
+    // Try to load environment variables from .env file, but don't fail if it doesn't exist
+    // This allows CI environments to use environment variables directly
     let current_dir = std::env::current_dir().context("Failed to get current directory")?;
     let env_path = current_dir.join(".env");
 
-    // Try to load .env file from the current directory
+    // Try to load .env file from the current directory, but continue if it doesn't exist
     if let Err(e) = dotenv::from_path(&env_path) {
-        eprintln!("Failed to load .env file: {}", e);
-        return Err(e).context("Failed to load .env file");
+        eprintln!("Note: .env file not loaded: {}", e);
+        eprintln!("Continuing with existing environment variables...");
     }
 
     // Get Ditto App ID and token from environment variables
