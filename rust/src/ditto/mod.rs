@@ -6,6 +6,7 @@
 pub mod dql_support;
 pub mod from_ditto;
 pub mod from_ditto_util;
+#[rustfmt::skip]
 pub mod schema;
 pub mod to_ditto;
 
