@@ -270,7 +270,7 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
             .await?;
         // Just check that the query executed successfully
         // No need to check item_count() >= 0 since usize is always non-negative
-        assert!(true, "DQL INSERT failed for {}", path.display());
+        println!("DQL INSERT succeeded for {}", path.display());
         let query = format!(
             "SELECT * FROM {} WHERE _id = '{}'",
             collection_name,

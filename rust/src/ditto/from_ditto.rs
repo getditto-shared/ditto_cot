@@ -130,10 +130,10 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 Some(FileRValue::String(s)) => {
                     match s.parse::<DateTime<Utc>>() {
                         Ok(dt) => dt,
-                        Err(_) => time.clone(), // Default to time if parsing fails
+                        Err(_) => time, // Default to time if parsing fails
                     }
                 }
-                _ => time.clone(), // Default to time if not found
+                _ => time, // Default to time if not found
             };
 
             let stale = match &file.r.get("_stale") {

@@ -48,12 +48,10 @@ pub fn parse_detail_section(detail_xml: &str) -> HashMap<String, Value> {
         let _tag = String::from_utf8_lossy(start.name().as_ref()).to_string();
         let mut map = Map::new();
         // Parse attributes
-        for attr_result in start.attributes() {
-            if let Ok(attr) = attr_result {
-                let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
-                let val = String::from_utf8_lossy(&attr.value).to_string();
-                map.insert(key, Value::String(val));
-            }
+        for attr in start.attributes().flatten() {
+            let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
+            let val = String::from_utf8_lossy(&attr.value).to_string();
+            map.insert(key, Value::String(val));
         }
         // Parse children
         let mut text_content = None;
@@ -69,12 +67,10 @@ pub fn parse_detail_section(detail_xml: &str) -> HashMap<String, Value> {
                 Ok(Event::Empty(e)) => {
                     let child_tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
                     let mut child_map = Map::new();
-                    for attr_result in e.attributes() {
-                        if let Ok(attr) = attr_result {
-                            let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
-                            let val = String::from_utf8_lossy(&attr.value).to_string();
-                            child_map.insert(key, Value::String(val));
-                        }
+                    for attr in e.attributes().flatten() {
+                        let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
+                        let val = String::from_utf8_lossy(&attr.value).to_string();
+                        child_map.insert(key, Value::String(val));
                     }
                     map.insert(child_tag, Value::Object(child_map));
                 }
@@ -124,12 +120,10 @@ pub fn parse_detail_section(detail_xml: &str) -> HashMap<String, Value> {
             Ok(Event::Empty(ref e)) => {
                 let tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
                 let mut map = Map::new();
-                for attr_result in e.attributes() {
-                    if let Ok(attr) = attr_result {
-                        let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
-                        let val = String::from_utf8_lossy(&attr.value).to_string();
-                        map.insert(key, Value::String(val));
-                    }
+                for attr in e.attributes().flatten() {
+                    let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
+                    let val = String::from_utf8_lossy(&attr.value).to_string();
+                    map.insert(key, Value::String(val));
                 }
                 if in_root {
                     extras.insert(tag, Value::Object(map));

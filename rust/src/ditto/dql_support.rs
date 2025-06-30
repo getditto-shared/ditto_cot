@@ -219,7 +219,7 @@ mod tests {
         assert_eq!(id, "test-id-123");
 
         let visibility: bool = DittoDocument::get(&map_item, "f").unwrap();
-        assert_eq!(visibility, true);
+        assert!(visibility);
 
         // This should fail with PathNotFound
         let result = DittoDocument::get::<String>(&map_item, "nonexistent");
