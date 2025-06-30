@@ -8,18 +8,13 @@ use dittolive_ditto::prelude::*;
 use dittolive_ditto::store::query_builder::DittoDocument;
 use std::sync::Arc;
 
+// Import test utilities
+mod test_utils;
+
 #[tokio::test]
 async fn test_dql_integration() -> Result<()> {
-    // Try to load environment variables from .env file, but don't fail if it doesn't exist
-    // This allows CI environments to use environment variables directly
-    let current_dir = std::env::current_dir().context("Failed to get current directory")?;
-    let env_path = current_dir.join(".env");
-
-    // Try to load .env file from the current directory, but continue if it doesn't exist
-    if let Err(e) = dotenv::from_path(&env_path) {
-        eprintln!("Note: .env file not loaded: {}", e);
-        eprintln!("Continuing with existing environment variables...");
-    }
+    // Load environment variables from .env file if it exists, otherwise use environment variables
+    test_utils::load_test_env().context("Failed to load test environment")?;
 
     // Get Ditto App ID and token from environment variables
     let app_id = AppId::from_env("DITTO_APP_ID")

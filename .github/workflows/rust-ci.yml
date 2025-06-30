@@ -62,28 +62,28 @@ jobs:
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
     
-    # Set up Ditto environment variables from secrets
-    - name: Set up Ditto environment variables
-      run: |
-        echo "DITTO_APP_ID='${{ secrets.DITTO_APP_ID }}'" >> $GITHUB_ENV
-        echo "DITTO_PLAYGROUND_TOKEN='${{ secrets.DITTO_PLAYGROUND_TOKEN }}'" >> $GITHUB_ENV
-
     - name: Build and Test
       working-directory: ./rust
       env:
-        # Use environment variables to control the build profile
+        # Ditto environment variables from secrets
+        DITTO_APP_ID: ${{ secrets.DITTO_APP_ID }}
+        DITTO_PLAYGROUND_TOKEN: ${{ secrets.DITTO_PLAYGROUND_TOKEN }}
+        # Build profile settings
         CARGO_PROFILE_CI_LTO: "thin"
         CARGO_PROFILE_CI_CODEGEN_UNITS: "1"
         CARGO_PROFILE_CI_DEBUG: "false"
         CARGO_PROFILE_CI_OPT_LEVEL: "3"
         CARGO_PROFILE_CI_OVERFLOW_CHECKS: "true"
       run: |
+        # Verify environment variables are set
+        echo "DITTO_APP_ID: $DITTO_APP_ID"
+        echo "DITTO_PLAYGROUND_TOKEN: ${DITTO_PLAYGROUND_TOKEN:0:4}..."
+        
         # Build with the CI profile
         cargo build --profile ci
         
-        # Run tests with nextest using the release profile
-        # Nextest will automatically use the optimized build from the CI profile
-        cargo nextest run --workspace --all-features
+        # Run tests with nextest
+        cargo nextest run --workspace --all-features --test-threads=1
         
       
       
