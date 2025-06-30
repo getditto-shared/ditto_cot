@@ -1,8 +1,6 @@
 //! Utility to convert CotDocument + r map to FlatCotEvent for XML serialization
 use crate::model::FlatCotEvent;
 use crate::ditto::CotDocument;
-use serde_json::Value;
-use std::collections::HashMap;
 use chrono::TimeZone;
 
 /// Convert a CotDocument to a FlatCotEvent for XML serialization

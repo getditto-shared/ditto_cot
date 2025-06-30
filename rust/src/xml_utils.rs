@@ -22,13 +22,13 @@ pub fn format_cot_float(val: f64) -> String {
 pub fn minimize_xml(xml: &str) -> String {
     use quick_xml::events::Event;
     use quick_xml::Reader;
-    use std::io::Cursor;
+    
 
     let mut reader = Reader::from_str(xml);
     reader.trim_text(true);
     let mut buf = Vec::new();
     let mut out = String::new();
-    use std::collections::BTreeMap;
+    
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -182,8 +182,8 @@ fn nodes_equal(node1: &roxmltree::Node, node2: &roxmltree::Node, strict: bool) -
     }
     
     // Compare children (recursively)
-    let mut children1: Vec<roxmltree::Node> = node1.children().filter(|n| n.is_element()).collect();
-    let mut children2: Vec<roxmltree::Node> = node2.children().filter(|n| n.is_element()).collect();
+    let children1: Vec<roxmltree::Node> = node1.children().filter(|n| n.is_element()).collect();
+    let children2: Vec<roxmltree::Node> = node2.children().filter(|n| n.is_element()).collect();
     
     // Special handling for <detail> elements - order doesn't matter
     if node1.tag_name().name() == "detail" && node2.tag_name().name() == "detail" {

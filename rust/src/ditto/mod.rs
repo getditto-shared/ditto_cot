@@ -3,6 +3,7 @@
 //! This module provides functionality to transform CoT (Cursor on Target) events
 //! into Ditto documents according to the Ditto JSON schemas.
 
+pub mod dql_support;
 pub mod from_ditto;
 pub mod from_ditto_util;
 pub mod schema;

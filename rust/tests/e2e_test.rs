@@ -7,6 +7,7 @@ use ditto_cot::{
 };
 use dittolive_ditto::fs::PersistentRoot;
 use dittolive_ditto::prelude::*;
+use dittolive_ditto::store::query_builder::DittoDocument;
 use std::sync::Arc;
 
 // Collection name for Ditto documents (unused in this example)
@@ -84,30 +85,45 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     // 4. Convert Ditto document back to CotEvent (simulated round-trip)
     let _roundtrip_cot_event = cot_event_from_ditto_document(&ditto_doc);
 
-    // 5. Insert document into Ditto using DQL
-    let doc_id = cot_event.uid.clone();
-    let doc_value = match ditto_doc {
-        CotDocument::MapItem(ref map_item) => {
-            serde_json::to_value(map_item).unwrap()
-        }
-        _ => {
-            panic!("Expected MapItem document type");
-        }
+    // 5. Insert document into Ditto using DQL and DittoDocument trait
+    // Get the document ID using the DittoDocument trait
+    let doc_id = DittoDocument::id(&ditto_doc);
+    println!("Document ID from DittoDocument trait: {}", doc_id);
+    
+    // Convert to CBOR for storage using the DittoDocument trait
+    let _cbor_value = DittoDocument::to_cbor(&ditto_doc)?;
+    
+    // Determine the collection name based on the document type
+    let collection_name = match &ditto_doc {
+        CotDocument::MapItem(_) => "map_items",
+        CotDocument::Chat(_) => "chat_messages",
+        CotDocument::File(_) => "files",
+        CotDocument::Api(_) => "api_events",
     };
-    let query = "INSERT INTO map_items VALUES (:document) ON ID CONFLICT DO MERGE";
-    let query_result = store
+    
+    // Convert the document to a JSON value for insertion
+    let doc_json = match &ditto_doc {
+        CotDocument::MapItem(map_item) => serde_json::to_value(map_item)?,
+        CotDocument::Chat(chat) => serde_json::to_value(chat)?,
+        CotDocument::File(file) => serde_json::to_value(file)?,
+        CotDocument::Api(api) => serde_json::to_value(api)?,
+    };
+    
+    // Insert the document using DQL
+    let query = format!("INSERT INTO {} DOCUMENTS (:doc) ON ID CONFLICT DO MERGE", collection_name);
+    let _query_result = store
         .execute_v2((
-            query,
+            &query,
             serde_json::json!({
-                "document": doc_value
+                "doc": doc_json
             }),
-        ))
-        .await?;
+        )).await?;
 
-    // 6. Query the document back from Ditto
+    // 6. Query the document back from Ditto using DittoDocument trait
     let query = format!(
-        "SELECT * FROM map_items WHERE _id = '{}'",
-        doc_value["_id"].as_str().unwrap_or("")
+        "SELECT * FROM {} WHERE _id = '{}'",
+        collection_name,
+        doc_id
     );
     let query_result = store.execute_v2(&query).await?;
     assert!(query_result.item_count() > 0, "No documents found matching the query");
@@ -129,8 +145,9 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     let minimized_actual = xml_utils::minimize_xml(&cot_xml_out);
     assert!(xml_utils::semantic_xml_eq(&minimized_expected, &minimized_actual, false), "Round-trip XML mismatch!\nExpected:\n{}\nActual:\n{}", minimized_expected, minimized_actual);
 
-    // Gracefully shutdown Ditto instance
-    ditto.close();
+    // Clean up
+    ditto.stop_sync();
+
     Ok(())}
 
 #[tokio::test]
@@ -221,7 +238,7 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
             }
         };
         let query = format!("INSERT INTO {} VALUES (:document) ON ID CONFLICT DO MERGE", collection_name);
-        let query_result = store
+        let _query_result = store
             .execute_v2((
                 query,
                 serde_json::json!({
@@ -229,7 +246,9 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
                 }),
             ))
             .await?;
-        assert!(query_result.item_count() >= 0, "DQL INSERT failed for {}", path.display());
+        // Just check that the query executed successfully
+        // No need to check item_count() >= 0 since usize is always non-negative
+        assert!(true, "DQL INSERT failed for {}", path.display());
         let query = format!(
             "SELECT * FROM {} WHERE _id = '{}'",
             collection_name,
@@ -287,6 +306,6 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         }
     }
     assert!(found_any, "No XML files found in example_xml directory");
-    ditto.close();
+    ditto.stop_sync();
     Ok(())
 }

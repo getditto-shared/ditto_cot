@@ -54,7 +54,7 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
     xml.push_str("<detail>");
 
     // Helper for recursive serialization of detail_extra
-    use std::collections::BTreeMap;
+    
     fn write_detail_xml(xml: &mut String, k: &str, v: &serde_json::Value) {
         println!("[DEBUG] write_detail_xml: key = {} | value = {:?}", k, v);
         if let Some(obj) = v.as_object() {

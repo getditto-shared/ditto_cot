@@ -6,7 +6,7 @@
 
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 
 /// Parses the <detail> section of a CoT message as a generic XML-to-map transformation.
@@ -45,7 +45,7 @@ pub fn parse_detail_section(detail_xml: &str) -> HashMap<String, Value> {
         start: &BytesStart,
         buf: &mut Vec<u8>,
     ) -> Value {
-        let tag = String::from_utf8_lossy(start.name().as_ref()).to_string();
+        let _tag = String::from_utf8_lossy(start.name().as_ref()).to_string();
         let mut map = Map::new();
         // Parse attributes
         for attr_result in start.attributes() {
