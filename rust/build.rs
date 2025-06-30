@@ -39,6 +39,36 @@ fn process_underscore_keys(schema: &mut RootSchema) {
     }
 }
 
+// Helper function to enhance the r field schema to generate proper RValue enums
+fn enhance_r_field_schema(schema: &mut RootSchema) {
+    // Define the document types that need RValue enums
+    let doc_types = ["Api", "Chat", "File", "MapItem", "Generic"];
+
+    for doc_type in &doc_types {
+        if let Some(Schema::Object(doc_obj)) = schema.definitions.get_mut(*doc_type) {
+            if let Some(props) = &mut doc_obj.object {
+                // Find the r field and enhance its schema
+                if let Some(Schema::Object(r_obj)) = props.properties.get_mut("r") {
+                    // Create a unique name for this document type's RValue
+                    let rvalue_name = format!("{}{}", doc_type, "RValue");
+
+                    // Add a custom type name to generate an enum
+                    r_obj.extensions.insert(
+                        "x-rust-type-name".to_string(),
+                        serde_json::json!(rvalue_name),
+                    );
+
+                    // Add custom derives and attributes
+                    r_obj.extensions.insert(
+                        "x-rust-type-attributes".to_string(),
+                        serde_json::json!(["#[derive(Debug, Clone)]", "#[serde(untagged)]"]),
+                    );
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     // Directory containing the JSON schema files
     let schema_path = "../schema/ditto.schema.json";
@@ -54,6 +84,9 @@ fn main() {
 
     // Process underscore-prefixed keys in the Common object
     process_underscore_keys(&mut schema);
+
+    // Enhance the r field schema to generate proper RValue enums
+    enhance_r_field_schema(&mut schema);
 
     // Generate Rust code from the schema
     let mut settings = TypeSpaceSettings::default();
@@ -83,6 +116,23 @@ fn main() {
             "#[serde(rename = \"_v\")] pub d_v : i64 ,",
         );
 
+    // Add helper functions to convert between HashMap and serde_json::Map
+    let helper_functions = r#"
+// Helper functions to convert between HashMap and serde_json::Map
+pub mod map_helpers {
+    use std::collections::HashMap;
+    use serde_json::{Map, Value};
+
+    pub fn hashmap_to_json_map(map: HashMap<String, Value>) -> Map<String, Value> {
+        map.into_iter().collect()
+    }
+
+    pub fn json_map_to_hashmap(map: Map<String, Value>) -> HashMap<String, Value> {
+        map.into_iter().collect()
+    }
+}
+"#;
+
     // Write the generated code to the output file
     let mut file = File::create(out_file).expect("Failed to create output file");
     writeln!(
@@ -92,6 +142,9 @@ fn main() {
     .unwrap();
     writeln!(file, "#![allow(missing_docs)]\n").unwrap();
     writeln!(file, "use serde::{{Serialize, Deserialize}};\n").unwrap();
+    // writeln!(file, "use std::collections::HashMap;\n").unwrap();
     file.write_all(generated.as_bytes())
         .expect("Failed to write generated code");
+    file.write_all(helper_functions.as_bytes())
+        .expect("Failed to write helper functions");
 }

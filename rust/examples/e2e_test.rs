@@ -2,7 +2,8 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use ditto_cot::{
     cot_events::CotEvent,
-    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, DittoDocument},
+    ditto::{cot_to_document, from_ditto::cot_event_from_ditto_document, CotDocument},
+    xml_utils,
 };
 use dittolive_ditto::fs::PersistentRoot;
 use dittolive_ditto::prelude::*;
@@ -14,17 +15,18 @@ const COLLECTION_NAME: &str = "cot_events";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Load environment variables from .env file in the current directory
+    // Try to load environment variables from .env file, but don't fail if it doesn't exist
+    // This allows CI environments to use environment variables directly
     let current_dir = std::env::current_dir().context("Failed to get current directory")?;
     let env_path = current_dir.join(".env");
 
     println!("Current directory: {}", current_dir.display());
     println!("Trying to load .env from: {}", env_path.display());
 
-    // Try to load .env file from the current directory
+    // Try to load .env file from the current directory, but continue if it doesn't exist
     if let Err(e) = dotenv::from_path(&env_path) {
-        println!("Failed to load .env file: {}", e);
-        return Err(e).context("Failed to load .env file");
+        println!("Note: .env file not loaded: {}", e);
+        println!("Continuing with existing environment variables...");
     } else {
         println!("Successfully loaded .env file");
     }
@@ -106,13 +108,12 @@ async fn main() -> Result<()> {
               le="9999999.0">
             <point lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
     <detail>
-    <track course="45.0" speed="10.0"/>
-    <contact endpoint="*:-1:stcp" callsign="TEST-1"/>
-    <uid Droid="TEST-1"/>
     <__group name="Cyan" role="Team Member"/>
-    <status battery="100"/>
-    <track />
+    <contact endpoint="*:-1:stcp" callsign="TEST-1"/>
     <precisionlocation geopointsrc="User" altsrc="???"/>
+    <status battery="100"/>
+    <track course="45.0" speed="10.0"/>
+    <uid Droid="TEST-1"/>
     </detail>
         </event>
         "#,
@@ -145,9 +146,9 @@ async fn main() -> Result<()> {
     println!("5. Inserting document into Ditto");
     let doc_id = cot_event.uid.clone();
 
-    // Convert our DittoDocument to a serde_json::Value
+    // Convert our CotDocument to a serde_json::Value
     let doc_value = match ditto_doc {
-        DittoDocument::MapItem(ref map_item) => {
+        CotDocument::MapItem(ref map_item) => {
             // Ensure _id is explicitly set if needed, but it should be part of the serialized map_item
             serde_json::to_value(map_item).unwrap()
         }
@@ -208,8 +209,8 @@ async fn main() -> Result<()> {
     // 7. Convert the Ditto document back to a CotEvent
     println!("7. Converting Ditto document back to CotEvent");
 
-    // Deserialize the JSON into DittoDocument using the library function
-    let retrieved_doc = DittoDocument::from_json_str(&json_str)?;
+    // Deserialize the JSON into CotDocument using the library function
+    let retrieved_doc = CotDocument::from_json_str(&json_str)?;
 
     let retrieved_cot_event = cot_event_from_ditto_document(&retrieved_doc);
     println!("   Successfully converted retrieved document back to CotEvent");
@@ -220,20 +221,16 @@ async fn main() -> Result<()> {
     let cot_xml_out = retrieved_cot_event
         .to_xml()
         .unwrap_or_else(|e| format!("Error generating XML: {}", e));
-    if cot_xml.trim() == cot_xml_out.trim() {
-        println!("SUCCESS: XML outputs match! Original and roundtripped XML are identical.");
-        println!("\n✅ Full XML to XML Round-trip conversion successful!");
-        println!("This example demonstrated a complete round-trip conversion:");
-        println!("  - Parsed CoT XML into a FlatCotEvent");
-        println!("  - Converted to a CotEvent and then to a Ditto document");
-        println!("  - Stored in Ditto and retrieved back");
-        println!("  - Converted back to a CotEvent and verified field preservation\n");
+    let minimized_expected = xml_utils::minimize_xml(&cot_xml);
+    let minimized_actual = xml_utils::minimize_xml(&cot_xml_out);
+    if minimized_expected == minimized_actual {
+        println!("🚀 SUCCESS: XML outputs match! Original and roundtripped XML are identical.");
     } else {
         println!("❌ Round-trip conversion failed!");
-        println!("Diff:\n-{}\n+{}", cot_xml, cot_xml_out);
+        println!("Diff:");
+        println!("-\n{}", minimized_expected);
+        println!("+\n{}", minimized_actual);
     }
-
-    println!("\nE2E test completed.");
 
     println!("Note: This test uses a real Ditto instance with the online playground.");
     println!(

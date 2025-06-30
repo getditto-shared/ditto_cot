@@ -106,49 +106,43 @@ impl CotEvent {
 
     /// Converts the CotEvent to an XML string
     pub fn to_xml(&self) -> Result<String, CotError> {
-        // Pretty-print XML by manual string construction to match the expected format
+        // Pretty-print XML by manual string construction
         let lat = format_cot_float(self.point.lat);
         let lon = format_cot_float(self.point.lon);
         let hae = format_cot_float(self.point.hae);
         let ce = format_cot_float(self.point.ce);
         let le = format_cot_float(self.point.le);
         let mut xml = String::new();
-        xml.push_str("        <event version=\"");
+        xml.push_str("<event version=\"");
         xml.push_str(self.version.as_str());
-        xml.push_str("\"\n");
+        xml.push('"');
+        xml.push('\n');
         xml.push_str("              type=\"");
         xml.push_str(self.event_type.as_str());
-        xml.push_str("\"\n");
+        xml.push('"');
+        xml.push('\n');
         xml.push_str("              uid=\"");
         xml.push_str(self.uid.as_str());
-        xml.push_str("\"\n");
+        xml.push('"');
+        xml.push('\n');
         xml.push_str("              time=\"");
-        xml.push_str(self.time.to_rfc3339().as_str());
-        xml.push_str("\"\n");
+        // Format UTC timestamps with Z suffix instead of +00:00
+        xml.push_str(&self.time.to_rfc3339().replace("+00:00", "Z"));
+        xml.push('"');
+        xml.push('\n');
         xml.push_str("              start=\"");
-        xml.push_str(self.start.to_rfc3339().as_str());
-        xml.push_str("\"\n");
+        xml.push_str(&self.start.to_rfc3339().replace("+00:00", "Z"));
+        xml.push('"');
+        xml.push('\n');
         xml.push_str("              stale=\"");
-        xml.push_str(self.stale.to_rfc3339().as_str());
-        xml.push_str("\"\n");
+        xml.push_str(&self.stale.to_rfc3339().replace("+00:00", "Z"));
+        xml.push('"');
+        xml.push('\n');
         xml.push_str("              how=\"");
         xml.push_str(self.how.as_str());
-        xml.push_str("\"\n");
-        xml.push_str("              lat=\"");
-        xml.push_str(&lat);
-        xml.push_str("\"\n");
-        xml.push_str("              lon=\"");
-        xml.push_str(&lon);
-        xml.push_str("\"\n");
-        xml.push_str("              hae=\"");
-        xml.push_str(&hae);
-        xml.push_str("\"\n");
-        xml.push_str("              ce=\"");
-        xml.push_str(&ce);
-        xml.push_str("\"\n");
-        xml.push_str("              le=\"");
-        xml.push_str(&le);
-        xml.push_str("\">\n");
+        xml.push('"');
+        xml.push('>');
+        xml.push('\n');
         xml.push_str("            <point lat=\"");
         xml.push_str(&lat);
         xml.push_str("\" lon=\"");
@@ -159,23 +153,12 @@ impl CotEvent {
         xml.push_str(&ce);
         xml.push_str("\" le=\"");
         xml.push_str(&le);
-        xml.push_str("\"/>\n");
-        if !self.detail.is_empty() {
-            if self.detail.trim_start().starts_with("<detail") {
-                // Insert detail block at correct indentation
-                let detail_lines: Vec<&str> = self.detail.lines().collect();
-                for line in detail_lines {
-                    xml.push_str("    ");
-                    xml.push_str(line.trim());
-                    xml.push('\n');
-                }
-            } else {
-                xml.push_str("    <detail>\n");
-                xml.push_str(&self.detail);
-                xml.push_str("\n    </detail>\n");
-            }
-        }
-        xml.push_str("        </event>\n");
+        xml.push_str("\"/>");
+        xml.push('\n');
+        xml.push_str("            ");
+        xml.push_str(&self.detail);
+        xml.push('\n');
+        xml.push_str("        </event>");
         Ok(xml)
     }
 

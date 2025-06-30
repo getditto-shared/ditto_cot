@@ -41,6 +41,65 @@ If you update the schema, simply rerun `cargo build` or `cargo test` to regenera
 
 While `schema.rs` contains auto-generated types, the following files provide the manual implementation that uses these types:
 
+## <detail> XML Parsing in Ditto
+
+The Ditto Rust library provides robust parsing for the CoT `<detail>` element, supporting both flat and deeply nested XML structures. The parser is designed to be fully generic, with no special-case logic for specific keys or element names.
+
+### Parsing Behavior
+- **Recursive Parsing:**
+  - All elements within `<detail>` are parsed recursively. Nested elements become nested `serde_json::Value::Object` maps in the output.
+  - Example:
+    ```xml
+    <detail>
+      <foo bar="baz"><child x="1"><subchild>abc</subchild></child></foo>
+    </detail>
+    ```
+    becomes:
+    ```json
+    {
+      "foo": {
+        "bar": "baz",
+        "child": {
+          "x": "1",
+          "subchild": "abc"
+        }
+      }
+    }
+    ```
+- **Attributes:**
+  - All XML attributes are included as key-value pairs in the corresponding map.
+- **Text Content:**
+  - If an element contains both attributes and text, the text is stored under the special key `_text`.
+  - Example:
+    ```xml
+    <note importance="high">Check this</note>
+    ```
+    becomes:
+    ```json
+    {
+      "note": {
+        "importance": "high",
+        "_text": "Check this"
+      }
+    }
+    ```
+- **Empty Elements:**
+  - Empty elements (e.g., `<foo bar="baz"/>`) are parsed as objects with only attributes.
+- **Repeated Elements:**
+  - If multiple sibling elements share the same tag name, only the last one is retained in the resulting map (due to `HashMap` key semantics).
+
+### Limitations
+- **Key Collisions:**
+  - Only the last occurrence of a repeated element is preserved. If you need to preserve all, consider extending the parser to collect repeated elements into a list.
+- **Order Not Preserved:**
+  - The output is a map, so XML element order is not preserved.
+
+### Usage
+- The main entry point is `parse_detail_section(&str) -> HashMap<String, Value>` in `src/detail_parser.rs`.
+- The output can be used directly for CRDT map sync, round-trip conversion, or application logic.
+
+See `tests/integration.rs` for examples and test coverage of nested, mixed, and repeated element parsing.
+
 ### `to_ditto.rs`
 
 - **Core Transformation Logic**: Contains functions to transform CoT events into Ditto documents
