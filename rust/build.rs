@@ -142,7 +142,7 @@ pub mod map_helpers {
     .unwrap();
     writeln!(file, "#![allow(missing_docs)]\n").unwrap();
     writeln!(file, "use serde::{{Serialize, Deserialize}};\n").unwrap();
-    writeln!(file, "use std::collections::HashMap;\n").unwrap();
+    // writeln!(file, "use std::collections::HashMap;\n").unwrap();
     file.write_all(generated.as_bytes())
         .expect("Failed to write generated code");
     file.write_all(helper_functions.as_bytes())
