@@ -1,39 +1,64 @@
 //! Utility to convert CotDocument + r map to FlatCotEvent for XML serialization
-use crate::model::FlatCotEvent;
 use crate::ditto::CotDocument;
+use crate::model::FlatCotEvent;
 use chrono::TimeZone;
 
 /// Convert a CotDocument to a FlatCotEvent for XML serialization
 pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
-    use std::collections::HashMap;
     use serde_json::Value;
+    use std::collections::HashMap;
     // Debug: print r field if present
     match doc {
         CotDocument::Api(api) => {
-            let map: HashMap<String, Value> = api.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+            let map: HashMap<String, Value> = api
+                .r
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                .collect();
             println!("[DEBUG] flat_cot_event_from_ditto: Api.r = {:?}", map);
-        },
+        }
         CotDocument::Chat(chat) => {
-            let map: HashMap<String, Value> = chat.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+            let map: HashMap<String, Value> = chat
+                .r
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                .collect();
             println!("[DEBUG] flat_cot_event_from_ditto: Chat.r = {:?}", map);
-        },
+        }
         CotDocument::File(file) => {
-            let map: HashMap<String, Value> = file.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+            let map: HashMap<String, Value> = file
+                .r
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                .collect();
             println!("[DEBUG] flat_cot_event_from_ditto: File.r = {:?}", map);
-        },
+        }
         CotDocument::MapItem(map_item) => {
-            let map: HashMap<String, Value> = map_item.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+            let map: HashMap<String, Value> = map_item
+                .r
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                .collect();
             println!("[DEBUG] flat_cot_event_from_ditto: MapItem.r = {:?}", map);
-        },
+        }
     }
 
     match doc {
         CotDocument::Api(api) => FlatCotEvent {
             uid: api.id.clone(),
             type_: api.w.clone(),
-            time: chrono::Utc.timestamp_millis_opt(api.n).unwrap().to_rfc3339(),
-            start: chrono::Utc.timestamp_millis_opt(api.n).unwrap().to_rfc3339(),
-            stale: chrono::Utc.timestamp_millis_opt(api.o).unwrap().to_rfc3339(),
+            time: chrono::Utc
+                .timestamp_millis_opt(api.n)
+                .unwrap()
+                .to_rfc3339(),
+            start: chrono::Utc
+                .timestamp_millis_opt(api.n)
+                .unwrap()
+                .to_rfc3339(),
+            stale: chrono::Utc
+                .timestamp_millis_opt(api.o)
+                .unwrap()
+                .to_rfc3339(),
             how: api.p.clone(),
             lat: api.h.unwrap_or(0.0),
             lon: api.i.unwrap_or(0.0),
@@ -43,7 +68,11 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
             callsign: api.e.clone().into(),
             group_name: api.g.clone().into(),
             detail_extra: {
-                let mut map: HashMap<String, Value> = api.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+                let mut map: HashMap<String, Value> = api
+                    .r
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                    .collect();
                 if api.r.contains_key("original_type") {
                     map.insert("original_type".to_string(), Value::String(api.w.clone()));
                 }
@@ -53,9 +82,18 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
         CotDocument::Chat(chat) => FlatCotEvent {
             uid: chat.id.clone(),
             type_: chat.w.clone(),
-            time: chrono::Utc.timestamp_millis_opt(chat.n).unwrap().to_rfc3339(),
-            start: chrono::Utc.timestamp_millis_opt(chat.n).unwrap().to_rfc3339(),
-            stale: chrono::Utc.timestamp_millis_opt(chat.o).unwrap().to_rfc3339(),
+            time: chrono::Utc
+                .timestamp_millis_opt(chat.n)
+                .unwrap()
+                .to_rfc3339(),
+            start: chrono::Utc
+                .timestamp_millis_opt(chat.n)
+                .unwrap()
+                .to_rfc3339(),
+            stale: chrono::Utc
+                .timestamp_millis_opt(chat.o)
+                .unwrap()
+                .to_rfc3339(),
             how: chat.p.clone(),
             lat: chat.h.unwrap_or(0.0),
             lon: chat.i.unwrap_or(0.0),
@@ -65,7 +103,11 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
             callsign: chat.e.clone().into(),
             group_name: chat.g.clone().into(),
             detail_extra: {
-                let mut map: HashMap<String, Value> = chat.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+                let mut map: HashMap<String, Value> = chat
+                    .r
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                    .collect();
                 if chat.r.contains_key("original_type") {
                     map.insert("original_type".to_string(), Value::String(chat.w.clone()));
                 }
@@ -75,9 +117,18 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
         CotDocument::File(file) => FlatCotEvent {
             uid: file.id.clone(),
             type_: file.w.clone(),
-            time: chrono::Utc.timestamp_millis_opt(file.n).unwrap().to_rfc3339(),
-            start: chrono::Utc.timestamp_millis_opt(file.n).unwrap().to_rfc3339(),
-            stale: chrono::Utc.timestamp_millis_opt(file.o).unwrap().to_rfc3339(),
+            time: chrono::Utc
+                .timestamp_millis_opt(file.n)
+                .unwrap()
+                .to_rfc3339(),
+            start: chrono::Utc
+                .timestamp_millis_opt(file.n)
+                .unwrap()
+                .to_rfc3339(),
+            stale: chrono::Utc
+                .timestamp_millis_opt(file.o)
+                .unwrap()
+                .to_rfc3339(),
             how: file.p.clone(),
             lat: file.h.unwrap_or(0.0),
             lon: file.i.unwrap_or(0.0),
@@ -87,7 +138,11 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
             callsign: file.e.clone().into(),
             group_name: file.g.clone().into(),
             detail_extra: {
-                let mut map: HashMap<String, Value> = file.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+                let mut map: HashMap<String, Value> = file
+                    .r
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                    .collect();
                 if file.r.contains_key("original_type") {
                     map.insert("original_type".to_string(), Value::String(file.w.clone()));
                 }
@@ -97,9 +152,18 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
         CotDocument::MapItem(map_item) => FlatCotEvent {
             uid: map_item.id.clone(),
             type_: map_item.w.clone(),
-            time: chrono::Utc.timestamp_millis_opt(map_item.n).unwrap().to_rfc3339(),
-            start: chrono::Utc.timestamp_millis_opt(map_item.n).unwrap().to_rfc3339(),
-            stale: chrono::Utc.timestamp_millis_opt(map_item.o).unwrap().to_rfc3339(),
+            time: chrono::Utc
+                .timestamp_millis_opt(map_item.n)
+                .unwrap()
+                .to_rfc3339(),
+            start: chrono::Utc
+                .timestamp_millis_opt(map_item.n)
+                .unwrap()
+                .to_rfc3339(),
+            stale: chrono::Utc
+                .timestamp_millis_opt(map_item.o)
+                .unwrap()
+                .to_rfc3339(),
             how: map_item.p.clone(),
             lat: map_item.h.unwrap_or(0.0),
             lon: map_item.i.unwrap_or(0.0),
@@ -109,9 +173,16 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
             callsign: map_item.e.clone().into(),
             group_name: map_item.g.clone().into(),
             detail_extra: {
-                let mut map: HashMap<String, Value> = map_item.r.iter().map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null))).collect();
+                let mut map: HashMap<String, Value> = map_item
+                    .r
+                    .iter()
+                    .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
+                    .collect();
                 if map_item.r.contains_key("original_type") {
-                    map.insert("original_type".to_string(), Value::String(map_item.w.clone()));
+                    map.insert(
+                        "original_type".to_string(),
+                        Value::String(map_item.w.clone()),
+                    );
                 }
                 map
             },

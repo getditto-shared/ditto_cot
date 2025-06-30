@@ -44,42 +44,52 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
 pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     // Map CotEvent and peer_key to MapItem fields
     MapItem {
-        id: event.uid.clone(),                   // Ditto document ID
-        a: peer_key.to_string(),                 // Ditto peer key string
-        b: event.point.ce,                       // Circular error (ce) value
-        c: None,                                 // Name/title not parsed from raw detail string
-        d: event.uid.clone(),                    // TAK UID of author
-        d_c: 0,                                  // Document counter (updates), default to 0
-        d_r: false,                              // Soft-delete flag, default to false
-        d_v: 2,                                  // Schema version (2)
-        source: None,                            // Source not parsed from raw detail string
-        e: String::new(),                        // Callsign not parsed from raw detail string
-        f: None,                                 // Visibility flag
-        g: "".to_string(),                       // Version string, default empty
-        h: Some(event.point.lat),                // Latitude
-        i: Some(event.point.lon),                // Longitude
-        j: Some(event.point.hae),                // Altitude
-        k: Some(event.point.le),                 // Linear Error
-        l: None,                                 // Course (not in CotEvent)
-        n: event.start.timestamp_micros(),       // Start (microsecond precision)
-        o: event.stale.timestamp_micros(),       // Stale (microsecond precision)
-        p: event.how.clone(),                    // How
-        q: "".to_string(),                       // Access, default empty
+        id: event.uid.clone(),             // Ditto document ID
+        a: peer_key.to_string(),           // Ditto peer key string
+        b: event.point.ce,                 // Circular error (ce) value
+        c: None,                           // Name/title not parsed from raw detail string
+        d: event.uid.clone(),              // TAK UID of author
+        d_c: 0,                            // Document counter (updates), default to 0
+        d_r: false,                        // Soft-delete flag, default to false
+        d_v: 2,                            // Schema version (2)
+        source: None,                      // Source not parsed from raw detail string
+        e: String::new(),                  // Callsign not parsed from raw detail string
+        f: None,                           // Visibility flag
+        g: "".to_string(),                 // Version string, default empty
+        h: Some(event.point.lat),          // Latitude
+        i: Some(event.point.lon),          // Longitude
+        j: Some(event.point.hae),          // Altitude
+        k: Some(event.point.le),           // Linear Error
+        l: None,                           // Course (not in CotEvent)
+        n: event.start.timestamp_micros(), // Start (microsecond precision)
+        o: event.stale.timestamp_micros(), // Stale (microsecond precision)
+        p: event.how.clone(),              // How
+        q: "".to_string(),                 // Access, default empty
         r: {
             let extras = parse_detail_section(&event.detail);
-            extras.into_iter().map(|(k, v)| (k, match v {
-                serde_json::Value::String(s) => MapItemRValue::String(s),
-                serde_json::Value::Bool(b) => MapItemRValue::from(b),
-                serde_json::Value::Number(n) => MapItemRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => MapItemRValue::from(obj.clone()),
-                serde_json::Value::Array(arr) => MapItemRValue::from(arr.clone()),
-                _ => MapItemRValue::from(false),
-            })).collect()
+            extras
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        k,
+                        match v {
+                            serde_json::Value::String(s) => MapItemRValue::String(s),
+                            serde_json::Value::Bool(b) => MapItemRValue::from(b),
+                            serde_json::Value::Number(n) => {
+                                MapItemRValue::from(n.as_f64().unwrap_or(0.0))
+                            }
+                            serde_json::Value::Object(obj) => MapItemRValue::from(obj.clone()),
+                            serde_json::Value::Array(arr) => MapItemRValue::from(arr.clone()),
+                            _ => MapItemRValue::from(false),
+                        },
+                    )
+                })
+                .collect()
         },
-        s: "".to_string(),                       // Opex, default empty
-        t: "".to_string(),                       // Qos, default empty
-        u: "".to_string(),                       // Caveat, default empty
-        v: "".to_string(),                       // Releasable to, default empty
+        s: "".to_string(), // Opex, default empty
+        t: "".to_string(), // Qos, default empty
+        u: "".to_string(), // Caveat, default empty
+        v: "".to_string(), // Releasable to, default empty
         w: event.event_type.clone(),
         // Type
     }
@@ -131,17 +141,27 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         // Parse detail XML into map for CRDT support
         r: {
             let extras = parse_detail_section(&event.detail);
-            extras.into_iter().map(|(k, v)| (k, match v {
-                serde_json::Value::String(s) => ChatRValue::String(s),
-                serde_json::Value::Bool(b) => ChatRValue::from(b),
-                serde_json::Value::Number(n) => ChatRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => {
-                    let map = serde_json::Map::from_iter(obj.clone());
-                    ChatRValue::Object(map)
-                },
-                serde_json::Value::Array(arr) => ChatRValue::Array(arr.clone()),
-                _ => ChatRValue::Null,
-            })).collect()
+            extras
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        k,
+                        match v {
+                            serde_json::Value::String(s) => ChatRValue::String(s),
+                            serde_json::Value::Bool(b) => ChatRValue::from(b),
+                            serde_json::Value::Number(n) => {
+                                ChatRValue::from(n.as_f64().unwrap_or(0.0))
+                            }
+                            serde_json::Value::Object(obj) => {
+                                let map = serde_json::Map::from_iter(obj.clone());
+                                ChatRValue::Object(map)
+                            }
+                            serde_json::Value::Array(arr) => ChatRValue::Array(arr.clone()),
+                            _ => ChatRValue::Null,
+                        },
+                    )
+                })
+                .collect()
         },
         s: "".to_string(),
         t: "".to_string(),
@@ -197,17 +217,27 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
         // Parse detail XML into map for CRDT support
         r: {
             let extras = parse_detail_section(&event.detail);
-            extras.into_iter().map(|(k, v)| (k, match v {
-                serde_json::Value::String(s) => ApiRValue::String(s),
-                serde_json::Value::Bool(b) => ApiRValue::from(b),
-                serde_json::Value::Number(n) => ApiRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => {
-                    let map = serde_json::Map::from_iter(obj.clone());
-                    ApiRValue::Object(map)
-                },
-                serde_json::Value::Array(arr) => ApiRValue::Array(arr.clone()),
-                _ => ApiRValue::Null,
-            })).collect()
+            extras
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        k,
+                        match v {
+                            serde_json::Value::String(s) => ApiRValue::String(s),
+                            serde_json::Value::Bool(b) => ApiRValue::from(b),
+                            serde_json::Value::Number(n) => {
+                                ApiRValue::from(n.as_f64().unwrap_or(0.0))
+                            }
+                            serde_json::Value::Object(obj) => {
+                                let map = serde_json::Map::from_iter(obj.clone());
+                                ApiRValue::Object(map)
+                            }
+                            serde_json::Value::Array(arr) => ApiRValue::Array(arr.clone()),
+                            _ => ApiRValue::Null,
+                        },
+                    )
+                })
+                .collect()
         },
         s: "".to_string(),
         t: "".to_string(),
@@ -235,18 +265,32 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
     // Store the circular error in a special key in the r map to avoid field overloading
     let mut extras = parse_detail_section(&event.detail);
     // Add ce as a special field in the detail map to preserve it during round-trip
-    extras.insert("_ce".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0))));
-    
+    extras.insert(
+        "_ce".to_string(),
+        serde_json::Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+
     // Store timestamps in microseconds for better precision
     let time_micros = event.time.timestamp_micros();
     let _start_micros = event.start.timestamp_micros();
     let stale_micros = event.stale.timestamp_micros();
-    
+
     // Store timestamp values in special fields in the detail map to preserve them during round-trip
-    extras.insert("_time".to_string(), serde_json::Value::String(event.time.to_rfc3339()));
-    extras.insert("_start".to_string(), serde_json::Value::String(event.start.to_rfc3339()));
-    extras.insert("_stale".to_string(), serde_json::Value::String(event.stale.to_rfc3339()));
-    
+    extras.insert(
+        "_time".to_string(),
+        serde_json::Value::String(event.time.to_rfc3339()),
+    );
+    extras.insert(
+        "_start".to_string(),
+        serde_json::Value::String(event.start.to_rfc3339()),
+    );
+    extras.insert(
+        "_stale".to_string(),
+        serde_json::Value::String(event.stale.to_rfc3339()),
+    );
+
     File {
         id: event.uid.clone(),
         a: peer_key.to_string(),
@@ -268,23 +312,33 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
         l: None,
         item_id,
         mime,
-        n: time_micros, // Store time in microseconds
+        n: time_micros,  // Store time in microseconds
         o: stale_micros, // Store stale in microseconds
         p: event.how.clone(),
         q: "".to_string(),
         // Parse detail XML into map for CRDT support
         r: {
-            extras.into_iter().map(|(k, v)| (k, match v {
-                serde_json::Value::String(s) => FileRValue::String(s),
-                serde_json::Value::Bool(b) => FileRValue::from(b),
-                serde_json::Value::Number(n) => FileRValue::from(n.as_f64().unwrap_or(0.0)),
-                serde_json::Value::Object(obj) => {
-                    let map = serde_json::Map::from_iter(obj.clone());
-                    FileRValue::Object(map)
-                },
-                serde_json::Value::Array(arr) => FileRValue::Array(arr.clone()),
-                _ => FileRValue::Null,
-            })).collect()
+            extras
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        k,
+                        match v {
+                            serde_json::Value::String(s) => FileRValue::String(s),
+                            serde_json::Value::Bool(b) => FileRValue::from(b),
+                            serde_json::Value::Number(n) => {
+                                FileRValue::from(n.as_f64().unwrap_or(0.0))
+                            }
+                            serde_json::Value::Object(obj) => {
+                                let map = serde_json::Map::from_iter(obj.clone());
+                                FileRValue::Object(map)
+                            }
+                            serde_json::Value::Array(arr) => FileRValue::Array(arr.clone()),
+                            _ => FileRValue::Null,
+                        },
+                    )
+                })
+                .collect()
         },
         s: "".to_string(),
         sz,
@@ -426,4 +480,3 @@ impl CotDocument {
         crate::ditto::from_ditto::cot_event_from_ditto_document(self)
     }
 }
-

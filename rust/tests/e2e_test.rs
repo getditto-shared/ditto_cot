@@ -63,7 +63,8 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     let event_uid = format!("TEST-{}-1", uuid::Uuid::new_v4());
 
     // Sample CoT XML event
-    let cot_xml = format!(r#"<event version="2.0" type="a-f-G-U-C" uid="{}" time="{}" start="{}" stale="{}" how="h-g-i-g-o">
+    let cot_xml = format!(
+        r#"<event version="2.0" type="a-f-G-U-C" uid="{}" time="{}" start="{}" stale="{}" how="h-g-i-g-o">
   <point lat="1.2345" lon="2.3456" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
   <detail>
     <__group name="Cyan" role="Team Member"/>
@@ -73,7 +74,9 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     <track course="45.0" speed="10.0"/>
     <uid Droid="TEST-1"/>
   </detail>
-</event>"#, event_uid, start_time, start_time, stale_time);
+</event>"#,
+        event_uid, start_time, start_time, stale_time
+    );
 
     // 1. Parse a CoT XML event using the public library interface
     let cot_event = CotEvent::from_xml(&cot_xml)
@@ -89,10 +92,10 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     // Get the document ID using the DittoDocument trait
     let doc_id = DittoDocument::id(&ditto_doc);
     println!("Document ID from DittoDocument trait: {}", doc_id);
-    
+
     // Convert to CBOR for storage using the DittoDocument trait
     let _cbor_value = DittoDocument::to_cbor(&ditto_doc)?;
-    
+
     // Determine the collection name based on the document type
     let collection_name = match &ditto_doc {
         CotDocument::MapItem(_) => "map_items",
@@ -100,7 +103,7 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         CotDocument::File(_) => "files",
         CotDocument::Api(_) => "api_events",
     };
-    
+
     // Convert the document to a JSON value for insertion
     let doc_json = match &ditto_doc {
         CotDocument::MapItem(map_item) => serde_json::to_value(map_item)?,
@@ -108,25 +111,28 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         CotDocument::File(file) => serde_json::to_value(file)?,
         CotDocument::Api(api) => serde_json::to_value(api)?,
     };
-    
+
     // Insert the document using DQL
-    let query = format!("INSERT INTO {} DOCUMENTS (:doc) ON ID CONFLICT DO MERGE", collection_name);
+    let query = format!(
+        "INSERT INTO {} DOCUMENTS (:doc) ON ID CONFLICT DO MERGE",
+        collection_name
+    );
     let _query_result = store
         .execute_v2((
             &query,
             serde_json::json!({
                 "doc": doc_json
             }),
-        )).await?;
+        ))
+        .await?;
 
     // 6. Query the document back from Ditto using DittoDocument trait
-    let query = format!(
-        "SELECT * FROM {} WHERE _id = '{}'",
-        collection_name,
-        doc_id
-    );
+    let query = format!("SELECT * FROM {} WHERE _id = '{}'", collection_name, doc_id);
     let query_result = store.execute_v2(&query).await?;
-    assert!(query_result.item_count() > 0, "No documents found matching the query");
+    assert!(
+        query_result.item_count() > 0,
+        "No documents found matching the query"
+    );
     let doc = query_result
         .iter()
         .next()
@@ -143,12 +149,18 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         .unwrap_or_else(|e| format!("Error generating XML: {}", e));
     let minimized_expected = xml_utils::minimize_xml(&cot_xml);
     let minimized_actual = xml_utils::minimize_xml(&cot_xml_out);
-    assert!(xml_utils::semantic_xml_eq(&minimized_expected, &minimized_actual, false), "Round-trip XML mismatch!\nExpected:\n{}\nActual:\n{}", minimized_expected, minimized_actual);
+    assert!(
+        xml_utils::semantic_xml_eq(&minimized_expected, &minimized_actual, false),
+        "Round-trip XML mismatch!\nExpected:\n{}\nActual:\n{}",
+        minimized_expected,
+        minimized_actual
+    );
 
     // Clean up
     ditto.stop_sync();
 
-    Ok(())}
+    Ok(())
+}
 
 #[tokio::test]
 async fn e2e_xml_examples_roundtrip() -> Result<()> {
@@ -197,7 +209,8 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         .context("Failed to read example_xml directory")?
         .filter_map(|e| e.ok())
         .collect();
-    let xml_files: Vec<_> = xml_entries.iter()
+    let xml_files: Vec<_> = xml_entries
+        .iter()
         .map(|entry| entry.file_name().to_string_lossy().to_string())
         .collect();
     println!("Available XML files in example_xml: {:?}", xml_files);
@@ -218,7 +231,8 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
             continue;
         }
         found_any = true;
-        let cot_xml = fs::read_to_string(&path).with_context(|| format!("Failed to read file: {}", path.display()))?;
+        let cot_xml = fs::read_to_string(&path)
+            .with_context(|| format!("Failed to read file: {}", path.display()))?;
         let cot_event = match CotEvent::from_xml(&cot_xml) {
             Ok(ev) => ev,
             Err(e) => {
@@ -230,14 +244,22 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         let _roundtrip_cot_event = cot_event_from_ditto_document(&ditto_doc);
         let doc_id = cot_event.uid.clone();
         let (doc_value, collection_name) = match ditto_doc {
-            CotDocument::MapItem(ref map_item) => (serde_json::to_value(map_item).unwrap(), "map_items"),
+            CotDocument::MapItem(ref map_item) => {
+                (serde_json::to_value(map_item).unwrap(), "map_items")
+            }
             CotDocument::File(ref file) => (serde_json::to_value(file).unwrap(), "files"),
             _ => {
-                eprintln!("   Error: Expected MapItem or File document type for file {}", path.display());
+                eprintln!(
+                    "   Error: Expected MapItem or File document type for file {}",
+                    path.display()
+                );
                 continue;
             }
         };
-        let query = format!("INSERT INTO {} VALUES (:document) ON ID CONFLICT DO MERGE", collection_name);
+        let query = format!(
+            "INSERT INTO {} VALUES (:document) ON ID CONFLICT DO MERGE",
+            collection_name
+        );
         let _query_result = store
             .execute_v2((
                 query,
@@ -255,11 +277,19 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
             doc_value["_id"].as_str().unwrap_or("")
         );
         let query_result = store.execute_v2(&query).await?;
-        assert!(query_result.item_count() > 0, "No documents found matching the query for {}", path.display());
+        assert!(
+            query_result.item_count() > 0,
+            "No documents found matching the query for {}",
+            path.display()
+        );
         let doc = match query_result.iter().next() {
             Some(d) => d,
             None => {
-                eprintln!("❌ No document found with ID: {} for file {}", doc_id, path.display());
+                eprintln!(
+                    "❌ No document found with ID: {} for file {}",
+                    doc_id,
+                    path.display()
+                );
                 continue;
             }
         };
@@ -267,7 +297,11 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         let retrieved_doc = match CotDocument::from_json_str(&json_str) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("❌ Failed to parse CotDocument from JSON for file {}: {}", path.display(), e);
+                eprintln!(
+                    "❌ Failed to parse CotDocument from JSON for file {}: {}",
+                    path.display(),
+                    e
+                );
                 continue;
             }
         };
@@ -281,26 +315,31 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
         // Use semantic XML equality for round-trip check with non-strict comparison (ignore attribute order)
         if !xml_utils::semantic_xml_eq(&min_expected, &min_actual, false) {
             eprintln!("\n❌ Semantic XML round-trip mismatch for {}!\n--- Expected (input, minimized) ---\n{}\n--- Actual (output, minimized) ---\n{}\n", path.display(), min_expected, min_actual);
-            
+
             // Add character-by-character comparison for debugging
             eprintln!("Character-by-character comparison:");
             for (i, (c1, c2)) in min_expected.chars().zip(min_actual.chars()).enumerate() {
                 if c1 != c2 {
-                    eprintln!("Mismatch at position {}: expected '{}' (0x{:02x}), got '{}' (0x{:02x})", 
-                              i, c1, c1 as u32, c2, c2 as u32);
+                    eprintln!(
+                        "Mismatch at position {}: expected '{}' (0x{:02x}), got '{}' (0x{:02x})",
+                        i, c1, c1 as u32, c2, c2 as u32
+                    );
                 }
             }
-            
+
             if min_expected.len() != min_actual.len() {
-                eprintln!("Length mismatch: expected {} chars, got {} chars", 
-                          min_expected.len(), min_actual.len());
+                eprintln!(
+                    "Length mismatch: expected {} chars, got {} chars",
+                    min_expected.len(),
+                    min_actual.len()
+                );
                 if min_expected.len() > min_actual.len() {
                     eprintln!("Missing characters: {}", &min_expected[min_actual.len()..]);
                 } else {
                     eprintln!("Extra characters: {}", &min_actual[min_expected.len()..]);
                 }
             }
-            
+
             // Continue with test for now, just print the error
             eprintln!("Semantic XML round-trip mismatch for {}!", path.display());
         }

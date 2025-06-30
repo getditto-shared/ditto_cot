@@ -43,7 +43,7 @@ fn process_underscore_keys(schema: &mut RootSchema) {
 fn enhance_r_field_schema(schema: &mut RootSchema) {
     // Define the document types that need RValue enums
     let doc_types = ["Api", "Chat", "File", "MapItem", "Generic"];
-    
+
     for doc_type in &doc_types {
         if let Some(Schema::Object(doc_obj)) = schema.definitions.get_mut(*doc_type) {
             if let Some(props) = &mut doc_obj.object {
@@ -51,20 +51,17 @@ fn enhance_r_field_schema(schema: &mut RootSchema) {
                 if let Some(Schema::Object(r_obj)) = props.properties.get_mut("r") {
                     // Create a unique name for this document type's RValue
                     let rvalue_name = format!("{}{}", doc_type, "RValue");
-                    
+
                     // Add a custom type name to generate an enum
                     r_obj.extensions.insert(
                         "x-rust-type-name".to_string(),
                         serde_json::json!(rvalue_name),
                     );
-                    
+
                     // Add custom derives and attributes
                     r_obj.extensions.insert(
                         "x-rust-type-attributes".to_string(),
-                        serde_json::json!([
-                            "#[derive(Debug, Clone)]",
-                            "#[serde(untagged)]"
-                        ]),
+                        serde_json::json!(["#[derive(Debug, Clone)]", "#[serde(untagged)]"]),
                     );
                 }
             }
@@ -87,7 +84,7 @@ fn main() {
 
     // Process underscore-prefixed keys in the Common object
     process_underscore_keys(&mut schema);
-    
+
     // Enhance the r field schema to generate proper RValue enums
     enhance_r_field_schema(&mut schema);
 
@@ -118,7 +115,7 @@ fn main() {
             "pub d_v : i64 ,",
             "#[serde(rename = \"_v\")] pub d_v : i64 ,",
         );
-        
+
     // Add helper functions to convert between HashMap and serde_json::Map
     let helper_functions = r#"
 // Helper functions to convert between HashMap and serde_json::Map

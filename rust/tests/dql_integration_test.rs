@@ -63,10 +63,10 @@ async fn test_dql_integration() -> Result<()> {
 
     // 2. Parse the XML into a CotEvent
     let cot_event = CotEvent::from_xml(cot_xml)?;
-    
+
     // 3. Convert CotEvent to CotDocument
     let cot_document = cot_to_document(&cot_event, "dql-test-peer");
-    
+
     // Debug: Print the document structure
     let doc_json = match &cot_document {
         CotDocument::MapItem(map_item) => serde_json::to_string_pretty(map_item)?,
@@ -75,38 +75,38 @@ async fn test_dql_integration() -> Result<()> {
         CotDocument::Api(api) => serde_json::to_string_pretty(api)?,
     };
     println!("Document structure: \n{}", doc_json);
-    
+
     // 4. Use the DittoDocument trait to get the document ID
     let doc_id = DittoDocument::id(&cot_document);
     println!("Document ID from DittoDocument trait: {}", doc_id);
-    
+
     // 5. Use the DittoDocument trait to get specific fields
     let lat: f64 = DittoDocument::get(&cot_document, "h").unwrap();
     let lon: f64 = DittoDocument::get(&cot_document, "i").unwrap();
     println!("Location from DittoDocument trait: {}, {}", lat, lon);
-    
+
     // 6. Convert to CBOR for storage
     let _cbor_value = DittoDocument::to_cbor(&cot_document)?;
-    
+
     // Note: We're skipping the DQL INSERT operation because it requires specific SDK configuration
     // that may not be available in all environments. Instead, we'll focus on testing the
     // DittoDocument trait implementation, which is the main goal of our work.
-    
+
     println!("DittoDocument trait implementation test successful!");
-    
+
     // For a complete test in a production environment, you would:
     // 1. Insert the document using DQL or the Collection API
     // 2. Query it back
     // 3. Convert it to a CotDocument
     // 4. Convert it back to a CotEvent
     // 5. Verify the round-trip conversion
-    
+
     // Since we've already tested the DittoDocument trait methods (id, get, to_cbor),
     // and the e2e_test.rs file tests the full round-trip with actual Ditto operations,
     // we can consider this test successful.
-    
+
     // Clean up
     ditto.stop_sync();
-    
+
     Ok(())
 }
