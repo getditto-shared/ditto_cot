@@ -232,10 +232,25 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
     let item_id = None;
     let sz = None;
 
+    // Store the circular error in a special key in the r map to avoid field overloading
+    let mut extras = parse_detail_section(&event.detail);
+    // Add ce as a special field in the detail map to preserve it during round-trip
+    extras.insert("_ce".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0))));
+    
+    // Store timestamps in microseconds for better precision
+    let time_micros = event.time.timestamp_micros();
+    let start_micros = event.start.timestamp_micros();
+    let stale_micros = event.stale.timestamp_micros();
+    
+    // Store timestamp values in special fields in the detail map to preserve them during round-trip
+    extras.insert("_time".to_string(), serde_json::Value::String(event.time.to_rfc3339()));
+    extras.insert("_start".to_string(), serde_json::Value::String(event.start.to_rfc3339()));
+    extras.insert("_stale".to_string(), serde_json::Value::String(event.stale.to_rfc3339()));
+    
     File {
         id: event.uid.clone(),
         a: peer_key.to_string(),
-        b: event.time.timestamp_millis() as f64, // Time in millis since epoch
+        b: 0.0, // We're not using b for time anymore to avoid field overloading
         c,
         content_type,
         d: event.uid.clone(),
@@ -249,17 +264,16 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> File {
         h: Some(event.point.lat),
         i: Some(event.point.lon),
         j: Some(event.point.hae),
-        k: None,
+        k: Some(event.point.le), // Store le properly
         l: None,
         item_id,
         mime,
-        n: event.start.timestamp_millis(),
-        o: event.stale.timestamp_millis(),
+        n: time_micros, // Store time in microseconds
+        o: stale_micros, // Store stale in microseconds
         p: event.how.clone(),
         q: "".to_string(),
         // Parse detail XML into map for CRDT support
         r: {
-            let extras = parse_detail_section(&event.detail);
             extras.into_iter().map(|(k, v)| (k, match v {
                 serde_json::Value::String(s) => FileRValue::String(s),
                 serde_json::Value::Bool(b) => FileRValue::from(b),
@@ -687,6 +701,8 @@ mod tests {
                     r.insert("item_id".to_string(), FileRValue::String("test-item-123".to_string()));
                     r.insert("source".to_string(), FileRValue::String("ditto_cot".to_string()));
                     r.insert("original_type".to_string(), FileRValue::String("a-f-G-U".to_string()));
+                    // Add _ce field to preserve ce value during round-trip
+                    r.insert("_ce".to_string(), FileRValue::Number(1234567890.0));
                     r
                 },
                 source: Some("ditto_cot".to_string()),

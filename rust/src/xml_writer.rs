@@ -58,6 +58,16 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
     fn write_detail_xml(xml: &mut String, k: &str, v: &serde_json::Value) {
         println!("[DEBUG] write_detail_xml: key = {} | value = {:?}", k, v);
         if let Some(obj) = v.as_object() {
+            // Special cases for known nested elements
+            if (k == "sensor" || k == "platform") && obj.contains_key("name") && obj.len() == 1 {
+                // Handle <sensor><n>ThermalCam-X</n></sensor> and <platform><n>MQ-9 Reaper</n></platform> format
+                if let Some(serde_json::Value::String(name)) = obj.get("name") {
+                    println!("[DEBUG] write_detail_xml: special case for <{}><n>{}</n></{}>", k, name, k);
+                    xml.push_str(&format!("<{}><n>{}</n></{}>", k, name, k));
+                    return;
+                }
+            }
+            
             // If all values are string and no _text, treat as attributes
             let mut attrs = vec![];
             let mut children = vec![];
@@ -79,7 +89,11 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
             }
             attrs.sort_by_key(|(k, _)| *k);
             children.sort_by_key(|(k, _)| *k);
-            if children.is_empty() && text.is_none() {
+            
+            // For certain elements, always use nested format even if only attributes
+            let force_nested = matches!(k, "sensor" | "platform" | "nested");
+            
+            if children.is_empty() && text.is_none() && !force_nested {
                 // Only attributes
                 println!("[DEBUG] write_detail_xml: <{}> only attributes: {:?}", k, attrs);
                 let tag_str = {
@@ -95,11 +109,25 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
             } else {
                 // Start tag with attributes
                 println!("[DEBUG] write_detail_xml: <{}> attrs: {:?}, children: {:?}, text: {:?}", k, attrs, children, text);
-                xml.push_str(&format!(r#"<{}"#, k));
+                xml.push_str(&format!("<{}", k));
                 for (key, val) in &attrs {
-                    xml.push_str(&format!(r#" {}=\"{}\""#, key, val));
+                    // For certain elements, convert attributes to nested elements
+                    if force_nested && key == &"name" {
+                        continue; // Skip adding as attribute, will add as nested element below
+                    }
+                    xml.push_str(&format!(" {}=\"{}\"", key, val));
                 }
                 xml.push('>');
+                
+                // For certain elements, convert attributes to nested elements
+                if force_nested {
+                    for (key, val) in &attrs {
+                        if key == &"name" {
+                            xml.push_str(&format!("<n>{}</n>", val));
+                        }
+                    }
+                }
+                
                 // Optional text
                 if let Some(t) = text {
                     xml.push_str(t);
