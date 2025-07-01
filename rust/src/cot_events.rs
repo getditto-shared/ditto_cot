@@ -201,32 +201,50 @@ impl CotEvent {
                             let value = attr.unescape_value()?;
                             match attr.key.0 {
                                 b"lat" => {
-                                    let lat_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lat".to_string())
-                                    })?;
+                                    let lat_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lat".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
                                     log::trace!("Parsed lat: {}", lat_val);
                                     event.point.lat = lat_val;
                                 }
                                 b"lon" => {
-                                    let lon_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lon".to_string())
-                                    })?;
+                                    let lon_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lon".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
                                     log::trace!("Parsed lon: {}", lon_val);
                                     event.point.lon = lon_val;
                                 }
                                 b"hae" => {
-                                    event.point.hae = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid hae".to_string())
+                                    event.point.hae = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "hae".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"ce" => {
-                                    event.point.ce = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid ce".to_string())
+                                    event.point.ce = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "ce".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"le" => {
-                                    event.point.le = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid le".to_string())
+                                    event.point.le = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "le".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 _ => {}
@@ -282,32 +300,50 @@ impl CotEvent {
                             let value = attr.unescape_value()?;
                             match attr.key.0 {
                                 b"lat" => {
-                                    let lat_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lat".to_string())
-                                    })?;
+                                    let lat_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lat".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
                                     log::trace!("Parsed lat (Empty): {}", lat_val);
                                     event.point.lat = lat_val;
                                 }
                                 b"lon" => {
-                                    let lon_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lon".to_string())
-                                    })?;
+                                    let lon_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lon".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
                                     log::trace!("Parsed lon (Empty): {}", lon_val);
                                     event.point.lon = lon_val;
                                 }
                                 b"hae" => {
-                                    event.point.hae = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid hae".to_string())
+                                    event.point.hae = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "hae".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"ce" => {
-                                    event.point.ce = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid ce".to_string())
+                                    event.point.ce = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "ce".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"le" => {
-                                    event.point.le = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid le".to_string())
+                                    event.point.le = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "le".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 _ => {}
@@ -365,7 +401,10 @@ impl CotEvent {
                     .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ"))
                     .map(|dt| dt.with_timezone(&Utc))
             })
-            .map_err(|_| CotError::InvalidFormat(format!("Invalid datetime format: {}", s)))
+            .map_err(|_| CotError::InvalidDateTime {
+                field: "datetime".to_string(),
+                value: s.to_string(),
+            })
     }
 
     /// Creates a new location update event
