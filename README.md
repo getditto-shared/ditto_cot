@@ -73,20 +73,22 @@ See the [C# README](csharp/README.md) for detailed documentation.
 
 ## 🔄 Usage Examples
 
-### Converting CoT XML to Ditto Documents
+### Converting CoT XML to CotDocument
+
+This section shows how to convert a CoT XML string into a `CotDocument`, which is the main enum used for Ditto/CoT transformations in this library. `CotDocument` is not a DittoDocument; it implements the `DittoDocument` trait for DQL/SDK support, but is itself the type you use for all CoT/Ditto conversions.
 
 ```rust
 // Parse CoT XML into a CotEvent
 let cot_xml = "<event version='2.0' uid='ANDROID-123' type='a-f-G-U-C'...";
 let cot_event = CotEvent::from_xml(cot_xml)?;
 
-// Convert to a Ditto Document
+// Convert to a CotDocument (the main enum for Ditto/CoT transformations)
 let peer_id = "my-peer-id";
 let cot_doc = cot_to_document(&cot_event, peer_id); // Returns a CotDocument
 
 // The document type is automatically inferred from the CoT event type
-// CotDocument is the document type used for CoT transformations
-// (Note: DittoDocument is the Ditto-specific API document used with DQL)
+// CotDocument is the enum used for CoT-to-Ditto transformations.
+// Note: DittoDocument is a trait that CotDocument implements for DQL support, not a struct or enum.
 match cot_doc {
     CotDocument::MapItem(map_item) => {
         println!("Received a location update");
@@ -97,24 +99,92 @@ match cot_doc {
     CotDocument::File(file) => {
         println!("Received a file: {}", file.file.unwrap_or_default());
     },
-    CotDocument::Generic(generic) => {
-        println!("Received a generic event of type: {}", generic.t);
-    },
     // Other document types...
 }
 ```
 
-### Converting Ditto Documents to CoT XML
+> **Note:**
+> - `CotEvent`: Struct representing a CoT event (parsed from XML).
+> - `CotDocument`: Enum representing a Ditto-compatible document (used for transformations).
+> - `DittoDocument`: Trait implemented by CotDocument for DQL/SDK support. Not a struct or enum.
+
+### Converting CotDocument to CoT XML
 
 ```rust
-// Convert a CotDocument to a CotEvent
-let roundtrip_event = cot_event_from_ditto_document(&cot_doc);
+// Convert a CotDocument back to a CotEvent (for round-trip or XML serialization)
+let roundtrip_event = cot_event_from_ditto_document(&cot_doc); // Returns a CotEvent
 
-// Serialize to XML
+// Serialize to CoT XML
 let xml = roundtrip_event.to_xml()?;
 println!("CoT XML: {}", xml);
 ```
 
+*The function `cot_event_from_ditto_document` takes a `CotDocument` (not a DittoDocument) and returns a `CotEvent`.*
+
+### CotDocument vs DittoDocument
+
+- **CotDocument**: The main enum representing Ditto-compatible documents for CoT transformations. Used throughout this library for all conversions.
+- **DittoDocument**: A trait implemented by CotDocument (and possibly other types) to provide DQL/SDK support. Do not instantiate DittoDocument directly; use CotDocument and its trait methods where needed.
+
+---
+
+## 🧩 Interacting with the DittoDocument Trait and Ditto DQL
+
+### What is the DittoDocument Trait?
+
+The `DittoDocument` trait is part of the Ditto SDK and defines the interface for documents that can be queried, mutated, and synchronized using Ditto's DQL (Ditto Query Language). It is not a struct or enum, but a set of methods that types (like `CotDocument`) implement to be compatible with Ditto's real-time database and query engine.
+
+### How Does CotDocument Implement DittoDocument?
+
+`CotDocument` implements the `DittoDocument` trait, so you can use any `CotDocument` (produced from a CoT event or elsewhere) directly with Ditto's DQL APIs. This allows you to store, query, and synchronize CoT-derived documents in Ditto collections.
+
+### Example: CoT Event → CotDocument → DQL
+
+```rust
+use cotditto::{cot_events::CotEvent, ditto::{CotDocument, cot_to_document}};
+use dittolive_ditto::prelude::*;
+
+// Parse CoT XML and convert to CotDocument
+enum CotDocument = cot_to_document(&CotEvent::from_xml(cot_xml)?, "peer-key");
+
+// Insert into a Ditto collection (DQL)
+let collection = ditto.store().collection("cot_events");
+collection.upsert(&DittoDocument::id(&cot_doc), &cot_doc)?;
+
+// Query using DQL
+let results = collection.find("e == $callsign").query_with_parameters(params)?;
+for doc in results.documents() {
+    // doc is a DittoDocument, which CotDocument implements
+    let callsign: String = DittoDocument::get(&doc, "e").unwrap();
+    println!("Found callsign: {}", callsign);
+}
+```
+
+### Example: DQL Document → CotDocument → CoT XML
+
+When you receive a document from Ditto's DQL (e.g. as a `DittoDocument`), you can deserialize it to a `CotDocument` and then convert it back to a `CotEvent` for CoT XML serialization:
+
+```rust
+use cotditto::{ditto::CotDocument, cot_events::CotEvent};
+
+// Suppose you get a DittoDocument from a query
+let doc: CotDocument = DittoDocument::from_json_str(doc_json)?;
+
+// Convert back to a CotEvent
+let cot_event = cot_event_from_ditto_document(&doc);
+let xml = cot_event.to_xml()?;
+println!("CoT XML: {}", xml);
+```
+
+### Summary of the Flow
+
+- **CoT XML → CotEvent → CotDocument → DittoDocument trait → DQL** (store/query)
+- **DQL (DittoDocument) → CotDocument → CotEvent → CoT XML** (round-trip)
+
+This ensures seamless, type-safe, and loss-minimized round-trip conversions between CoT XML, Ditto's CRDT/DQL world, and back.
+
+> **Functional Testing:**
+> End-to-end tests for these flows can be found in [`rust/tests/e2e_test.rs`](rust/tests/e2e_test.rs). These tests verify round-trip conversions, DQL queries, and the integration between CotEvent, CotDocument, and DittoDocument through Ditto's SDK. Check the test file for real usage and validation examples.
 ### Handling Underscore-Prefixed Fields
 
 The library properly handles underscore-prefixed fields in JSON serialization/deserialization:
