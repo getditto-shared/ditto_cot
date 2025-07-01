@@ -64,14 +64,47 @@ See the [C# README](csharp/README.md) for detailed documentation.
 
 ## ✨ Features
 
-- Full CoT XML ↔ Ditto Document ↔ JSON/CRDT round-trip conversion
-- Schema-validated document types for Chat, Location, Emergency, File, and Generic events
-- Automatic type inference from CoT event types
-- Proper handling of underscore-prefixed fields in JSON serialization/deserialization
-- Asynchronous Ditto SDK integration
-- Comprehensive test coverage across all implementations
+- **Ergonomic Builder Patterns** (Rust): Create CoT events with fluent, chainable APIs
+- **Full Round-trip Conversion**: CoT XML ↔ Ditto Document ↔ JSON/CRDT conversions
+- **Schema-validated Document Types**: Chat, Location, Emergency, File, and Generic events
+- **Automatic Type Inference**: CoT event types automatically mapped to document types
+- **Flexible Point Construction** (Rust): Multiple ways to specify coordinates and accuracy
+- **Proper Field Handling**: Underscore-prefixed fields in JSON serialization/deserialization
+- **Asynchronous Ditto Integration**: Native support for Ditto's CRDT document model
+- **Comprehensive Test Coverage**: All implementations thoroughly tested
 
 ## 🔄 Usage Examples
+
+### Creating CoT Events with Builder Pattern (Rust)
+
+The Rust implementation provides ergonomic builder patterns for creating CoT events:
+
+```rust
+use ditto_cot::cot_events::CotEvent;
+use chrono::Duration;
+
+// Create a simple location update
+let event = CotEvent::builder()
+    .uid("USER-123")
+    .event_type("a-f-G-U-C")
+    .location(34.12345, -118.12345, 150.0)
+    .callsign("ALPHA-1")
+    .stale_in(Duration::minutes(10))
+    .build();
+
+// Create with team and accuracy information
+let tactical_event = CotEvent::builder()
+    .uid("BRAVO-2")
+    .location_with_accuracy(35.0, -119.0, 200.0, 5.0, 10.0)
+    .callsign_and_team("BRAVO-2", "Blue")
+    .build();
+
+// Point construction with fluent API
+let point = Point::builder()
+    .coordinates(34.0526, -118.2437, 100.0)
+    .accuracy(3.0, 5.0)
+    .build();
+```
 
 ### Converting CoT XML to CotDocument
 
