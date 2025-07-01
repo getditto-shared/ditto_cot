@@ -195,7 +195,7 @@ impl CotEvent {
                     }
                     b"point" => {
                         // Parse point attributes
-                        println!("Found point element");
+                        log::trace!("Found point element");
                         for attr in e.attributes() {
                             let attr = attr?;
                             let value = attr.unescape_value()?;
@@ -204,14 +204,14 @@ impl CotEvent {
                                     let lat_val = value.parse().map_err(|_| {
                                         CotError::InvalidFormat("Invalid lat".to_string())
                                     })?;
-                                    println!("Parsed lat: {}", lat_val);
+                                    log::trace!("Parsed lat: {}", lat_val);
                                     event.point.lat = lat_val;
                                 }
                                 b"lon" => {
                                     let lon_val = value.parse().map_err(|_| {
                                         CotError::InvalidFormat("Invalid lon".to_string())
                                     })?;
-                                    println!("Parsed lon: {}", lon_val);
+                                    log::trace!("Parsed lon: {}", lon_val);
                                     event.point.lon = lon_val;
                                 }
                                 b"hae" => {
@@ -232,9 +232,10 @@ impl CotEvent {
                                 _ => {}
                             }
                         }
-                        println!(
+                        log::trace!(
                             "After parsing point: lat={}, lon={}",
-                            event.point.lat, event.point.lon
+                            event.point.lat,
+                            event.point.lon
                         );
                     }
                     b"detail" => {
@@ -275,7 +276,7 @@ impl CotEvent {
 
                     // Special handling for point element
                     if name == "point" {
-                        println!("Found point element (Empty)");
+                        log::trace!("Found point element (Empty)");
                         for attr in e.attributes() {
                             let attr = attr?;
                             let value = attr.unescape_value()?;
@@ -284,14 +285,14 @@ impl CotEvent {
                                     let lat_val = value.parse().map_err(|_| {
                                         CotError::InvalidFormat("Invalid lat".to_string())
                                     })?;
-                                    println!("Parsed lat (Empty): {}", lat_val);
+                                    log::trace!("Parsed lat (Empty): {}", lat_val);
                                     event.point.lat = lat_val;
                                 }
                                 b"lon" => {
                                     let lon_val = value.parse().map_err(|_| {
                                         CotError::InvalidFormat("Invalid lon".to_string())
                                     })?;
-                                    println!("Parsed lon (Empty): {}", lon_val);
+                                    log::trace!("Parsed lon (Empty): {}", lon_val);
                                     event.point.lon = lon_val;
                                 }
                                 b"hae" => {
@@ -312,9 +313,10 @@ impl CotEvent {
                                 _ => {}
                             }
                         }
-                        println!(
+                        log::trace!(
                             "After parsing point (Empty): lat={}, lon={}",
-                            event.point.lat, event.point.lon
+                            event.point.lat,
+                            event.point.lon
                         );
                     }
                 }

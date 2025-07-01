@@ -145,6 +145,7 @@ use cotditto::{cot_events::CotEvent, ditto::{CotDocument, cot_to_document}};
 use dittolive_ditto::prelude::*;
 
 // Parse CoT XML and convert to CotDocument
+// "peer-key" is the Ditto peer key (a unique identifier for the device or user in Ditto)
 enum CotDocument = cot_to_document(&CotEvent::from_xml(cot_xml)?, "peer-key");
 
 // Insert into a Ditto collection (DQL)
@@ -159,6 +160,9 @@ for doc in results.documents() {
     println!("Found callsign: {}", callsign);
 }
 ```
+
+> **Note:**
+> The `peer-key` argument should be set to the unique Ditto peer key for your device or user. This key is used to identify the origin of the document in Ditto's sync system. You can obtain or configure it according to your Ditto SDK setup.
 
 ### Example: DQL Document → CotDocument → CoT XML
 
