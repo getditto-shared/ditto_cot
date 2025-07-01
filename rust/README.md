@@ -6,6 +6,11 @@
 
 A high-performance Rust library for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents.
 
+> **Summary:**
+> - `CotEvent`: Struct representing a CoT event (parsed from XML)
+> - `CotDocument`: Enum representing a Ditto-compatible document (used for CoT/Ditto transformations)
+> - `DittoDocument`: Trait implemented by CotDocument for DQL/SDK support. Not a struct or enum.
+
 ## 📦 Installation
 
 Add to your `Cargo.toml`:
@@ -24,14 +29,14 @@ Convert between CoT XML and Ditto documents:
 ```rust
 use cotditto::{
     cot_events::CotEvent,
-    ditto::{cot_to_document, DittoDocument},
+    ditto::cot_to_document,
 };
 
 // Parse CoT XML to CotEvent
 let cot_xml = r#"<event version="2.0" ...></event>"#;
 let event = CotEvent::from_xml(cot_xml)?;
 
-// Convert to Ditto document
+// Convert to CotDocument (main enum for Ditto/CoT transformations)
 let doc = cot_to_document(&event, "peer-123");
 
 // Serialize to JSON
@@ -41,7 +46,7 @@ println!("{}", json);
 
 ### Using DittoDocument Trait for DQL Support
 
-The `CotDocument` enum implements Ditto's `DittoDocument` trait, allowing you to use CoT documents with Ditto's DQL (Ditto Query Language) interface:
+The `CotDocument` enum implements Ditto's `DittoDocument` trait, allowing you to use CoT documents with Ditto's DQL (Ditto Query Language) interface. **Note:** `DittoDocument` is a trait, not a struct or enum. You work with `CotDocument` and use trait methods as needed.
 
 ```rust
 use dittolive_ditto::prelude::*;
