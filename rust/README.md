@@ -16,6 +16,7 @@ A high-performance Rust library for translating between [Cursor-on-Target (CoT)]
 - **Seamless Ditto Integration**: Native support for Ditto's CRDT document model
 
 > **Core Types:**
+>
 > - `CotEvent`: Struct representing a CoT event (parsed from XML)
 > - `CotDocument`: Enum representing a Ditto-compatible document (used for CoT/Ditto transformations)
 > - `DittoDocument`: Trait implemented by CotDocument for DQL/SDK support. Not a struct or enum.
