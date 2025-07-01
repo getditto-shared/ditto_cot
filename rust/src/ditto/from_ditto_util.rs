@@ -7,7 +7,8 @@ use chrono::TimeZone;
 pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
     use serde_json::Value;
     use std::collections::HashMap;
-    // Debug: print r field if present
+
+    // Log the r field contents at trace level for debugging if needed
     match doc {
         CotDocument::Api(api) => {
             let map: HashMap<String, Value> = api
@@ -15,7 +16,7 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
                 .collect();
-            println!("[DEBUG] flat_cot_event_from_ditto: Api.r = {:?}", map);
+            log::trace!("flat_cot_event_from_ditto: Api.r = {:?}", map);
         }
         CotDocument::Chat(chat) => {
             let map: HashMap<String, Value> = chat
@@ -23,7 +24,7 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
                 .collect();
-            println!("[DEBUG] flat_cot_event_from_ditto: Chat.r = {:?}", map);
+            log::trace!("flat_cot_event_from_ditto: Chat.r = {:?}", map);
         }
         CotDocument::File(file) => {
             let map: HashMap<String, Value> = file
@@ -31,7 +32,7 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
                 .collect();
-            println!("[DEBUG] flat_cot_event_from_ditto: File.r = {:?}", map);
+            log::trace!("flat_cot_event_from_ditto: File.r = {:?}", map);
         }
         CotDocument::Generic(generic) => {
             let map: HashMap<String, Value> = generic
@@ -39,7 +40,7 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
                 .collect();
-            println!("[DEBUG] flat_cot_event_from_ditto: Generic.r = {:?}", map);
+            log::trace!("flat_cot_event_from_ditto: Generic.r = {:?}", map);
         }
         CotDocument::MapItem(map_item) => {
             let map: HashMap<String, Value> = map_item
@@ -47,7 +48,7 @@ pub fn flat_cot_event_from_ditto(doc: &CotDocument) -> FlatCotEvent {
                 .iter()
                 .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or(Value::Null)))
                 .collect();
-            println!("[DEBUG] flat_cot_event_from_ditto: MapItem.r = {:?}", map);
+            log::trace!("flat_cot_event_from_ditto: MapItem.r = {:?}", map);
         }
     }
 

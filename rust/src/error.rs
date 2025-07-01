@@ -29,11 +29,28 @@ pub enum CotError {
 
     /// The input format was invalid
     #[error("Invalid format: {0}")]
-    Format(String),
-
-    /// The input format was invalid (legacy variant, prefer `Format`)
-    #[error("Invalid format: {0}")]
     InvalidFormat(String),
+
+    /// Failed to parse a numeric value
+    #[error("Invalid numeric value for field '{field}': '{value}' - {source}")]
+    InvalidNumeric {
+        /// The field name that failed to parse
+        field: String,
+        /// The value that failed to parse
+        value: String,
+        /// The underlying parse error
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+
+    /// Failed to parse a datetime value
+    #[error("Invalid datetime format for field '{field}': '{value}' - expected RFC 3339 format")]
+    InvalidDateTime {
+        /// The field name that failed to parse
+        field: String,
+        /// The value that failed to parse
+        value: String,
+    },
 
     /// An error occurred during JSON serialization/deserialization
     #[error("JSON serialization error: {0}")]

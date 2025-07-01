@@ -75,15 +75,17 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
 
     // Helper for recursive serialization of detail_extra
     fn write_detail_xml(xml: &mut String, k: &str, v: &serde_json::Value) {
-        println!("[DEBUG] write_detail_xml: key = {} | value = {:?}", k, v);
+        log::trace!("write_detail_xml: key = {} | value = {:?}", k, v);
         if let Some(obj) = v.as_object() {
             // Special cases for known nested elements
             if (k == "sensor" || k == "platform") && obj.contains_key("name") && obj.len() == 1 {
                 // Handle <sensor><n>ThermalCam-X</n></sensor> and <platform><n>MQ-9 Reaper</n></platform> format
                 if let Some(serde_json::Value::String(name)) = obj.get("name") {
-                    println!(
-                        "[DEBUG] write_detail_xml: special case for <{}><n>{}</n></{}>",
-                        k, name, k
+                    log::trace!(
+                        "write_detail_xml: special case for <{}><n>{}</n></{}>",
+                        k,
+                        name,
+                        k
                     );
                     xml.push_str(&format!("<{}><n>{}</n></{}>", k, name, k));
                     return;
@@ -119,9 +121,12 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
 
             // If we have children or text, we need a full element
             if !children.is_empty() || text.is_some() {
-                println!(
-                    "[DEBUG] write_detail_xml: <{}> attrs: {:?}, children: {:?}, text: {:?}",
-                    k, attrs, children, text
+                log::trace!(
+                    "write_detail_xml: <{}> attrs: {:?}, children: {:?}, text: {:?}",
+                    k,
+                    attrs,
+                    children,
+                    text
                 );
                 // Start tag with attributes
                 xml.push_str(&format!("<{}", k));
@@ -144,30 +149,27 @@ pub fn to_cot_xml(event: &FlatCotEvent) -> String {
                 xml.push_str(&format!("</{}>", k));
             } else {
                 // Just attributes, no children or text
-                println!(
-                    "[DEBUG] write_detail_xml: <{}> only attributes: {:?}",
-                    k, attrs
-                );
+                log::trace!("write_detail_xml: <{}> only attributes: {:?}", k, attrs);
                 xml.push_str(&format!("<{}", k));
                 for (attr_k, attr_v) in &attrs {
                     xml.push_str(&format!(" {}=\"{}\"", attr_k, attr_v));
                 }
                 xml.push_str("/>");
-                println!("[DEBUG] write_detail_xml: emitting tag: <{}/>", k);
+                log::trace!("write_detail_xml: emitting tag: <{}/>", k);
             }
         } else if let Some(arr) = v.as_array() {
-            println!("[DEBUG] write_detail_xml: <{}> array value: {:?}", k, arr);
+            log::trace!("write_detail_xml: <{}> array value: {:?}", k, arr);
             for item in arr {
                 write_detail_xml(xml, k, item);
             }
         } else if let Some(s) = v.as_str() {
-            println!("[DEBUG] write_detail_xml: <{}> string value: {}", k, s);
+            log::trace!("write_detail_xml: <{}> string value: {}", k, s);
             xml.push_str(&format!("<{}>{}</{}>", k, s, k));
         } else if let Some(n) = v.as_f64() {
-            println!("[DEBUG] write_detail_xml: <{}> number value: {}", k, n);
+            log::trace!("write_detail_xml: <{}> number value: {}", k, n);
             xml.push_str(&format!("<{}>{}</{}>", k, n, k));
         } else if let Some(b) = v.as_bool() {
-            println!("[DEBUG] write_detail_xml: <{}> bool value: {}", k, b);
+            log::trace!("write_detail_xml: <{}> bool value: {}", k, b);
             xml.push_str(&format!("<{}>{}</{}>", k, b, k));
         }
     }

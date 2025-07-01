@@ -66,11 +66,41 @@ pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
                         "start" => flat.start = val,
                         "stale" => flat.stale = val,
                         "how" => flat.how = val,
-                        "lat" => flat.lat = val.parse().unwrap_or(0.0),
-                        "lon" => flat.lon = val.parse().unwrap_or(0.0),
-                        "hae" => flat.hae = val.parse().unwrap_or(0.0),
-                        "ce" => flat.ce = val.parse().unwrap_or(0.0),
-                        "le" => flat.le = val.parse().unwrap_or(0.0),
+                        "lat" => {
+                            flat.lat = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "lat".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "lon" => {
+                            flat.lon = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "lon".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "hae" => {
+                            flat.hae = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "hae".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "ce" => {
+                            flat.ce = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "ce".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "le" => {
+                            flat.le = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "le".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
                         _ => {}
                     }
                 }

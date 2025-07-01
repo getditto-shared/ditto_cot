@@ -12,7 +12,7 @@ use std::collections::HashMap;
 /// This struct provides a simplified, flat structure for working with CoT events,
 /// making it easier to serialize/deserialize and work with in a type-safe manner.
 /// It includes all standard CoT fields plus additional metadata.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FlatCotEvent {
     /// Unique identifier for the event
     pub uid: String,

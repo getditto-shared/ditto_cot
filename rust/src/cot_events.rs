@@ -68,6 +68,35 @@ pub struct Point {
     pub le: f64,
 }
 
+impl Point {
+    /// Creates a new builder for constructing Point instances.
+    pub fn builder() -> PointBuilder {
+        PointBuilder::new()
+    }
+
+    /// Creates a new Point with specified coordinates.
+    pub fn new(lat: f64, lon: f64, hae: f64) -> Self {
+        Self {
+            lat,
+            lon,
+            hae,
+            ce: 999999.0,
+            le: 999999.0,
+        }
+    }
+
+    /// Creates a new Point with coordinates and accuracy information.
+    pub fn with_accuracy(lat: f64, lon: f64, hae: f64, ce: f64, le: f64) -> Self {
+        Self {
+            lat,
+            lon,
+            hae,
+            ce,
+            le,
+        }
+    }
+}
+
 impl Default for CotEvent {
     fn default() -> Self {
         let now = Utc::now();
@@ -94,6 +123,28 @@ impl Default for CotEvent {
 }
 
 impl CotEvent {
+    /// Creates a new builder for constructing CotEvent instances.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ditto_cot::cot_events::CotEvent;
+    ///
+    /// let event = CotEvent::builder()
+    ///     .uid("USER-123")
+    ///     .event_type("a-f-G-U-C")
+    ///     .location(34.12345, -118.12345, 150.0)
+    ///     .callsign("ALPHA-1")
+    ///     .team("Cyan")
+    ///     .build();
+    ///
+    /// assert_eq!(event.uid, "USER-123");
+    /// assert_eq!(event.point.lat, 34.12345);
+    /// ```
+    pub fn builder() -> CotEventBuilder {
+        CotEventBuilder::new()
+    }
+
     /// Returns a reference to the event's point data
     pub fn point(&self) -> &Point {
         &self.point
@@ -195,46 +246,65 @@ impl CotEvent {
                     }
                     b"point" => {
                         // Parse point attributes
-                        println!("Found point element");
+                        log::trace!("Found point element");
                         for attr in e.attributes() {
                             let attr = attr?;
                             let value = attr.unescape_value()?;
                             match attr.key.0 {
                                 b"lat" => {
-                                    let lat_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lat".to_string())
-                                    })?;
-                                    println!("Parsed lat: {}", lat_val);
+                                    let lat_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lat".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
+                                    log::trace!("Parsed lat: {}", lat_val);
                                     event.point.lat = lat_val;
                                 }
                                 b"lon" => {
-                                    let lon_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lon".to_string())
-                                    })?;
-                                    println!("Parsed lon: {}", lon_val);
+                                    let lon_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lon".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
+                                    log::trace!("Parsed lon: {}", lon_val);
                                     event.point.lon = lon_val;
                                 }
                                 b"hae" => {
-                                    event.point.hae = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid hae".to_string())
+                                    event.point.hae = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "hae".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"ce" => {
-                                    event.point.ce = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid ce".to_string())
+                                    event.point.ce = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "ce".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"le" => {
-                                    event.point.le = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid le".to_string())
+                                    event.point.le = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "le".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 _ => {}
                             }
                         }
-                        println!(
+                        log::trace!(
                             "After parsing point: lat={}, lon={}",
-                            event.point.lat, event.point.lon
+                            event.point.lat,
+                            event.point.lon
                         );
                     }
                     b"detail" => {
@@ -275,46 +345,65 @@ impl CotEvent {
 
                     // Special handling for point element
                     if name == "point" {
-                        println!("Found point element (Empty)");
+                        log::trace!("Found point element (Empty)");
                         for attr in e.attributes() {
                             let attr = attr?;
                             let value = attr.unescape_value()?;
                             match attr.key.0 {
                                 b"lat" => {
-                                    let lat_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lat".to_string())
-                                    })?;
-                                    println!("Parsed lat (Empty): {}", lat_val);
+                                    let lat_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lat".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
+                                    log::trace!("Parsed lat (Empty): {}", lat_val);
                                     event.point.lat = lat_val;
                                 }
                                 b"lon" => {
-                                    let lon_val = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid lon".to_string())
-                                    })?;
-                                    println!("Parsed lon (Empty): {}", lon_val);
+                                    let lon_val: f64 =
+                                        value.parse().map_err(|e| CotError::InvalidNumeric {
+                                            field: "lon".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        })?;
+                                    log::trace!("Parsed lon (Empty): {}", lon_val);
                                     event.point.lon = lon_val;
                                 }
                                 b"hae" => {
-                                    event.point.hae = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid hae".to_string())
+                                    event.point.hae = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "hae".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"ce" => {
-                                    event.point.ce = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid ce".to_string())
+                                    event.point.ce = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "ce".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 b"le" => {
-                                    event.point.le = value.parse().map_err(|_| {
-                                        CotError::InvalidFormat("Invalid le".to_string())
+                                    event.point.le = value.parse::<f64>().map_err(|e| {
+                                        CotError::InvalidNumeric {
+                                            field: "le".to_string(),
+                                            value: value.to_string(),
+                                            source: Box::new(e),
+                                        }
                                     })?
                                 }
                                 _ => {}
                             }
                         }
-                        println!(
+                        log::trace!(
                             "After parsing point (Empty): lat={}, lon={}",
-                            event.point.lat, event.point.lon
+                            event.point.lat,
+                            event.point.lon
                         );
                     }
                 }
@@ -363,7 +452,10 @@ impl CotEvent {
                     .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ"))
                     .map(|dt| dt.with_timezone(&Utc))
             })
-            .map_err(|_| CotError::InvalidFormat(format!("Invalid datetime format: {}", s)))
+            .map_err(|_| CotError::InvalidDateTime {
+                field: "datetime".to_string(),
+                value: s.to_string(),
+            })
     }
 
     /// Creates a new location update event
@@ -454,6 +546,206 @@ impl CotEvent {
     }
 }
 
+/// Builder for constructing CotEvent instances with a fluent API.
+///
+/// This builder provides an ergonomic way to create CotEvent instances
+/// with method chaining and sensible defaults.
+#[derive(Debug, Clone)]
+pub struct CotEventBuilder {
+    event: CotEvent,
+}
+
+impl CotEventBuilder {
+    /// Creates a new CotEventBuilder with default values.
+    pub fn new() -> Self {
+        Self {
+            event: CotEvent::default(),
+        }
+    }
+
+    /// Sets the unique identifier for the event.
+    pub fn uid<S: Into<String>>(mut self, uid: S) -> Self {
+        self.event.uid = uid.into();
+        self
+    }
+
+    /// Sets the event type (e.g., "a-f-G-U-C" for military ground unit).
+    pub fn event_type<S: Into<String>>(mut self, event_type: S) -> Self {
+        self.event.event_type = event_type.into();
+        self
+    }
+
+    /// Sets the location coordinates.
+    pub fn location(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.event.point.lat = lat;
+        self.event.point.lon = lon;
+        self.event.point.hae = hae;
+        self
+    }
+
+    /// Sets the location with accuracy information.
+    pub fn location_with_accuracy(
+        mut self,
+        lat: f64,
+        lon: f64,
+        hae: f64,
+        ce: f64,
+        le: f64,
+    ) -> Self {
+        self.event.point.lat = lat;
+        self.event.point.lon = lon;
+        self.event.point.hae = hae;
+        self.event.point.ce = ce;
+        self.event.point.le = le;
+        self
+    }
+
+    /// Sets event timing with explicit timestamps.
+    pub fn timing(
+        mut self,
+        time: DateTime<Utc>,
+        start: DateTime<Utc>,
+        stale: DateTime<Utc>,
+    ) -> Self {
+        self.event.time = time;
+        self.event.start = start;
+        self.event.stale = stale;
+        self
+    }
+
+    /// Sets the stale time as duration from now.
+    pub fn stale_in(mut self, duration: chrono::Duration) -> Self {
+        self.event.stale = Utc::now() + duration;
+        self
+    }
+
+    /// Sets how the event was generated.
+    pub fn how<S: Into<String>>(mut self, how: S) -> Self {
+        self.event.how = how.into();
+        self
+    }
+
+    /// Sets the detail XML content.
+    pub fn detail<S: Into<String>>(mut self, detail: S) -> Self {
+        self.event.detail = detail.into();
+        self
+    }
+
+    /// Convenience method to set callsign in detail section.
+    pub fn callsign<S: Into<String>>(mut self, callsign: S) -> Self {
+        let callsign = callsign.into();
+        self.event.detail = format!("<detail><contact callsign=\"{}\"/></detail>", callsign);
+        self
+    }
+
+    /// Convenience method to set team in detail section.
+    pub fn team<S: Into<String>>(mut self, team: S) -> Self {
+        let team = team.into();
+        self.event.detail = format!("<detail><__group name=\"{}\"/></detail>", team);
+        self
+    }
+
+    /// Convenience method to set both callsign and team.
+    pub fn callsign_and_team<S1: Into<String>, S2: Into<String>>(
+        mut self,
+        callsign: S1,
+        team: S2,
+    ) -> Self {
+        let callsign = callsign.into();
+        let team = team.into();
+        self.event.detail = format!(
+            "<detail><contact callsign=\"{}\"/><__group name=\"{}\"/></detail>",
+            callsign, team
+        );
+        self
+    }
+
+    /// Builds the final CotEvent instance.
+    pub fn build(self) -> CotEvent {
+        self.event
+    }
+}
+
+impl Default for CotEventBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Builder for constructing Point instances with a fluent API.
+///
+/// This builder provides an ergonomic way to create Point instances
+/// with method chaining and sensible defaults.
+#[derive(Debug, Clone)]
+pub struct PointBuilder {
+    point: Point,
+}
+
+impl PointBuilder {
+    /// Creates a new PointBuilder with default values.
+    pub fn new() -> Self {
+        Self {
+            point: Point::default(),
+        }
+    }
+
+    /// Sets the latitude in decimal degrees (WGS84).
+    pub fn lat(mut self, lat: f64) -> Self {
+        self.point.lat = lat;
+        self
+    }
+
+    /// Sets the longitude in decimal degrees (WGS84).
+    pub fn lon(mut self, lon: f64) -> Self {
+        self.point.lon = lon;
+        self
+    }
+
+    /// Sets the Height Above Ellipsoid in meters.
+    pub fn hae(mut self, hae: f64) -> Self {
+        self.point.hae = hae;
+        self
+    }
+
+    /// Sets the Circular Error in meters (horizontal accuracy).
+    pub fn ce(mut self, ce: f64) -> Self {
+        self.point.ce = ce;
+        self
+    }
+
+    /// Sets the Linear Error in meters (vertical accuracy).
+    pub fn le(mut self, le: f64) -> Self {
+        self.point.le = le;
+        self
+    }
+
+    /// Sets coordinates in one call.
+    pub fn coordinates(mut self, lat: f64, lon: f64, hae: f64) -> Self {
+        self.point.lat = lat;
+        self.point.lon = lon;
+        self.point.hae = hae;
+        self
+    }
+
+    /// Sets accuracy information in one call.
+    pub fn accuracy(mut self, ce: f64, le: f64) -> Self {
+        self.point.ce = ce;
+        self.point.le = le;
+        self
+    }
+
+    /// Builds the final Point instance.
+    pub fn build(self) -> Point {
+        self.point
+    }
+}
+
+impl Default for PointBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -510,5 +802,115 @@ mod tests {
             event.detail,
             "<detail>emergency: type=Emergency-911 msg=Need immediate assistance!</detail>"
         );
+    }
+
+    #[test]
+    fn test_builder_basic_usage() {
+        let event = CotEvent::builder()
+            .uid("TEST-123")
+            .event_type("a-f-G-U-C")
+            .location(34.12345, -118.12345, 150.0)
+            .callsign("ALPHA-1")
+            .build();
+
+        assert_eq!(event.uid, "TEST-123");
+        assert_eq!(event.event_type, "a-f-G-U-C");
+        assert_eq!(event.point.lat, 34.12345);
+        assert_eq!(event.point.lon, -118.12345);
+        assert_eq!(event.point.hae, 150.0);
+        assert_eq!(
+            event.detail,
+            "<detail><contact callsign=\"ALPHA-1\"/></detail>"
+        );
+    }
+
+    #[test]
+    fn test_builder_with_team() {
+        let event = CotEvent::builder()
+            .uid("TEST-456")
+            .callsign_and_team("BRAVO-2", "Blue")
+            .location_with_accuracy(35.0, -119.0, 200.0, 5.0, 10.0)
+            .build();
+
+        assert_eq!(event.uid, "TEST-456");
+        assert_eq!(event.point.ce, 5.0);
+        assert_eq!(event.point.le, 10.0);
+        assert_eq!(
+            event.detail,
+            "<detail><contact callsign=\"BRAVO-2\"/><__group name=\"Blue\"/></detail>"
+        );
+    }
+
+    #[test]
+    fn test_builder_stale_duration() {
+        let event = CotEvent::builder()
+            .uid("TEST-789")
+            .stale_in(chrono::Duration::minutes(10))
+            .build();
+
+        assert_eq!(event.uid, "TEST-789");
+        assert!(event.stale > event.time);
+        let duration = event.stale - event.time;
+        assert!(duration >= chrono::Duration::minutes(9)); // Allow for some execution time
+        assert!(duration <= chrono::Duration::minutes(11));
+    }
+
+    #[test]
+    fn test_builder_custom_detail() {
+        let event = CotEvent::builder()
+            .uid("TEST-CUSTOM")
+            .detail("<detail><custom field=\"value\"/></detail>")
+            .build();
+
+        assert_eq!(event.uid, "TEST-CUSTOM");
+        assert_eq!(event.detail, "<detail><custom field=\"value\"/></detail>");
+    }
+
+    #[test]
+    fn test_point_builder() {
+        let point = Point::builder()
+            .lat(34.12345)
+            .lon(-118.12345)
+            .hae(150.0)
+            .ce(5.0)
+            .le(10.0)
+            .build();
+
+        assert_eq!(point.lat, 34.12345);
+        assert_eq!(point.lon, -118.12345);
+        assert_eq!(point.hae, 150.0);
+        assert_eq!(point.ce, 5.0);
+        assert_eq!(point.le, 10.0);
+    }
+
+    #[test]
+    fn test_point_builder_coordinates_and_accuracy() {
+        let point = Point::builder()
+            .coordinates(35.0, -119.0, 200.0)
+            .accuracy(3.0, 8.0)
+            .build();
+
+        assert_eq!(point.lat, 35.0);
+        assert_eq!(point.lon, -119.0);
+        assert_eq!(point.hae, 200.0);
+        assert_eq!(point.ce, 3.0);
+        assert_eq!(point.le, 8.0);
+    }
+
+    #[test]
+    fn test_point_constructors() {
+        let point1 = Point::new(34.0, -118.0, 100.0);
+        assert_eq!(point1.lat, 34.0);
+        assert_eq!(point1.lon, -118.0);
+        assert_eq!(point1.hae, 100.0);
+        assert_eq!(point1.ce, 999999.0);
+        assert_eq!(point1.le, 999999.0);
+
+        let point2 = Point::with_accuracy(35.0, -119.0, 200.0, 5.0, 10.0);
+        assert_eq!(point2.lat, 35.0);
+        assert_eq!(point2.lon, -119.0);
+        assert_eq!(point2.hae, 200.0);
+        assert_eq!(point2.ce, 5.0);
+        assert_eq!(point2.le, 10.0);
     }
 }
