@@ -87,7 +87,13 @@ impl Point {
 
     /// Creates a new Point with coordinates and accuracy information.
     pub fn with_accuracy(lat: f64, lon: f64, hae: f64, ce: f64, le: f64) -> Self {
-        Self { lat, lon, hae, ce, le }
+        Self {
+            lat,
+            lon,
+            hae,
+            ce,
+            le,
+        }
     }
 }
 
@@ -120,10 +126,10 @@ impl CotEvent {
     /// Creates a new builder for constructing CotEvent instances.
     ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use ditto_cot::cot_events::CotEvent;
-    /// 
+    ///
     /// let event = CotEvent::builder()
     ///     .uid("USER-123")
     ///     .event_type("a-f-G-U-C")
@@ -131,7 +137,7 @@ impl CotEvent {
     ///     .callsign("ALPHA-1")
     ///     .team("Cyan")
     ///     .build();
-    /// 
+    ///
     /// assert_eq!(event.uid, "USER-123");
     /// assert_eq!(event.point.lat, 34.12345);
     /// ```
@@ -578,7 +584,14 @@ impl CotEventBuilder {
     }
 
     /// Sets the location with accuracy information.
-    pub fn location_with_accuracy(mut self, lat: f64, lon: f64, hae: f64, ce: f64, le: f64) -> Self {
+    pub fn location_with_accuracy(
+        mut self,
+        lat: f64,
+        lon: f64,
+        hae: f64,
+        ce: f64,
+        le: f64,
+    ) -> Self {
         self.event.point.lat = lat;
         self.event.point.lon = lon;
         self.event.point.hae = hae;
@@ -588,7 +601,12 @@ impl CotEventBuilder {
     }
 
     /// Sets event timing with explicit timestamps.
-    pub fn timing(mut self, time: DateTime<Utc>, start: DateTime<Utc>, stale: DateTime<Utc>) -> Self {
+    pub fn timing(
+        mut self,
+        time: DateTime<Utc>,
+        start: DateTime<Utc>,
+        stale: DateTime<Utc>,
+    ) -> Self {
         self.event.time = time;
         self.event.start = start;
         self.event.stale = stale;
@@ -628,7 +646,11 @@ impl CotEventBuilder {
     }
 
     /// Convenience method to set both callsign and team.
-    pub fn callsign_and_team<S1: Into<String>, S2: Into<String>>(mut self, callsign: S1, team: S2) -> Self {
+    pub fn callsign_and_team<S1: Into<String>, S2: Into<String>>(
+        mut self,
+        callsign: S1,
+        team: S2,
+    ) -> Self {
         let callsign = callsign.into();
         let team = team.into();
         self.event.detail = format!(
@@ -796,7 +818,10 @@ mod tests {
         assert_eq!(event.point.lat, 34.12345);
         assert_eq!(event.point.lon, -118.12345);
         assert_eq!(event.point.hae, 150.0);
-        assert_eq!(event.detail, "<detail><contact callsign=\"ALPHA-1\"/></detail>");
+        assert_eq!(
+            event.detail,
+            "<detail><contact callsign=\"ALPHA-1\"/></detail>"
+        );
     }
 
     #[test]
@@ -810,7 +835,10 @@ mod tests {
         assert_eq!(event.uid, "TEST-456");
         assert_eq!(event.point.ce, 5.0);
         assert_eq!(event.point.le, 10.0);
-        assert_eq!(event.detail, "<detail><contact callsign=\"BRAVO-2\"/><__group name=\"Blue\"/></detail>");
+        assert_eq!(
+            event.detail,
+            "<detail><contact callsign=\"BRAVO-2\"/><__group name=\"Blue\"/></detail>"
+        );
     }
 
     #[test]

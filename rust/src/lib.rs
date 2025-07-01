@@ -69,8 +69,8 @@
 //! use ditto_cot::cot_events::CotEvent;
 //!
 //! // Parse CoT XML
-//! let xml = r#"<event version="2.0" uid="TEST-123" type="a-f-G-U-C" 
-//!              time="2023-01-01T12:00:00Z" start="2023-01-01T12:00:00Z" 
+//! let xml = r#"<event version="2.0" uid="TEST-123" type="a-f-G-U-C"
+//!              time="2023-01-01T12:00:00Z" start="2023-01-01T12:00:00Z"
 //!              stale="2023-01-01T12:05:00Z" how="h-g-i-g-o">
 //!     <point lat="34.12345" lon="-118.12345" hae="150.0" ce="10.0" le="20.0"/>
 //!     <detail></detail>
