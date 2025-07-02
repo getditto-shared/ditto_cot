@@ -1,9 +1,9 @@
 [package]
-name = "cotditto-fuzz"
+name = "ditto_cot-fuzz"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies.cotditto]
+[dependencies.ditto_cot]
 path = ".."
 
 [dependencies]

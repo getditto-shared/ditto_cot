@@ -1,7 +1,7 @@
 # Rust Implementation
 
-[![Crates.io](https://img.shields.io/crates/v/cotditto)](https://crates.io/crates/cotditto)
-[![Documentation](https://docs.rs/cotditto/badge.svg)](https://docs.rs/cotditto)
+[![Crates.io](https://img.shields.io/crates/v/ditto_cot)](https://crates.io/crates/ditto_cot)
+[![Documentation](https://docs.rs/ditto_cot/badge.svg)](https://docs.rs/ditto_cot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance Rust library for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents.
@@ -27,7 +27,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-cotditto = { git = "https://github.com/yourusername/ditto_cot" }
+ditto_cot = { git = "https://github.com/getditto-shared/ditto_cot" }
 ```
 
 ## 🚀 Usage
@@ -37,7 +37,7 @@ cotditto = { git = "https://github.com/yourusername/ditto_cot" }
 The library provides ergonomic builder patterns for creating CoT events:
 
 ```rust
-use cotditto::cot_events::CotEvent;
+use ditto_cot::cot_events::CotEvent;
 use chrono::Duration;
 
 // Create a simple location update
@@ -62,7 +62,7 @@ let tactical_event = CotEvent::builder()
 Create geographic points with builder pattern:
 
 ```rust
-use cotditto::cot_events::Point;
+use ditto_cot::cot_events::Point;
 
 // Simple coordinate specification
 let point = Point::builder()
@@ -85,7 +85,7 @@ let point2 = Point::with_accuracy(34.0, -118.0, 100.0, 5.0, 10.0);
 ### XML Parsing and Generation
 
 ```rust
-use cotditto::cot_events::CotEvent;
+use ditto_cot::cot_events::CotEvent;
 
 // Parse CoT XML to CotEvent
 let cot_xml = r#"<event version="2.0" uid="TEST-123" type="a-f-G-U-C" 
@@ -106,7 +106,7 @@ let xml_output = event.to_xml()?;
 Convert between CoT events and Ditto documents:
 
 ```rust
-use cotditto::{
+use ditto_cot::{
     cot_events::CotEvent,
     ditto::cot_to_document,
 };
@@ -129,7 +129,7 @@ println!("{}", json);
 ### Quick Reference: Common Event Types
 
 ```rust
-use cotditto::cot_events::CotEvent;
+use ditto_cot::cot_events::CotEvent;
 use chrono::Duration;
 
 // Location Update (GPS tracker, unit position)
@@ -181,8 +181,8 @@ The `CotDocument` enum implements Ditto's `DittoDocument` trait, allowing you to
 
 ```rust
 use dittolive_ditto::prelude::*;
-use cotditto::ditto::{CotDocument, cot_to_document};
-use cotditto::cot_events::CotEvent;
+use ditto_cot::ditto::{CotDocument, cot_to_document};
+use ditto_cot::cot_events::CotEvent;
 
 // Create a CotEvent and convert to CotDocument
 let cot_event = CotEvent::new_location_update(/* parameters */);
@@ -222,7 +222,7 @@ let query_result = store.execute_v2((&query, params)).await?;
 
 ## 📚 Documentation
 
-Full API documentation is available on [docs.rs](https://docs.rs/cotditto).
+Full API documentation is available on [docs.rs](https://docs.rs/ditto_cot).
 
 ## 🧪 Testing
 
