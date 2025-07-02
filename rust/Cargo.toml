@@ -2,6 +2,13 @@
 name = "ditto_cot"
 version = "0.0.1"
 edition = "2021"
+description = "High-performance Rust library for CoT XML and Ditto CRDT integration"
+license = "MIT"
+repository = "https://github.com/getditto-shared/ditto_cot"
+homepage = "https://github.com/getditto-shared/ditto_cot"
+keywords = ["cot", "ditto", "xml", "crdt", "tactical", "tak"]
+categories = ["parsing", "data-structures"]
+authors = ["Kit Plummer <kit@ditto.com>"]
 
 [dependencies]
 ryu = "1.0"
@@ -39,9 +46,9 @@ dev-tools = []
 
 [profile.ci]
 inherits = "release"
-codegen-units = 1  # Slower builds but faster code
-incremental = false  # Disable incremental compilation for CI
-lto = "thin"  # Thin LTO for better optimization
+codegen-units = 1      # Slower builds but faster code
+incremental = false    # Disable incremental compilation for CI
+lto = "thin"           # Thin LTO for better optimization
 debug = false
 opt-level = 3
 overflow-checks = true
@@ -52,3 +59,4 @@ bench = false
 [[bench]]
 name = "perf"
 harness = false
+
