@@ -30,7 +30,7 @@ See the [Rust README](rust/README.md) for detailed documentation.
 
 ```toml
 [dependencies]
-cotditto = { git = "https://github.com/yourusername/ditto_cot", package = "cotditto" }
+ditto_cot = { git = "https://github.com/getditto-shared/ditto_cot", package = "ditto_cot" }
 ```
 
 ### End-to-End (e2e) Testing for Rust
@@ -175,7 +175,7 @@ The `DittoDocument` trait is part of the Ditto SDK and defines the interface for
 ### Example: CoT Event → CotDocument → DQL
 
 ```rust
-use cotditto::{cot_events::CotEvent, ditto::{CotDocument, cot_to_document}};
+use ditto_cot::{cot_events::CotEvent, ditto::{CotDocument, cot_to_document}};
 use dittolive_ditto::prelude::*;
 
 // Parse CoT XML and convert to CotDocument
@@ -203,7 +203,7 @@ for doc in results.documents() {
 When you receive a document from Ditto's DQL (e.g. as a `DittoDocument`), you can deserialize it to a `CotDocument` and then convert it back to a `CotEvent` for CoT XML serialization:
 
 ```rust
-use cotditto::{ditto::CotDocument, cot_events::CotEvent};
+use ditto_cot::{ditto::CotDocument, cot_events::CotEvent};
 
 // Suppose you get a DittoDocument from a query
 let doc: CotDocument = DittoDocument::from_json_str(doc_json)?;
@@ -395,7 +395,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Ditto Integration
 
 ```rust
-use cotditto::ditto_sync::{DittoContext, DittoError};
+use ditto_cot::ditto_sync::{DittoContext, DittoError};
 
 async fn store_cot_event(ditto: &DittoContext, cot_xml: &str) -> Result<(), DittoError> {
     // Parse CoT XML
@@ -522,7 +522,7 @@ All CotDocument instances include these common fields (Note: DittoDocument is th
 The library provides basic XML well-formedness checking for CoT messages. Note that full XSD schema validation is not currently implemented.
 
 ```rust
-use cotditto::schema_validator::validate_against_cot_schema;
+use ditto_cot::schema_validator::validate_against_cot_schema;
 
 let cot_xml = r#"
     <event version="2.0" 
@@ -615,4 +615,3 @@ Ditto SDK Rust Docs: <https://software.ditto.live/rust/Ditto>
 ---
 
 MIT Licensed.
-
