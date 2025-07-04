@@ -1,8 +1,6 @@
 package com.ditto.cot;
 
 import com.ditto.cot.schema.*;
-import com.squareup.moshi.JsonAdapter;
-import com.squareup.moshi.Moshi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,12 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CoTConverterIntegrationTest {
 
     private CoTConverter converter;
-    private Moshi moshi;
 
     @BeforeEach
     void setUp() throws JAXBException {
         converter = new CoTConverter();
-        moshi = new Moshi.Builder().build();
     }
 
     @Test
@@ -180,7 +176,7 @@ class CoTConverterIntegrationTest {
         assertThat(json).isNotEmpty();
         
         // And - Parse JSON back to document
-        Object roundTripDocument = parseJsonToDocument(json, document.getClass());
+        DittoDocument roundTripDocument = parseJsonToDocument(json, document.getClass());
         assertThat(roundTripDocument).isNotNull();
         
         // And - Verify critical fields match
@@ -188,14 +184,13 @@ class CoTConverterIntegrationTest {
     }
 
     @Test 
-    void testMoshiSerializationWithMapItemDocument() throws Exception {
+    void testJacksonSerializationWithMapItemDocument() throws Exception {
         // Given
         String xmlContent = readExampleXml("friendly_unit.xml");
         MapItemDocument document = (MapItemDocument) converter.convertToDocument(xmlContent);
         
         // When
-        JsonAdapter<MapItemDocument> adapter = moshi.adapter(MapItemDocument.class);
-        String json = adapter.toJson(document);
+        String json = ((DittoDocument) document).toJson();
         
         // Then
         assertThat(json).contains("\"_id\":\"Alpha1\"");
@@ -207,7 +202,7 @@ class CoTConverterIntegrationTest {
         assertThat(json).contains("\"l\":-118.243683");
         
         // And - Deserialize back
-        MapItemDocument deserialized = adapter.fromJson(json);
+        MapItemDocument deserialized = DittoDocument.fromJson(json, MapItemDocument.class);
         assertThat(deserialized).isNotNull();
         assertThat(deserialized.getId()).isEqualTo(document.getId());
         assertThat(deserialized.getW()).isEqualTo(document.getW());
@@ -216,14 +211,13 @@ class CoTConverterIntegrationTest {
     }
 
     @Test
-    void testMoshiSerializationWithApiDocument() throws Exception {
+    void testJacksonSerializationWithApiDocument() throws Exception {
         // Given
         String xmlContent = readExampleXml("sensor_spi.xml");
         ApiDocument document = (ApiDocument) converter.convertToDocument(xmlContent);
         
         // When
-        JsonAdapter<ApiDocument> adapter = moshi.adapter(ApiDocument.class);
-        String json = adapter.toJson(document);
+        String json = ((DittoDocument) document).toJson();
         
         // Then
         assertThat(json).contains("\"_id\":\"SENSOR-001\"");
@@ -232,7 +226,7 @@ class CoTConverterIntegrationTest {
         assertThat(json).contains("\"mime\":\"application/xml\"");
         
         // And - Deserialize back
-        ApiDocument deserialized = adapter.fromJson(json);
+        ApiDocument deserialized = DittoDocument.fromJson(json, ApiDocument.class);
         assertThat(deserialized).isNotNull();
         assertThat(deserialized.getId()).isEqualTo(document.getId());
         assertThat(deserialized.getTitle()).isEqualTo(document.getTitle());
@@ -305,46 +299,31 @@ class CoTConverterIntegrationTest {
     // Helper methods
 
     private String readExampleXml(String filename) throws IOException {
-        Path xmlPath = Paths.get("../schema/example_xml/" + filename);
+        Path xmlPath = Paths.get("../../schema/example_xml/" + filename);
         return Files.readString(xmlPath);
     }
 
     private String convertDocumentToJson(Object document) throws Exception {
-        if (document instanceof ApiDocument) {
-            JsonAdapter<ApiDocument> adapter = moshi.adapter(ApiDocument.class);
-            return adapter.toJson((ApiDocument) document);
-        } else if (document instanceof ChatDocument) {
-            JsonAdapter<ChatDocument> adapter = moshi.adapter(ChatDocument.class);
-            return adapter.toJson((ChatDocument) document);
-        } else if (document instanceof FileDocument) {
-            JsonAdapter<FileDocument> adapter = moshi.adapter(FileDocument.class);
-            return adapter.toJson((FileDocument) document);
-        } else if (document instanceof MapItemDocument) {
-            JsonAdapter<MapItemDocument> adapter = moshi.adapter(MapItemDocument.class);
-            return adapter.toJson((MapItemDocument) document);
-        } else if (document instanceof GenericDocument) {
-            JsonAdapter<GenericDocument> adapter = moshi.adapter(GenericDocument.class);
-            return adapter.toJson((GenericDocument) document);
+        if (document instanceof DittoDocument) {
+            return ((DittoDocument) document).toJson();
         }
-        throw new IllegalArgumentException("Unknown document type: " + document.getClass());
+        throw new IllegalArgumentException("Document must implement DittoDocument interface: " + document.getClass());
     }
 
-    private Object parseJsonToDocument(String json, Class<?> documentClass) throws Exception {
+    @SuppressWarnings("unchecked")
+    private DittoDocument parseJsonToDocument(String json, Class<?> documentClass) throws Exception {
         if (documentClass == ApiDocument.class) {
-            JsonAdapter<ApiDocument> adapter = moshi.adapter(ApiDocument.class);
-            return adapter.fromJson(json);
+            return DittoDocument.fromJson(json, ApiDocument.class);
         } else if (documentClass == ChatDocument.class) {
-            JsonAdapter<ChatDocument> adapter = moshi.adapter(ChatDocument.class);
-            return adapter.fromJson(json);
+            return DittoDocument.fromJson(json, ChatDocument.class);
         } else if (documentClass == FileDocument.class) {
-            JsonAdapter<FileDocument> adapter = moshi.adapter(FileDocument.class);
-            return adapter.fromJson(json);
+            return DittoDocument.fromJson(json, FileDocument.class);
         } else if (documentClass == MapItemDocument.class) {
-            JsonAdapter<MapItemDocument> adapter = moshi.adapter(MapItemDocument.class);
-            return adapter.fromJson(json);
+            return DittoDocument.fromJson(json, MapItemDocument.class);
         } else if (documentClass == GenericDocument.class) {
-            JsonAdapter<GenericDocument> adapter = moshi.adapter(GenericDocument.class);
-            return adapter.fromJson(json);
+            return DittoDocument.fromJson(json, GenericDocument.class);
+        } else if (documentClass == Common.class) {
+            return DittoDocument.fromJson(json, Common.class);
         }
         throw new IllegalArgumentException("Unknown document class: " + documentClass);
     }

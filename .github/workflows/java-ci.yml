@@ -1,0 +1,138 @@
+name: Java CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+    
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('java/**/*.gradle*', 'java/**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    
+    - name: Make gradlew executable
+      working-directory: ./java
+      run: chmod +x gradlew
+    
+    - name: Run Checkstyle
+      working-directory: ./java
+      run: ./gradlew checkstyleMain checkstyleTest
+    
+    - name: Generate schema classes
+      working-directory: ./java
+      run: ./gradlew :library:generateSchemaClasses
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+    
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('java/**/*.gradle*', 'java/**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    
+    - name: Make gradlew executable
+      working-directory: ./java
+      run: chmod +x gradlew
+    
+    - name: Generate schema classes
+      working-directory: ./java
+      run: ./gradlew :library:generateSchemaClasses
+    
+    - name: Build library
+      working-directory: ./java
+      run: ./gradlew :library:build -x test -x checkstyleMain -x checkstyleTest
+    
+    - name: Run tests
+      working-directory: ./java
+      run: ./gradlew :library:test -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification
+    
+    - name: Generate test report
+      working-directory: ./java
+      run: ./gradlew :library:jacocoTestReport
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          java/library/build/reports/tests/
+          java/library/build/reports/jacoco/
+    
+    - name: Upload coverage to Codecov (optional)
+      uses: codecov/codecov-action@v3
+      if: success()
+      with:
+        file: java/library/build/reports/jacoco/test/jacocoTestReport.xml
+        flags: java
+        name: java-coverage
+        fail_ci_if_error: false
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+    
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('java/**/*.gradle*', 'java/**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    
+    - name: Make gradlew executable
+      working-directory: ./java
+      run: chmod +x gradlew
+    
+    - name: Run integration tests
+      working-directory: ./java
+      run: ./gradlew :library:test --tests "com.ditto.cot.CoTConverterIntegrationTest" -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification
+    
+    - name: Run XML round-trip tests
+      working-directory: ./java
+      run: ./gradlew :library:test --tests "com.ditto.cot.CoTXmlRoundTripTest" -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification

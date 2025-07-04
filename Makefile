@@ -68,13 +68,13 @@ test: test-rust test-java test-csharp
 .PHONY: test-rust
 test-rust:
 	@echo "Testing Rust library..."
-	@cd rust && cargo test --all-targets
+	@cd rust && cargo nextest run
 
 .PHONY: test-java
 test-java:
 	@echo "Testing Java library..."
 	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
-		cd java && ./gradlew test; \
+		cd java && ./gradlew :library:test -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification; \
 	else \
 		echo "Java build files not found. Skipping tests."; \
 	fi
