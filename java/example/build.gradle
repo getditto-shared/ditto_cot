@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.ditto'
+version = '1.0-SNAPSHOT'
+description = 'Ditto CoT Example'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Depend on the library project
+    implementation project(':library')
+    
+    // Add any additional dependencies needed for the example
+
+}
+
+application {
+    mainClass = 'com.ditto.cot.example.SimpleExample'
+}
+
+// Task to run the example
+task runExample(type: JavaExec) {
+    group = 'Execution'
+    description = 'Run the example application'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.ditto.cot.example.SimpleExample'
+    
+    // Pass any necessary JVM arguments
+    jvmArgs = [
+        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+        '--add-opens', 'java.xml/javax.xml.parsers=ALL-UNNAMED'
+    ]
+}
+
+// Make sure the library is built before the example
+tasks.named('compileJava') {
+    dependsOn(':library:build')
+}

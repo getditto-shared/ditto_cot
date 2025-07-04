@@ -1,24 +1,94 @@
 # Gradle
 .gradle/
 build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradletasknamecache
+
+# Build outputs
+bin/
+classes/
+out/
 
 # IDE files
 .idea/
 *.iml
-.classpath
+*.ipr
+*.iws
+*.classpath
 .project
 .settings/
-bin/
+.vscode/
+*.launch
+*.sublime-workspace
+*.sublime-project
 
 # Local configuration
 local.properties
+local.gradle
+.gradle.properties
 
 # Compiled class files
 *.class
 
 # Log files
 *.log
+logs/
 
 # Package files
 *.jar
-!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Virtual machine crash logs
+hs_err_pid*
+
+# Generated files and directories
+**/generated-src/
+**/generated/
+**/generated_test/
+
+# Test reports and coverage
+**/test-results/
+**/test-results-*/
+**/test-output-*/
+**/test-report-*/
+**/reports/
+**/coverage/
+**/jacoco/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build scan files
+build/scan*/
+build/reports/scan/
+
+# Gradle Daemon files
+.gradle/native
+.gradle/daemon/
+.gradle/vcs-1/
+.gradle/buildOutputCleanup/
+.gradle/build-scan-data/
+.gradle/buildOutputCleanup/
+.gradle/checksums/
+.gradle/configuration-cache/
+.gradle/daemon/
+.gradle/jdks/
+.gradle/normalization/
+.gradle/notifications/
+.gradle/workers/
+.gradle/workers/
+.gradle/wrapper/dists/
+
+# Ditto specific
+target/
+buildSrc/build/

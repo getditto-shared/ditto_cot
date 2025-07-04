@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+  "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+  "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+  <!-- Suppress all checks in generated sources -->
+  <suppress files="[\\/]build[\\/]generated-src[\\/].*" checks=".*" />
+  
+  <!-- Suppress all checks in test packages -->
+  <suppress files="[\\/]src[\\/]test[\\/].*" checks=".*" />
+  
+  <!-- Suppress specific checks for test files -->
+  <suppress files="[\\/]src[\\/]test[\\/].*Test\.java" checks="Javadoc*" />
+  <suppress files="[\\/]src[\\/]test[\\/].*Test\.java" checks="MagicNumber" />
+  
+  <!-- Suppress line length in test resources -->
+  <suppress files="[\\/]src[\\/]test[\\/]resources[\\/].*" checks="LineLength" />
+  
+  <!-- Suppress specific checks for main source files -->
+  <suppress files="[\\/]src[\\/]main[\\/]java[\\/].*\.java" checks="MagicNumber" />
+  
+  <!-- Suppress checks for specific files if needed -->
+  <!-- <suppress files="[\\/]src[\\/]main[\\/]java[\\/]com[\\/]ditto[\\/]cot[\\/].*\.java" checks="JavadocMethod" /> -->
+</suppressions>
