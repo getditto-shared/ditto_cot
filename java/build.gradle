@@ -1,28 +1,131 @@
-plugins {
-    id 'java'
-    id 'maven-publish'
+// Root project build file - contains common configuration for all subprojects
+
+// Apply common plugins to all subprojects
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+    apply plugin: 'checkstyle'
+    apply plugin: 'jacoco'
+    
+    group = 'com.ditto'
+    version = '1.0-SNAPSHOT'
+    
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    
+    repositories {
+        mavenCentral()
+    }
+    
+    // Common dependencies for all subprojects
+    dependencies {
+        // Test dependencies
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+        testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+        testImplementation 'org.assertj:assertj-core:3.24.2'
+    }
+    
+    test {
+        useJUnitPlatform()
+    }
+    
+    // Configure checkstyle for all subprojects
+    checkstyle {
+        toolVersion '10.12.1'
+        configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+        configProperties = [
+            'checkstyle.cache.file': "${buildDir}/checkstyle.cache"
+        ]
+        ignoreFailures = false
+        maxWarnings = 0
+    }
+    
+    // Configure JaCoCo for all subprojects
+    jacoco {
+        toolVersion = "0.8.8"
+    }
+    
+    jacocoTestReport {
+        dependsOn test
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+    
+    // Configure Java publishing for all subprojects that apply the maven-publish plugin
+    plugins.withType(MavenPublishPlugin) {
+        publishing {
+            repositories {
+                maven {
+                    name = "GitHubPackages"
+                    url = uri("https://maven.pkg.github.com/getditto/ditto_cot")
+                    credentials {
+                        username = System.getenv("GITHUB_ACTOR")
+                        password = System.getenv("GITHUB_TOKEN")
+                    }
+                }
+            }
+        }
+    }
 }
 
-group = 'com.ditto'
-version = '1.0-SNAPSHOT'
-description = 'Ditto CoT Java Library'
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+// Configure specific subprojects
+project(':library') {
+    // Library-specific configuration is in library/build.gradle
 }
 
-repositories {
-    mavenCentral()
+project(':example') {
+    // Example-specific configuration is in example/build.gradle
 }
 
-dependencies {
-    testImplementation 'junit:junit:4.13.2'
+// Task to build all subprojects
+task buildAll {
+    dependsOn subprojects.collect { it.tasks.matching { it.name == 'build' } }
+    description = 'Build all subprojects'
 }
 
-test {
-    useJUnit()
+// Task to test all subprojects
+task testAll {
+    dependsOn subprojects.test
+    description = 'Run tests for all subprojects'
 }
+
+// Task to clean all subprojects
+task cleanAll {
+    dependsOn subprojects.clean
+    description = 'Clean all subprojects'
+}
+
+// Task to run the example
+// runExample task is now defined only in example/build.gradle
+
+// Configure task dependencies for the library project
+project(':library') {
+    // fatJar dependency handled in library/build.gradle
+    
+    // Configure task dependencies
+    tasks.named('compileJava') {
+        dependsOn 'generateSchemaClasses'
+    }
+    
+    // Ensure the jar task includes the generated sources
+    tasks.named('jar') {
+        from sourceSets.main.allJava
+        dependsOn 'generateSchemaClasses'
+    }
+    
+    // sourcesJar configuration is handled in library/build.gradle
+
+
+// Make check depend on coverage verification
+check.dependsOn jacocoTestCoverageVerification
+
 
 jar {
     manifest {
@@ -33,14 +136,113 @@ jar {
     }
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+
+    // Java compilation configuration
+    tasks.named('compileJava') {
+        options.compilerArgs += ['-parameters']
+    }
+
+
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
+def isRequired(schema, fieldName) {
+    if (schema.required && schema.required.contains(fieldName)) return true
+    if (schema.allOf) {
+        return schema.allOf.any { subSchema ->
+            subSchema.required && subSchema.required.contains(fieldName)
         }
     }
+    return false
 }
+
+def generateField(prop) {
+    def sb = new StringBuilder()
+    
+    // Add documentation
+    if (prop.description) {
+        sb.append("    /** ${prop.description} */\n")
+    }
+    
+
+    sb.append("    @Json(name = \"${prop.jsonName}\")\n")
+    
+    // Field declaration
+    sb.append("    public ${prop.type} ${javaFieldName(prop.name)}")
+    
+    // Default value
+    if (prop.defaultValue != null) {
+        def defaultVal = formatDefaultValue(prop.defaultValue, prop.type)
+        sb.append(" = ${defaultVal}")
+    }
+    
+    sb.append(";\n\n")
+    
+    return sb.toString()
+}
+
+def javaFieldName(name) {
+    // Convert underscore names to camelCase and handle special cases
+    if (name.startsWith('_')) {
+        switch (name) {
+            case '_id': return 'id'
+            case '_c': return 'counter'
+            case '_v': return 'version'
+            case '_r': return 'removed'
+            default: return name.substring(1)
+        }
+    }
+    return name
+}
+
+def formatDefaultValue(value, type) {
+    if (type == 'String') return "\"${value}\""
+    if (type == 'Double') return "${value}d"
+    if (type == 'Integer') return "${value}"
+    if (type == 'Boolean') return "${value}"
+    return "null"
+}
+
+def generateConstructor(className, properties) {
+    def sb = new StringBuilder()
+    sb.append("    public ${className}() {\n")
+    sb.append("        // Default constructor\n")
+    sb.append("    }\n\n")
+    return sb.toString()
+}
+
+def generateGetter(prop) {
+    def fieldName = javaFieldName(prop.name)
+    def methodName = "get${fieldName.capitalize()}"
+    return "    public ${prop.type} ${methodName}() {\n        return ${fieldName};\n    }\n\n"
+}
+
+def generateSetter(prop) {
+    def fieldName = javaFieldName(prop.name)
+    def methodName = "set${fieldName.capitalize()}"
+    return "    public void ${methodName}(${prop.type} ${fieldName}) {\n        this.${fieldName} = ${fieldName};\n    }\n\n"
+}
+
+def generateUnionClass(packageDir, packageName) {
+    def sb = new StringBuilder()
+    
+    sb.append("package ${packageName};\n\n")
+
+    sb.append("/**\n")
+    sb.append(" * Union type for all Ditto document types\n")
+    sb.append(" */\n")
+    sb.append("public abstract class DittoDocument {\n")
+    sb.append("    // Common base class for all document types\n")
+    sb.append("}\n")
+    
+    def outputFile = new File(packageDir, "DittoDocument.java")
+    outputFile.text = sb.toString()
+}
+
+// Make sure code generation runs before compilation
+
+
+// Add generated sources to main source set
+

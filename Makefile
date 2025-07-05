@@ -19,9 +19,16 @@ clean-rust:
 # Java targets
 .PHONY: java
 java:
-	@echo "Building Java library..."
+	@echo "Cleaning previous build and generated sources..."
 	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
-		cd java && ./gradlew build -x test; \
+		cd java && \
+		rm -rf build/generated-src build/classes build/resources build/tmp build/libs build/reports build/test-results && \
+		mkdir -p src/main/java/com/ditto/cot/schema && \
+		find src/main/java/com/ditto/cot/schema -type f -name '*.java' -delete; \
+		echo "Generating Java classes from schema..."; \
+		./gradlew generateSchemaClasses; \
+		echo "Building Java library..."; \
+		./gradlew build -x test; \
 	else \
 		echo "Java build files not found. Skipping."; \
 	fi
@@ -61,13 +68,13 @@ test: test-rust test-java test-csharp
 .PHONY: test-rust
 test-rust:
 	@echo "Testing Rust library..."
-	@cd rust && cargo test --all-targets
+	@cd rust && cargo nextest run
 
 .PHONY: test-java
 test-java:
-	@echo "Testing Java library..."
+	@echo "Testing Java library and example..."
 	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
-		cd java && ./gradlew test; \
+		cd java && ./gradlew :library:test :example:test --console=rich --rerun-tasks; \
 	else \
 		echo "Java build files not found. Skipping tests."; \
 	fi

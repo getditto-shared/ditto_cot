@@ -1,0 +1,317 @@
+// Schema generation configuration for the library
+
+// Add source set for generated code
+sourceSets {
+    main {
+        java {
+            srcDirs += 'build/generated-src/main/java'
+        }
+    }
+}
+
+// Task to generate Java classes from JSON Schema
+task generateSchemaClasses {
+    description = 'Generate Java classes from JSON Schema files'
+    group = 'build'
+    
+    // Input files
+    inputs.files(
+        file("${rootProject.projectDir}/../schema/ditto.schema.json"),
+        file("${rootProject.projectDir}/../schema/common.schema.json"),
+        file("${rootProject.projectDir}/../schema/api.schema.json"),
+        file("${rootProject.projectDir}/../schema/chat.schema.json"),
+        file("${rootProject.projectDir}/../schema/file.schema.json"),
+        file("${rootProject.projectDir}/../schema/mapitem.schema.json"),
+        file("${rootProject.projectDir}/../schema/generic.schema.json")
+    )
+    
+    // Output directory
+    def outputDir = file("${projectDir}/build/generated-src/main/java")
+    outputs.dir(outputDir)
+    
+    doLast {
+        // Load and process schema files
+        def schemaDir = file("${rootProject.projectDir}/../schema")
+        def packageName = 'com.ditto.cot.schema'
+        def packageDir = file("${outputDir}/${packageName.replace('.', '/')}")
+        
+        // Create package directory if it doesn't exist
+        packageDir.mkdirs()
+        
+        // Process each schema file
+        processSchemaFile(schemaDir, packageDir, packageName, 'common.schema.json', 'Common')
+        processSchemaFile(schemaDir, packageDir, packageName, 'api.schema.json', 'ApiDocument')
+        processSchemaFile(schemaDir, packageDir, packageName, 'chat.schema.json', 'ChatDocument')
+        processSchemaFile(schemaDir, packageDir, packageName, 'file.schema.json', 'FileDocument')
+        processSchemaFile(schemaDir, packageDir, packageName, 'mapitem.schema.json', 'MapItemDocument')
+        processSchemaFile(schemaDir, packageDir, packageName, 'generic.schema.json', 'GenericDocument')
+        
+        // Generate union type for all document types
+        generateUnionClass(packageDir, packageName)
+    }
+}
+
+// Helper method to process a schema file
+def processSchemaFile(schemaDir, packageDir, packageName, schemaFileName, className) {
+    def schemaFile = new File(schemaDir, schemaFileName)
+    if (!schemaFile.exists()) {
+        throw new GradleException("Schema file not found: ${schemaFile.path}")
+    }
+    
+    def schema = new groovy.json.JsonSlurper().parseText(schemaFile.text)
+    def javaCode = generateJavaClass(schema, className, packageName, schemaDir)
+    
+    // Write the Java file
+    def javaFile = new File(packageDir, "${className}.java")
+    javaFile.parentFile.mkdirs()
+    javaFile.text = javaCode
+}
+
+// Helper method to generate Java class from schema
+def resolveProperties(schema, schemaDir) {
+    def merged = [:]
+    if (schema.allOf) {
+        schema.allOf.each { subSchema ->
+            if (subSchema['$ref']) {
+                def refFile = new File(schemaDir, subSchema['$ref'])
+                if (refFile.exists()) {
+                    def refSchema = new groovy.json.JsonSlurper().parseText(refFile.text)
+                    merged.putAll(resolveProperties(refSchema, schemaDir))
+                }
+            } else if (subSchema.properties) {
+                merged.putAll(subSchema.properties)
+            }
+        }
+    } else if (schema.properties) {
+        merged.putAll(schema.properties)
+    }
+    return merged
+}
+
+def generateJavaClass(schema, className, packageName, schemaDir) {
+    def sb = new StringBuilder()
+    
+    // Package and imports
+    sb.append("package ${packageName};\n\n")
+    sb.append("import com.fasterxml.jackson.annotation.*;\n")
+    sb.append("import java.util.*;\n\n")
+    
+    // Class documentation
+    sb.append("/**\n * Generated from ${schema.title ?: className}\n */\n")
+    
+    // Class definition
+    sb.append("@JsonInclude(JsonInclude.Include.NON_NULL)\n")
+    sb.append("@JsonIgnoreProperties(ignoreUnknown = true)\n")
+    sb.append("@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)\n")
+    sb.append("@JsonPropertyOrder({\n    \"@type\"\n})\n")
+    sb.append("public class ${className} implements DittoDocument {\n\n")
+    
+    // Merge all properties from allOf and $ref
+    def allProperties = resolveProperties(schema, schemaDir)
+    // Map schema property names to JavaBean-style names
+    def fieldNameMap = [
+        '_id': 'id',
+        '_c': 'counter',
+        '_v': 'version',
+        '_r': 'removed',
+        'a': 'a',
+        'b': 'b',
+        'd': 'd',
+        'e': 'e',
+        'g': 'g',
+        'h': 'h',
+        'i': 'i',
+        'j': 'j',
+        'k': 'k',
+        'l': 'l',
+        'n': 'n',
+        'o': 'o',
+        'p': 'p',
+        'q': 'q',
+        'r': 'r',
+        's': 's',
+        't': 't',
+        'u': 'u',
+        'v': 'v',
+        'w': 'w'
+    ]
+    // Fields and getters/setters
+    if (allProperties) {
+        allProperties.each { propName, prop ->
+            def fieldName = fieldNameMap.get(propName, propName)
+            def fieldType = inferJavaType(prop)
+            
+            // Field
+            sb.append("    @JsonProperty(\"${propName}\")\n")
+            if (prop.description) {
+                sb.append("    /**\n     * ${prop.description}\n     */\n")
+            }
+            sb.append("    private ${fieldType} ${fieldName}")
+            
+            // Add default value if specified in schema
+            if (prop.default != null) {
+                def defaultValue = formatDefaultValue(prop.default, fieldType)
+                sb.append(" = ${defaultValue}")
+            }
+            sb.append(";\n\n")
+            
+            // JavaBean-style property name (capitalize first letter only)
+            def beanPropName = fieldName.length() == 1 ? fieldName.toUpperCase() : fieldName[0].toUpperCase() + fieldName.substring(1)
+
+            if (propName != fieldName) {
+                // Mapped field: annotate field, getter, and setter with @JsonProperty(propName)
+                sb.append("    @JsonProperty(\"${propName}\")\n")
+                sb.append("    public ${fieldType} get${beanPropName}() {\n        return ${fieldName};\n    }\n\n")
+                sb.append("    @JsonProperty(\"${propName}\")\n")
+                sb.append("    public void set${beanPropName}(${fieldType} ${fieldName}) {\n        this.${fieldName} = ${fieldName};\n    }\n\n")
+                // Optionally, underscore-style accessors (not annotated)
+                def underscoreBeanPropName = propName.length() == 1 ? propName.toUpperCase() : propName[0].toUpperCase() + propName.substring(1)
+                sb.append("    public ${fieldType} get${underscoreBeanPropName}() {\n        return ${fieldName};\n    }\n\n")
+                sb.append("    public void set${underscoreBeanPropName}(${fieldType} ${fieldName}) {\n        this.${fieldName} = ${fieldName};\n    }\n\n")
+            } else {
+                // Unmapped fields: generate standard JavaBean-style getter/setter
+                sb.append("    public ${fieldType} get${beanPropName}() {\n        return ${fieldName};\n    }\n\n")
+                sb.append("    public void set${beanPropName}(${fieldType} ${fieldName}) {\n        this.${fieldName} = ${fieldName};\n    }\n\n")
+            }
+
+
+
+        }
+    }
+    
+    sb.append("    @Override\n")
+    sb.append("    public String toString() {\n        return \"${className}\" + '{' +\n")
+    
+    if (allProperties) {
+        def first = true
+        allProperties.each { propName, prop ->
+            def fieldName = fieldNameMap.get(propName, propName)
+            if (first) {
+                first = false
+                sb.append("                \"${fieldName}=\" + ${fieldName} +\n")
+            } else {
+                sb.append("                \", ${fieldName}=\" + ${fieldName} +\n")
+            }
+        }
+    }
+    
+    sb.append("                '}';\n    }\n")
+    
+    // End of class
+    sb.append("}\n")
+    
+    return sb.toString()
+}
+
+// Helper method to infer Java type from schema type
+def inferJavaType(prop) {
+    if (prop.type == 'string') return 'String'
+    if (prop.type == 'integer') return 'Integer'
+    if (prop.type == 'number') return 'Double'
+    if (prop.type == 'boolean') return 'Boolean'
+    if (prop.type == 'array') return 'List<Object>'
+    if (prop.type == 'object') return 'Map<String, Object>'
+    if (prop."$ref") return 'Object' // For now, handle refs as Object
+    return 'Object'
+}
+
+// Helper method to format default values
+def formatDefaultValue(value, type) {
+    if (type == 'String') return "\"${value}\""
+    if (type == 'Double') return "${value}d"
+    if (type == 'Integer') return "${value}"
+    if (type == 'Boolean') return "${value}"
+    return "null"
+}
+
+// Helper method to generate a union type for all document types
+def generateUnionClass(packageDir, packageName) {
+    def sb = new StringBuilder()
+    
+    sb.append("package ${packageName};\n\n")
+    sb.append("import com.fasterxml.jackson.annotation.*;\n")
+    sb.append("import com.fasterxml.jackson.core.JsonProcessingException;\n")
+    sb.append("import com.fasterxml.jackson.databind.*;\n")
+    sb.append("import java.io.IOException;\n")
+    sb.append("import java.util.*;\n\n")
+    
+    sb.append("@JsonTypeInfo(\n    use = JsonTypeInfo.Id.NAME,\n    include = JsonTypeInfo.As.PROPERTY,\n    property = \"@type\",\n    visible = true\n)\n")
+    sb.append("@JsonSubTypes({\n    @JsonSubTypes.Type(value = ApiDocument.class, name = \"api\"),\n    @JsonSubTypes.Type(value = ChatDocument.class, name = \"chat\"),\n    @JsonSubTypes.Type(value = FileDocument.class, name = \"file\"),\n    @JsonSubTypes.Type(value = MapItemDocument.class, name = \"mapitem\"),\n    @JsonSubTypes.Type(value = GenericDocument.class, name = \"generic\"),\n    @JsonSubTypes.Type(value = Common.class, name = \"Common\")\n})\n")
+    sb.append("public interface DittoDocument {\n\n" +
+        "    /**\n" +
+        "     * Converts this document to a JSON string.\n" +
+        "     * @return JSON string representation of this document\n" +
+        "     * @throws JsonProcessingException if there's an error during JSON processing\n" +
+        "     */\n" +
+        "    default String toJson() throws JsonProcessingException {\n" +
+        "        ObjectMapper mapper = new ObjectMapper();\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.module.paramnames.ParameterNamesModule());\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.databind.module.SimpleModule());\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule());\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());\n" +
+        "\n" +
+        "        return mapper.writeValueAsString(this);\n" +
+        "    }\n\n" +
+        "    /**\n" +
+        "     * Parses a JSON string into a DittoDocument.\n" +
+        "     * @param json JSON string to parse\n" +
+        "     * @param clazz The concrete class to deserialize to\n" +
+        "     * @return Parsed DittoDocument\n" +
+        "     * @throws IOException if there's an error during JSON processing\n" +
+        "     */\n" +
+        "    static <T extends DittoDocument> T fromJson(String json, Class<T> clazz) throws IOException {\n" +
+        "        ObjectMapper mapper = new ObjectMapper();\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.module.paramnames.ParameterNamesModule());\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.databind.module.SimpleModule());\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule());\n" +
+        "        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());\n" +
+        "\n" +
+        "        // For concrete classes, check if @type is present and add it if missing\n" +
+        "        if (clazz != DittoDocument.class) {\n" +
+        "            // Parse JSON to check for @type field\n" +
+        "            try {\n" +
+        "                com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(json);\n" +
+        "                if (!jsonNode.has(\"@type\")) {\n" +
+        "                    // Add @type field based on class name\n" +
+        "                    String typeName = clazz.getSimpleName();\n" +
+        "                    if (typeName.equals(\"ApiDocument\")) typeName = \"api\";\n" +
+        "                    else if (typeName.equals(\"ChatDocument\")) typeName = \"chat\";\n" +
+        "                    else if (typeName.equals(\"FileDocument\")) typeName = \"file\";\n" +
+        "                    else if (typeName.equals(\"MapItemDocument\")) typeName = \"mapitem\";\n" +
+        "                    else if (typeName.equals(\"GenericDocument\")) typeName = \"generic\";\n" +
+        "                    else if (typeName.equals(\"Common\")) typeName = \"Common\";\n" +
+        "                    \n" +
+        "                    ((com.fasterxml.jackson.databind.node.ObjectNode) jsonNode).put(\"@type\", typeName);\n" +
+        "                    json = mapper.writeValueAsString(jsonNode);\n" +
+        "                }\n" +
+        "            } catch (Exception e) {\n" +
+        "                // If parsing fails, continue with original JSON\n" +
+        "            }\n" +
+        "        }\n" +
+        "\n" +
+        "        return mapper.readValue(json, clazz);\n" +
+        "    }\n\n" +
+        "    /**\n" +
+        "     * Legacy: Parses a JSON string into a DittoDocument using the interface type (may not honor all annotations).\n" +
+        "     */\n" +
+        "    static DittoDocument fromJson(String json) throws IOException {\n" +
+        "        return fromJson(json, DittoDocument.class);\n" +
+        "    }\n" +
+        "}\n");
+    
+    // Write the Java file
+    def javaFile = new File(packageDir, "DittoDocument.java")
+    javaFile.text = sb.toString()
+}
+
+// Configure task dependencies
+compileJava.dependsOn generateSchemaClasses
+
+// Ensure the jar task includes the generated sources
+jar {
+    from sourceSets.main.allSource
+    dependsOn generateSchemaClasses
+}
+
+// Ensure sourcesJar includes source files but excludes generated sources to avoid duplicates
+
