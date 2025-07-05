@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'com.adarshr.test-logger' version '3.2.0'
+    id 'checkstyle'
 }
 
 group = 'com.ditto'
@@ -57,6 +58,16 @@ testlogger {
     showPassed true
     showSkipped true
     showFailed true
+}
+
+checkstyle {
+    toolVersion '10.12.1'
+    configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+    configProperties = [
+        'checkstyle.cache.file': "${buildDir}/checkstyle.cache"
+    ]
+    ignoreFailures = true
+    maxWarnings = 100
 }
 
 // Task to run the example

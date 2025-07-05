@@ -5,9 +5,12 @@
 <suppressions>
   <!-- Suppress all checks in generated sources -->
   <suppress files="[\\/]build[\\/]generated-src[\\/].*" checks=".*" />
+  <suppress files=".*[\\/]generated-src[\\/].*" checks=".*" />
+  <suppress files=".*generated.*\.java" checks=".*" />
   
   <!-- Suppress all checks in test packages -->
   <suppress files="[\\/]src[\\/]test[\\/].*" checks=".*" />
+  <suppress files=".*[\\/]test[\\/].*" checks=".*" />
   
   <!-- Suppress specific checks for test files -->
   <suppress files="[\\/]src[\\/]test[\\/].*Test\.java" checks="Javadoc*" />

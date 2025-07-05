@@ -23,7 +23,7 @@ jobs:
         distribution: 'temurin'
     
     - name: Cache Gradle packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
@@ -38,7 +38,7 @@ jobs:
     
     - name: Run Checkstyle
       working-directory: ./java
-      run: ./gradlew checkstyleMain checkstyleTest
+      run: ./gradlew :library:checkstyleMain :library:checkstyleTest :example:checkstyleMain :example:checkstyleTest
     
     - name: Generate schema classes
       working-directory: ./java
@@ -56,7 +56,7 @@ jobs:
         distribution: 'temurin'
     
     - name: Cache Gradle packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
@@ -75,18 +75,18 @@ jobs:
     
     - name: Build library
       working-directory: ./java
-      run: ./gradlew :library:build -x test -x checkstyleMain -x checkstyleTest
+      run: ./gradlew :library:build -x test
     
     - name: Run tests
       working-directory: ./java
-      run: ./gradlew :library:test -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification
+      run: ./gradlew :library:test :example:test -x jacocoTestCoverageVerification
     
     - name: Generate test report
       working-directory: ./java
       run: ./gradlew :library:jacocoTestReport
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
@@ -95,7 +95,7 @@ jobs:
           java/library/build/reports/jacoco/
     
     - name: Upload coverage to Codecov (optional)
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       if: success()
       with:
         file: java/library/build/reports/jacoco/test/jacocoTestReport.xml
@@ -116,7 +116,7 @@ jobs:
         distribution: 'temurin'
     
     - name: Cache Gradle packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
@@ -131,8 +131,8 @@ jobs:
     
     - name: Run integration tests
       working-directory: ./java
-      run: ./gradlew :library:test --tests "com.ditto.cot.CoTConverterIntegrationTest" -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification
+      run: ./gradlew :library:test --tests "com.ditto.cot.CoTConverterIntegrationTest" -x jacocoTestCoverageVerification
     
     - name: Run XML round-trip tests
       working-directory: ./java
-      run: ./gradlew :library:test --tests "com.ditto.cot.CoTXmlRoundTripTest" -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification
+      run: ./gradlew :library:test --tests "com.ditto.cot.CoTXmlRoundTripTest" -x jacocoTestCoverageVerification

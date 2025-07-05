@@ -229,12 +229,13 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     // Watch all schema files
-    for entry in fs::read_dir(schema_dir).expect("Failed to read schema directory") {
-        if let Ok(entry) = entry {
-            if let Some(ext) = entry.path().extension() {
-                if ext == "json" {
-                    println!("cargo:rerun-if-changed={}", entry.path().display());
-                }
+    for entry in fs::read_dir(schema_dir)
+        .expect("Failed to read schema directory")
+        .flatten()
+    {
+        if let Some(ext) = entry.path().extension() {
+            if ext == "json" {
+                println!("cargo:rerun-if-changed={}", entry.path().display());
             }
         }
     }

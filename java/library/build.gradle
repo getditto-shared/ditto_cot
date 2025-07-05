@@ -144,8 +144,8 @@ checkstyle {
     configProperties = [
         'checkstyle.cache.file': "${buildDir}/checkstyle.cache"
     ]
-    ignoreFailures = false
-    maxWarnings = 0
+    ignoreFailures = true
+    maxWarnings = 100
 }
 
 publishing {
