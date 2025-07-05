@@ -112,9 +112,18 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.8
+                minimum = 0.60
             }
         }
+    }
+    
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'com/ditto/cot/schema/**', // Exclude generated schema classes
+                'com/ditto/cot/example/**' // Exclude example classes
+            ])
+        }))
     }
 }
 

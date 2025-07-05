@@ -79,7 +79,7 @@ jobs:
     
     - name: Run tests
       working-directory: ./java
-      run: ./gradlew :library:test :example:test -x jacocoTestCoverageVerification
+      run: ./gradlew :library:test :example:test
     
     - name: Generate test report
       working-directory: ./java
@@ -131,8 +131,8 @@ jobs:
     
     - name: Run integration tests
       working-directory: ./java
-      run: ./gradlew :library:test --tests "com.ditto.cot.CoTConverterIntegrationTest" -x jacocoTestCoverageVerification
+      run: ./gradlew :library:test --tests "com.ditto.cot.CoTConverterIntegrationTest"
     
     - name: Run XML round-trip tests
       working-directory: ./java
-      run: ./gradlew :library:test --tests "com.ditto.cot.CoTXmlRoundTripTest" -x jacocoTestCoverageVerification
+      run: ./gradlew :library:test --tests "com.ditto.cot.CoTXmlRoundTripTest"
