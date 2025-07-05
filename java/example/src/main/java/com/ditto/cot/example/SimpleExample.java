@@ -1,9 +1,8 @@
 package com.ditto.cot.example;
 
+import com.ditto.cot.CoTConverter;
 import com.ditto.cot.CoTEvent;
-import com.ditto.cot.CoTEvent.CoTDetail;
-import com.ditto.cot.CoTEvent.CoTPoint;
-import com.ditto.cot.DittoDocument;
+import com.ditto.cot.schema.DittoDocument;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -12,39 +11,50 @@ import java.util.Map;
 /**
  * A simple example demonstrating the basic usage of the Ditto CoT library.
  * This example shows how to:
- * 1. Create a CoT event from scratch
+ * 1. Parse CoT XML from a sample
  * 2. Convert it to a Ditto document
- * 3. Convert it back to a CoT event
+ * 3. Serialize to JSON
  * 4. Print the results
  */
 public class SimpleExample {
     public static void main(String[] args) {
         try {
-            // 1. Create a simple CoT event
-            System.out.println("=== Creating a CoT Event ===");
-            CoTEvent event = createSampleCotEvent();
-            System.out.println("Original CoT Event XML:");
-            System.out.println(event.toXml());
+            // Initialize the converter
+            CoTConverter converter = new CoTConverter();
             
-            // 2. Convert to Ditto document
+            // 1. Create a simple CoT XML
+            System.out.println("=== Creating Sample CoT XML ===");
+            String cotXml = createSampleCoTXml();
+            System.out.println("Sample CoT XML:");
+            System.out.println(cotXml);
+            
+            // 2. Parse the XML into a CoTEvent
+            System.out.println("\n=== Parsing CoT XML ===");
+            CoTEvent cotEvent = converter.parseCoTXml(cotXml);
+            System.out.println("Parsed CoT Event:");
+            printEventDetails(cotEvent);
+            
+            // 3. Convert to Ditto document
             System.out.println("\n=== Converting to Ditto Document ===");
-            DittoDocument doc = event.toDittoDocument();
-            System.out.println("Ditto Document JSON:");
-            System.out.println(doc.toJson());
+            Object dittoDocument = converter.convertToDocument(cotXml);
+            System.out.println("Ditto Document Type: " + dittoDocument.getClass().getSimpleName());
             
-            // 3. Convert back to CoT event
-            System.out.println("\n=== Converting back to CoT Event ===");
-            CoTEvent roundTripEvent = CoTEvent.fromDittoDocument(doc);
-            System.out.println("Round-tripped CoT Event XML:");
-            System.out.println(roundTripEvent.toXml());
-            
-            // 4. Verify the round trip
-            System.out.println("\n=== Verification ===");
-            boolean isEqual = event.toXml().equals(roundTripEvent.toXml());
-            System.out.println("Original and round-tripped XML are equal: " + isEqual);
-            
-            if (!isEqual) {
-                System.err.println("Warning: The round-trip conversion did not produce identical XML.");
+            // 4. Serialize to JSON
+            if (dittoDocument instanceof DittoDocument) {
+                System.out.println("\n=== Serializing to JSON ===");
+                String json = ((DittoDocument) dittoDocument).toJson();
+                System.out.println("Ditto Document JSON:");
+                System.out.println(json);
+                
+                // 5. Deserialize back from JSON
+                System.out.println("\n=== Round-trip Test ===");
+                @SuppressWarnings("unchecked")
+                Class<? extends DittoDocument> docClass = (Class<? extends DittoDocument>) dittoDocument.getClass();
+                DittoDocument roundTripDoc = DittoDocument.fromJson(json, docClass);
+                System.out.println("Round-trip successful: " + (roundTripDoc != null));
+                if (roundTripDoc != null) {
+                    System.out.println("Round-trip document type: " + roundTripDoc.getClass().getSimpleName());
+                }
             }
             
         } catch (Exception e) {
@@ -54,39 +64,43 @@ public class SimpleExample {
         }
     }
     
-    private static CoTEvent createSampleCotEvent() {
-        // Create a new CoTEvent
-        CoTEvent event = new CoTEvent();
-        event.setVersion("2.0");
-        event.setUid("USER-" + System.currentTimeMillis());
-        event.setType("a-f-G-U-C");
+    private static String createSampleCoTXml() {
+        // Return a sample CoT XML string - this would normally come from external source
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <event version="2.0" uid="EXAMPLE-001" type="a-f-G-U-C" 
+                   time="2023-01-01T12:00:00.000Z" 
+                   start="2023-01-01T12:00:00.000Z" 
+                   stale="2023-01-01T12:05:00.000Z" 
+                   how="h-g-i-gdo">
+                <point lat="34.12345" lon="-118.12345" hae="150.0" ce="10.0" le="25.0"/>
+                <detail>
+                    <contact callsign="ALPHA-1"/>
+                    <group name="BLUE"/>
+                    <platform original_type="a-f-G-U-C"/>
+                </detail>
+            </event>
+            """;
+    }
+    
+    private static void printEventDetails(CoTEvent event) {
+        System.out.println("  UID: " + event.getUid());
+        System.out.println("  Type: " + event.getType());
+        System.out.println("  Version: " + event.getVersion());
+        System.out.println("  Time: " + event.getTime());
+        System.out.println("  Start: " + event.getStart());
+        System.out.println("  Stale: " + event.getStale());
+        System.out.println("  How: " + event.getHow());
         
-        // Set timestamps
-        String now = Instant.now().toString();
-        event.setTime(now);
-        event.setStart(now);
-        event.setStale(Instant.now().plusSeconds(300).toString());
+        if (event.getPoint() != null) {
+            System.out.println("  Point: " + 
+                event.getPointLatitude() + ", " + 
+                event.getPointLongitude() + ", " + 
+                event.getPointHae() + " (HAE)");
+        }
         
-        event.setHow("h-g-i-gdo");
-        
-        // Create and set the point
-        CoTPoint point = new CoTPoint();
-        point.setLat("34.12345");
-        point.setLon("-118.12345");
-        point.setHae("150.0");
-        point.setCe("10.0");
-        point.setLe("25.0");
-        event.setPoint(point);
-        
-        // Create and set the detail
-        CoTDetail detail = new CoTDetail();
-        Map<String, Object> detailMap = new HashMap<>();
-        detailMap.put("callsign", "ALPHA-1");
-        detailMap.put("groupName", "BLUE");
-        detailMap.put("original_type", "a-f-G-U-C");
-        detail.setFromMap(detailMap, null);
-        event.setDetail(detail);
-        
-        return event;
+        if (event.getDetail() != null) {
+            System.out.println("  Detail: " + event.getDetailMap());
+        }
     }
 }

@@ -72,9 +72,9 @@ test-rust:
 
 .PHONY: test-java
 test-java:
-	@echo "Testing Java library..."
+	@echo "Testing Java library and example..."
 	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
-		cd java && ./gradlew :library:test -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification; \
+		cd java && ./gradlew :library:test :example:test -x checkstyleMain -x checkstyleTest -x jacocoTestCoverageVerification --console=rich --rerun-tasks; \
 	else \
 		echo "Java build files not found. Skipping tests."; \
 	fi

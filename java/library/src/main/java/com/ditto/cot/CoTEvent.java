@@ -80,6 +80,16 @@ public class CoTEvent {
     public CoTDetail getDetail() { return detail; }
     public void setDetail(CoTDetail detail) { this.detail = detail; }
     
+    // Helper methods to access point data without exposing CoTPoint
+    public String getPointLatitude() { return point != null ? point.getLat() : null; }
+    public String getPointLongitude() { return point != null ? point.getLon() : null; }
+    public String getPointHae() { return point != null ? point.getHae() : null; }
+    public String getPointCe() { return point != null ? point.getCe() : null; }
+    public String getPointLe() { return point != null ? point.getLe() : null; }
+    
+    // Helper method to access detail data without exposing CoTDetail
+    public Map<String, Object> getDetailMap() { return detail != null ? detail.toMap() : new HashMap<>(); }
+    
     /**
      * Convert CoT time string to milliseconds since epoch
      */
