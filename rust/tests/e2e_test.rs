@@ -113,8 +113,14 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     // Log JSON size for analysis
     let json_string = serde_json::to_string(&doc_json)?;
     let json_size_bytes = json_string.len();
-    println!("📊 JSON Size Analysis - Document Type: {}, Size: {} bytes", collection_name, json_size_bytes);
-    println!("📊 JSON Size Analysis - Pretty JSON Size: {} bytes", serde_json::to_string_pretty(&doc_json)?.len());
+    println!(
+        "📊 JSON Size Analysis - Document Type: {}, Size: {} bytes",
+        collection_name, json_size_bytes
+    );
+    println!(
+        "📊 JSON Size Analysis - Pretty JSON Size: {} bytes",
+        serde_json::to_string_pretty(&doc_json)?.len()
+    );
 
     // Insert the document using DQL
     let query = format!(
@@ -249,16 +255,25 @@ async fn e2e_xml_examples_roundtrip() -> Result<()> {
             CotDocument::File(ref file) => (serde_json::to_value(file).unwrap(), "files"),
             CotDocument::Chat(ref chat) => (serde_json::to_value(chat).unwrap(), "chat_messages"),
             CotDocument::Api(ref api) => (serde_json::to_value(api).unwrap(), "api_events"),
-            CotDocument::Generic(ref generic) => (serde_json::to_value(generic).unwrap(), "generic_documents"),
+            CotDocument::Generic(ref generic) => {
+                (serde_json::to_value(generic).unwrap(), "generic_documents")
+            }
         };
 
         // Log JSON size for analysis
         let json_string = serde_json::to_string(&doc_value).unwrap();
         let json_size_bytes = json_string.len();
-        println!("📊 JSON Size Analysis - File: {}, Document Type: {}, Size: {} bytes", 
-                 path.file_name().unwrap().to_string_lossy(), collection_name, json_size_bytes);
-        println!("📊 JSON Size Analysis - File: {}, Pretty JSON Size: {} bytes", 
-                 path.file_name().unwrap().to_string_lossy(), serde_json::to_string_pretty(&doc_value).unwrap().len());
+        println!(
+            "📊 JSON Size Analysis - File: {}, Document Type: {}, Size: {} bytes",
+            path.file_name().unwrap().to_string_lossy(),
+            collection_name,
+            json_size_bytes
+        );
+        println!(
+            "📊 JSON Size Analysis - File: {}, Pretty JSON Size: {} bytes",
+            path.file_name().unwrap().to_string_lossy(),
+            serde_json::to_string_pretty(&doc_value).unwrap().len()
+        );
         let query = format!(
             "INSERT INTO {} VALUES (:document) ON ID CONFLICT DO MERGE",
             collection_name

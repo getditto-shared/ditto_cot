@@ -8,41 +8,44 @@ use typify::{TypeSpace, TypeSpaceSettings};
 fn resolve_external_refs(schema_dir: &Path) -> Result<RootSchema, Box<dyn std::error::Error>> {
     use schemars::schema::*;
     use std::collections::BTreeMap;
-    
+
     // Read the common schema first
     let common_path = schema_dir.join("common.schema.json");
     let common_content = fs::read_to_string(&common_path)
         .map_err(|e| format!("Failed to read {}: {}", common_path.display(), e))?;
     let common_schema: RootSchema = serde_json::from_str(&common_content)
         .map_err(|e| format!("Failed to parse {}: {}", common_path.display(), e))?;
-    
+
     // Extract common properties
     let common_props = if let Some(object_validation) = &common_schema.schema.object {
         object_validation.properties.clone()
     } else {
         BTreeMap::new()
     };
-    
+
     let common_required = if let Some(object_validation) = &common_schema.schema.object {
         object_validation.required.clone()
     } else {
         std::collections::BTreeSet::new()
     };
-    
+
     // Start with a definitions map
     let mut definitions = BTreeMap::new();
-    
+
     // Add Common definition
-    definitions.insert("Common".to_string(), Schema::Object(SchemaObject {
-        instance_type: Some(InstanceType::Object.into()),
-        object: Some(Box::new(ObjectValidation {
-            properties: common_props.clone(),
-            required: common_required.clone(),
+    definitions.insert(
+        "Common".to_string(),
+        Schema::Object(SchemaObject {
+            instance_type: Some(InstanceType::Object.into()),
+            object: Some(Box::new(ObjectValidation {
+                properties: common_props.clone(),
+                required: common_required.clone(),
+                ..Default::default()
+            })),
             ..Default::default()
-        })),
-        ..Default::default()
-    }));
-    
+        }),
+    );
+
     // Process each document type schema
     let doc_types = [
         ("api.schema.json", "Api"),
@@ -51,22 +54,27 @@ fn resolve_external_refs(schema_dir: &Path) -> Result<RootSchema, Box<dyn std::e
         ("mapitem.schema.json", "MapItem"),
         ("generic.schema.json", "Generic"),
     ];
-    
+
     let mut one_of_schemas = Vec::new();
-    
+
     for (filename, type_name) in &doc_types {
         let doc_path = schema_dir.join(filename);
         let doc_content = fs::read_to_string(&doc_path)
             .map_err(|e| format!("Failed to read {}: {}", doc_path.display(), e))?;
         let doc_schema: RootSchema = serde_json::from_str(&doc_content)
             .map_err(|e| format!("Failed to parse {}: {}", doc_path.display(), e))?;
-        
+
         // Create a flattened schema that combines common + specific properties
         let mut combined_props = common_props.clone();
         let mut combined_required = common_required.clone();
-        
+
         // Extract document-specific properties from allOf
-        if let Some(all_of) = doc_schema.schema.subschemas.as_ref().and_then(|s| s.all_of.as_ref()) {
+        if let Some(all_of) = doc_schema
+            .schema
+            .subschemas
+            .as_ref()
+            .and_then(|s| s.all_of.as_ref())
+        {
             for all_of_item in all_of {
                 if let Schema::Object(obj) = all_of_item {
                     // Skip external references, process inline objects
@@ -83,7 +91,7 @@ fn resolve_external_refs(schema_dir: &Path) -> Result<RootSchema, Box<dyn std::e
                 }
             }
         }
-        
+
         // Create the flattened document type
         let flattened_doc = Schema::Object(SchemaObject {
             instance_type: Some(InstanceType::Object.into()),
@@ -94,16 +102,16 @@ fn resolve_external_refs(schema_dir: &Path) -> Result<RootSchema, Box<dyn std::e
             })),
             ..Default::default()
         });
-        
+
         definitions.insert(type_name.to_string(), flattened_doc);
-        
+
         // Add to oneOf
         one_of_schemas.push(Schema::Object(SchemaObject {
             reference: Some(format!("#/definitions/{}", type_name)),
             ..Default::default()
         }));
     }
-    
+
     // Create the final combined schema
     Ok(RootSchema {
         meta_schema: Some("http://json-schema.org/draft-07/schema#".to_string()),
@@ -156,17 +164,19 @@ fn process_underscore_keys(schema: &mut RootSchema) {
             }
         }
     }
-    
+
     // Also process the renamed fields in all document types
     for doc_type in ["Api", "Chat", "File", "MapItem", "Generic"] {
         if let Some(Schema::Object(doc_obj)) = schema.definitions.get_mut(doc_type) {
             if let Some(props) = &mut doc_obj.object {
                 let fields_to_rename = [("_c", "d_c"), ("_v", "d_v"), ("_r", "d_r")];
-                
+
                 for (old_name, new_name) in &fields_to_rename {
                     if let Some(property_schema) = props.properties.remove(*old_name) {
-                        props.properties.insert(new_name.to_string(), property_schema);
-                        
+                        props
+                            .properties
+                            .insert(new_name.to_string(), property_schema);
+
                         // Update required fields
                         let old_name_str = old_name.to_string();
                         if props.required.contains(&old_name_str) {
@@ -217,7 +227,7 @@ fn main() {
 
     // Instruct Cargo to rerun if the build script or any schema files change
     println!("cargo:rerun-if-changed=build.rs");
-    
+
     // Watch all schema files
     for entry in fs::read_dir(schema_dir).expect("Failed to read schema directory") {
         if let Ok(entry) = entry {
@@ -230,7 +240,8 @@ fn main() {
     }
 
     // Resolve external references to create a flat schema
-    let mut schema = resolve_external_refs(schema_dir).expect("Failed to resolve external references");
+    let mut schema =
+        resolve_external_refs(schema_dir).expect("Failed to resolve external references");
 
     // Process underscore-prefixed keys in the Common object
     process_underscore_keys(&mut schema);
