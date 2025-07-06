@@ -121,8 +121,8 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
         .start_sync()
         .context("Failed to start sync for peer 2")?;
 
-    // Wait a moment to ensure Ditto instances are fully ready (like the working example)
-    sleep(Duration::from_millis(500)).await;
+    // Wait a moment to ensure Ditto instances are fully ready
+    sleep(Duration::from_millis(200)).await;
 
     let store_1 = ditto_1.store();
     let store_2 = ditto_2.store();
@@ -167,7 +167,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
     let _obs2 = observer_2;
 
     // Wait for peer discovery and connection establishment
-    sleep(Duration::from_secs(5)).await;
+    sleep(Duration::from_secs(2)).await;
 
     // Check peer presence for debugging
     let presence_1 = ditto_1.presence();
@@ -214,7 +214,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
 
     println!("🔍 Waiting for peer connection establishment...");
     // Let connections establish further
-    sleep(Duration::from_secs(3)).await;
+    sleep(Duration::from_secs(1)).await;
 
     println!("✅ Step 1 Complete: Both peers are online");
 
@@ -309,8 +309,8 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
     assert!(result_1.item_count() > 0, "Document not found on peer 1");
     println!("✅ Document confirmed on peer 1");
 
-    // Wait for sync to occur with retry logic (similar to the working example)
-    let max_sync_attempts = 30; // 30 attempts with 300ms intervals = 9 seconds base + grace period
+    // Wait for sync to occur with retry logic
+    let max_sync_attempts = 20; // 20 attempts with 100ms intervals = 2 seconds base + grace period
     let mut result_2 = store_2.execute_v2(&query).await?; // Initialize to avoid compile error
     let mut found = false;
 
@@ -333,7 +333,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
             println!(
                 "✅ Document synced to peer 2 after {} attempts ({:.1} seconds)",
                 attempt,
-                attempt as f64 * 0.3
+                attempt as f64 * 0.1
             );
             found = true;
             break;
@@ -347,7 +347,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
             );
         }
 
-        sleep(Duration::from_millis(300)).await; // Use 300ms intervals like the working example
+        sleep(Duration::from_millis(100)).await; // Use 100ms intervals for faster testing
     }
 
     if !found {
@@ -373,7 +373,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
 
     if !found {
         panic!("Document not found on peer 2 after {} attempts ({:.1} seconds) + 3s grace period - sync failed", 
-               max_sync_attempts, max_sync_attempts as f64 * 0.3);
+               max_sync_attempts, max_sync_attempts as f64 * 0.1);
     }
 
     // Verify document accuracy on both peers
@@ -432,7 +432,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
     ditto_2.stop_sync();
 
     // Wait for sync to fully stop
-    sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_millis(500)).await;
 
     println!("✅ Step 4 Complete: Both clients are offline");
 
@@ -550,7 +550,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
         .context("Failed to restart sync for peer 2")?;
 
     // Wait for reconnection and sync
-    sleep(Duration::from_secs(8)).await;
+    sleep(Duration::from_secs(3)).await;
 
     println!("✅ Step 6 Complete: Both clients are back online and syncing");
 
