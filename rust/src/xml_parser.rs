@@ -105,6 +105,65 @@ pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
                     }
                 }
             }
+            Event::Start(ref e) if e.name().as_ref() == b"point" => {
+                // Handle point elements (both inside and outside of event)
+                // External point elements override event attributes
+                for attr in e.attributes().flatten() {
+                    let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
+                    let val = attr.unescape_value().unwrap_or_default().to_string();
+                    match key.as_str() {
+                        "lat" => {
+                            flat.lat = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "point.lat".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "lon" => {
+                            flat.lon = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "point.lon".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "hae" => {
+                            flat.hae = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "point.hae".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "ce" => {
+                            flat.ce = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "point.ce".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        "le" => {
+                            flat.le = val.parse::<f64>().map_err(|e| CotError::InvalidNumeric {
+                                field: "point.le".to_string(),
+                                value: val.clone(),
+                                source: Box::new(e),
+                            })?
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            Event::Start(ref e) if e.name().as_ref() == b"track" => {
+                // Handle track elements (both inside and outside of event)
+                // Track information is added to detail_extra for preservation
+                let mut track_attrs = std::collections::HashMap::new();
+                for attr in e.attributes().flatten() {
+                    let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
+                    let val = attr.unescape_value().unwrap_or_default().to_string();
+                    track_attrs.insert(key, serde_json::Value::String(val));
+                }
+                if !track_attrs.is_empty() {
+                    flat.detail_extra.insert("track".to_string(), serde_json::Value::Object(track_attrs.into_iter().collect()));
+                }
+            }
             Event::Start(ref e) if e.name().as_ref() == b"detail" => {
                 let mut detail_buf = Vec::new();
                 let mut depth = 1;

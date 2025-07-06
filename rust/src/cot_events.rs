@@ -417,8 +417,9 @@ impl CotEvent {
                             .to_string();
                     }
                     b"event" => {
-                        // End of event element, we're done
-                        return Ok(event);
+                        // End of event element, but continue parsing for external elements
+                        // like <point> and <track> that may be outside the event
+                        // Note: We don't return here anymore
                     }
                     _ => {}
                 },

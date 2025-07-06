@@ -202,10 +202,12 @@ class CoTXmlRoundTripTest {
     void testMultipleDocumentTypesRoundTrip() throws Exception {
         // Test that different document types can all be round-tripped
         String[] testFiles = {
-            "friendly_unit.xml",    // → MapItemDocument
-            "sensor_spi.xml",       // → ApiDocument  
-            "emergency_beacon.xml", // → GenericDocument
-            "custom_type.xml"       // → GenericDocument
+            "friendly_unit.xml",             // → MapItemDocument
+            "sensor_spi.xml",                // → ApiDocument  
+            "emergency_beacon.xml",          // → GenericDocument
+            "custom_type.xml",              // → GenericDocument
+            "sensor_unmanned_system.xml",   // → MapItemDocument (a-u-S)
+            "sensor_manual_acquisition.xml" // → MapItemDocument (a-u-S)
         };
         
         for (String xmlFile : testFiles) {
@@ -229,6 +231,88 @@ class CoTXmlRoundTripTest {
             NodeList pointNodes = eventElement.getElementsByTagName("point");
             assertThat(pointNodes.getLength()).isEqualTo(1);
         }
+    }
+
+    @Test
+    void testSensorUnmannedSystemFormat() throws Exception {
+        // Test the "a-u-S" sensor/unmanned system format specifically
+        String xml = """
+            <?xml version="1.0" standalone="yes"?>
+            <event
+            how="m-d-a"
+            stale="2025-07-05T21:30:00Z"
+            start="2025-07-05T21:00:00Z"
+            time="2025-07-05T21:00:00Z"
+            type="a-u-S"
+            uid="sensor-unmanned-test"
+            version="2.0">
+            <detail>
+            <sensor type="thermal" status="active" temperature="85.5"/>
+            <platform name="UAV-SENSOR-01" model="Predator"/>
+            <battery level="78" voltage="24.2"/>
+            <remarks>Thermal sensor platform on patrol route Alpha</remarks>
+            </detail>
+            </event>
+            <track course="30.86376880675669" speed="1.3613854354920412" />
+            <point ce="500.0" hae="0.0" lat="37.32699544764403" le="100.0" lon="-75.2905272033264" />
+            """;
+
+        // When
+        Object document = converter.convertToDocument(xml);
+        String roundTripXml = converter.convertDocumentToXml(document);
+
+        // Then
+        assertThat(document).isInstanceOf(MapItemDocument.class);
+        
+        MapItemDocument mapItem = (MapItemDocument) document;
+        assertThat(mapItem.getW()).isEqualTo("a-u-S");  // Event type
+        assertThat(mapItem.getP()).isEqualTo("m-d-a");  // How field
+        assertThat(mapItem.getD()).isEqualTo("sensor-unmanned-test");  // UID
+        
+        // Verify point data
+        assertThat(mapItem.getJ()).isEqualTo(37.32699544764403);  // Latitude
+        assertThat(mapItem.getL()).isEqualTo(-75.2905272033264);  // Longitude
+        assertThat(mapItem.getI()).isEqualTo(0.0);                // HAE
+
+        // Verify round-trip produces valid XML
+        Document roundTripDoc = parseXmlToDocument(roundTripXml);
+        Element eventElement = roundTripDoc.getDocumentElement();
+        assertThat(eventElement.getAttribute("type")).isEqualTo("a-u-S");
+        assertThat(eventElement.getAttribute("how")).isEqualTo("m-d-a");
+        assertThat(eventElement.getAttribute("uid")).isEqualTo("sensor-unmanned-test");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"a-u-S", "a-u-A", "a-u-G"})
+    void testManualDataAcquisitionSensorVariants(String eventType) throws Exception {
+        // Test various sensor formats with manual data acquisition
+        String xml = String.format("""
+            <event version="2.0" type="%s" uid="test-%s" time="2023-01-01T12:00:00Z" start="2023-01-01T12:00:00Z" stale="2023-01-01T12:30:00Z" how="m-d-a">
+              <point lat="35.0" lon="-120.0" hae="100.0" ce="50.0" le="25.0"/>
+              <detail>
+                <sensor type="optical" status="active"/>
+                <acquisition method="manual"/>
+                <remarks>%s test case</remarks>
+              </detail>
+            </event>
+            """, eventType, eventType.replace("-", "_"), eventType);
+
+        // When
+        Object document = converter.convertToDocument(xml);
+        String roundTripXml = converter.convertDocumentToXml(document);
+
+        // Then - All should resolve to MapItem
+        assertThat(document).isInstanceOf(MapItemDocument.class);
+        
+        MapItemDocument mapItem = (MapItemDocument) document;
+        assertThat(mapItem.getW()).isEqualTo(eventType);  // Event type
+        assertThat(mapItem.getP()).isEqualTo("m-d-a");    // How field
+
+        // Verify round-trip preserves key attributes
+        Document roundTripDoc = parseXmlToDocument(roundTripXml);
+        Element eventElement = roundTripDoc.getDocumentElement();
+        assertThat(eventElement.getAttribute("type")).isEqualTo(eventType);
+        assertThat(eventElement.getAttribute("how")).isEqualTo("m-d-a");
     }
 
     // Helper methods
