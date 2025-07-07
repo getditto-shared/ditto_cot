@@ -46,6 +46,9 @@ jobs:
 
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      DITTO_APP_ID: ${{ secrets.DITTO_APP_ID }}
+      DITTO_PLAYGROUND_TOKEN: ${{ secrets.DITTO_PLAYGROUND_TOKEN }}
     steps:
     - uses: actions/checkout@v4
     
@@ -106,6 +109,9 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
     needs: build-and-test
+    env:
+      DITTO_APP_ID: ${{ secrets.DITTO_APP_ID }}
+      DITTO_PLAYGROUND_TOKEN: ${{ secrets.DITTO_PLAYGROUND_TOKEN }}
     steps:
     - uses: actions/checkout@v4
     
