@@ -99,8 +99,3 @@ task runIntegrationClient(type: JavaExec) {
         '--add-opens', 'java.xml/javax.xml.parsers=ALL-UNNAMED'
     ]
 }
-
-// Make sure the library is built before the example
-tasks.named('compileJava') {
-    dependsOn(':library:build')
-}
