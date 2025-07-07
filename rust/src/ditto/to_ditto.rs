@@ -581,7 +581,8 @@ impl CotDocument {
             || doc_type.contains("a-f-G-U-T")
             || doc_type.contains("a-u-S")
             || doc_type.contains("a-u-A")
-            || doc_type.contains("a-u-G") {
+            || doc_type.contains("a-u-G")
+        {
             // Deserialize as MapItem and handle defaults
             let mut map_item: MapItem = serde_json::from_value(json_value.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize as MapItem: {}", e))?;

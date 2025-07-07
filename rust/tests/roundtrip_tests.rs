@@ -237,13 +237,13 @@ version="2.0">
 
     // Test CoT -> Ditto -> CoT round-trip
     let ditto_doc = cot_to_document(&event, "test-source");
-    
+
     // Verify it resolves to MapItem
     match &ditto_doc {
         CotDocument::MapItem(map_item) => {
             assert_eq!(map_item.w, "a-u-S"); // Event type
             assert_eq!(map_item.p, "m-d-a"); // How field
-            
+
             // Verify point data (j=LAT, l=LON, i=HAE)
             assert_eq!(map_item.j, Some(37.32699544764403));
             assert_eq!(map_item.l, Some(-75.2905272033264));
@@ -254,7 +254,7 @@ version="2.0">
 
     // Convert back from Ditto to CoT
     let recovered_event = cot_event_from_ditto_document(&ditto_doc);
-    
+
     // Verify key fields are preserved
     assert_eq!(recovered_event.event_type, "a-u-S");
     assert_eq!(recovered_event.how, "m-d-a");
@@ -264,7 +264,7 @@ version="2.0">
     // Test XML round-trip
     let xml_output = event.to_xml()?;
     let parsed_again = CotEvent::from_xml(&xml_output)?;
-    
+
     assert_eq!(event.event_type, parsed_again.event_type);
     assert_eq!(event.uid, parsed_again.uid);
     assert_eq!(event.how, parsed_again.how);
@@ -291,7 +291,9 @@ fn test_manual_data_acquisition_sensors() -> Result<(), CotError> {
     <remarks>{}</remarks>
   </detail>
 </event>"#,
-            event_type, event_type.replace("-", "_"), description
+            event_type,
+            event_type.replace("-", "_"),
+            description
         );
 
         // Parse and verify

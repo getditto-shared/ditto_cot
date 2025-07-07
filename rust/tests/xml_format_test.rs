@@ -1,7 +1,7 @@
 //! Test to verify XML formatting for external elements
 
-use ditto_cot::cot_events::CotEvent;
 use chrono::Utc;
+use ditto_cot::cot_events::CotEvent;
 
 #[test]
 fn test_xml_format_with_external_elements() -> Result<(), Box<dyn std::error::Error>> {

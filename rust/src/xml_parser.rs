@@ -161,7 +161,10 @@ pub fn parse_cot(xml: &str) -> Result<FlatCotEvent, CotError> {
                     track_attrs.insert(key, serde_json::Value::String(val));
                 }
                 if !track_attrs.is_empty() {
-                    flat.detail_extra.insert("track".to_string(), serde_json::Value::Object(track_attrs.into_iter().collect()));
+                    flat.detail_extra.insert(
+                        "track".to_string(),
+                        serde_json::Value::Object(track_attrs.into_iter().collect()),
+                    );
                 }
             }
             Event::Start(ref e) if e.name().as_ref() == b"detail" => {

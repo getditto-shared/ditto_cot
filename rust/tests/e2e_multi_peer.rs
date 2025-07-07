@@ -642,7 +642,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
         println!("🎯 Final document state verification:");
         println!("   - Document ID: {}", final_map_item.id);
         println!("   - Version: {}", final_map_item.d_v);
-        
+
         // Show final coordinate values (these were in conflict)
         println!("   - Final Latitude (j): {:?}", final_map_item.j);
         println!("   - Final Longitude (l): {:?}", final_map_item.l);

@@ -57,12 +57,12 @@ version="2.0">
             assert_eq!(map_item.id, event_uid);
             assert_eq!(map_item.w, "a-u-S"); // Event type
             assert_eq!(map_item.p, "m-d-a"); // How field
-            
+
             // Verify point data (j=LAT, l=LON, i=HAE)
             assert_eq!(map_item.j, Some(37.32699544764403));
             assert_eq!(map_item.l, Some(-75.2905272033264));
             assert_eq!(map_item.i, Some(0.0));
-            
+
             println!("✅ a-u-S CoT format correctly resolved to MapItem");
             println!("   - Type: {}", map_item.w);
             println!("   - How: {}", map_item.p);
@@ -88,7 +88,7 @@ fn test_sensor_manual_data_acquisition_variants() -> Result<()> {
 
     for (event_type, description) in test_cases {
         println!("Testing {}: {}", event_type, description);
-        
+
         let cot_xml = format!(
             r#"<event version="2.0" type="{}" uid="test-{}" time="2023-01-01T12:00:00Z" start="2023-01-01T12:00:00Z" stale="2023-01-01T12:30:00Z" how="m-d-a">
   <point lat="35.0" lon="-120.0" hae="100.0" ce="50.0" le="25.0"/>
@@ -96,7 +96,8 @@ fn test_sensor_manual_data_acquisition_variants() -> Result<()> {
     <sensor type="thermal" status="active"/>
   </detail>
 </event>"#,
-            event_type, event_type.replace("-", "_")
+            event_type,
+            event_type.replace("-", "_")
         );
 
         let cot_event = CotEvent::from_xml(&cot_xml)?;

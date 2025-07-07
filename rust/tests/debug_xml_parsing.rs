@@ -20,7 +20,7 @@ fn test_xml_parsing_with_timestamps() {
 
     println!("Generated XML: {}", cot_xml);
     println!("XML length: {}", cot_xml.len());
-    
+
     for (i, c) in cot_xml.chars().enumerate() {
         if i < 30 {
             println!("Position {}: '{}' (ASCII: {})", i, c, c as u32);
@@ -30,7 +30,7 @@ fn test_xml_parsing_with_timestamps() {
     match CotEvent::from_xml(&cot_xml) {
         Ok(event) => {
             println!("Successfully parsed event: {}", event.uid);
-        },
+        }
         Err(e) => {
             println!("Failed to parse XML: {}", e);
             panic!("XML parsing failed: {}", e);
