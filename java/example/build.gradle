@@ -39,7 +39,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.ditto.cot.example.SimpleExample'
+    mainClass = 'com.ditto.cot.example.IntegrationClient'
 }
 
 test {
@@ -76,6 +76,21 @@ task runExample(type: JavaExec) {
     description = 'Run the example application'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.ditto.cot.example.SimpleExample'
+    
+    // Pass any necessary JVM arguments
+    jvmArgs = [
+        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+        '--add-opens', 'java.xml/javax.xml.parsers=ALL-UNNAMED'
+    ]
+}
+
+// Task to run the integration client
+task runIntegrationClient(type: JavaExec) {
+    group = 'Execution'
+    description = 'Run the integration client for cross-language testing'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.ditto.cot.example.IntegrationClient'
     
     // Pass any necessary JVM arguments
     jvmArgs = [

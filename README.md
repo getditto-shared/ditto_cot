@@ -339,6 +339,112 @@ cargo test --all-targets
 cargo test test_underscore_key_handling
 ```
 
+### Cross-Language Integration Testing
+
+The repository includes a comprehensive integration test system that validates compatibility between the Rust and Java implementations:
+
+```bash
+# Run individual language examples
+make example-rust  # Outputs JSON from Rust integration client
+make example-java   # Outputs JSON from Java integration client
+
+# Run cross-language integration test
+make test-integration  # Builds both examples and runs compatibility test
+```
+
+#### Integration Test Overview
+
+The integration test system (`rust/tests/integration_test.rs`) performs the following validations:
+
+1. **Process Spawning**: Launches both Rust binary and Java distribution executables
+2. **Same Input Processing**: Both clients process identical CoT XML input
+3. **Output Comparison**: Validates that both implementations produce equivalent JSON output
+4. **Document Structure Verification**: Compares Ditto document structures for consistency
+5. **Roundtrip Validation**: Ensures both can perform XML → Ditto → XML conversions
+
+#### Example Clients
+
+- **Rust**: `rust/examples/integration_client.rs` - Uses the ditto_cot API
+- **Java**: `java/example/src/main/java/com/ditto/cot/example/IntegrationClient.java` - Uses the CoTConverter API
+
+Both clients process the same CoT XML event and output structured JSON containing:
+```json
+{
+  "lang": "rust|java",
+  "original_xml": "...",
+  "ditto_document": {...},
+  "roundtrip_xml": "...",
+  "success": true
+}
+```
+
+### End-to-End (E2E) Testing
+
+The Rust implementation includes comprehensive end-to-end tests that verify full integration with Ditto:
+
+#### Single-Peer E2E Test: `rust/tests/e2e_test.rs`
+
+Basic E2E tests that perform complete workflows including:
+
+1. **Ditto Integration**: Real connection to Ditto with authentication
+2. **Document Storage**: Uses DQL to insert CoT documents into collections
+3. **Round-trip Verification**: CoT XML → CotEvent → CotDocument → Ditto → Query → XML
+4. **Multiple Document Types**: Tests all CotDocument variants (MapItem, Chat, File, Api, Generic)
+5. **Schema Validation**: Validates document structure and field mappings
+6. **XML Semantic Comparison**: Uses semantic XML equality for robust comparison
+
+#### Multi-Peer E2E Test: `rust/tests/e2e_multi_peer.rs`
+
+Advanced E2E test that simulates real-world distributed scenarios:
+
+**Test Scenario Overview:**
+1. **Peer Connection**: Two Rust clients establish peer-to-peer connection
+2. **Document Creation**: One peer creates a CoT MapItem document
+3. **Sync Verification**: Document automatically syncs to second peer
+4. **Offline Simulation**: Both peers go offline independently  
+5. **Conflict Creation**: Each peer makes conflicting modifications while offline
+6. **Reconnection**: Both peers come back online and sync
+7. **Conflict Resolution**: Validates last-write-wins merge behavior
+
+**Key Features Tested:**
+- **Peer Discovery**: Automatic peer detection and connection establishment
+- **Real-time Sync**: Document changes propagate between peers automatically
+- **Offline Resilience**: Peers can operate independently when disconnected
+- **Conflict Resolution**: CRDT merge semantics handle conflicting changes
+- **DQL Integration**: Uses Ditto Query Language for all operations
+- **Observers & Subscriptions**: Real-time change notifications between peers
+
+#### Running E2E Tests
+
+```bash
+# Set up Ditto environment variables
+export DITTO_APP_ID="your-app-id"
+export DITTO_PLAYGROUND_TOKEN="your-token"
+
+# Run single-peer E2E tests
+cargo test e2e_xml_roundtrip
+cargo test e2e_xml_examples_roundtrip
+
+# Run multi-peer E2E test
+cargo test e2e_multi_peer_mapitem_sync_test
+
+# Run with specific XML file
+E2E_XML_FILE="example.xml" cargo test e2e_xml_examples_roundtrip
+```
+
+#### E2E Test Features
+
+- **Real Ditto Connection**: Tests against actual Ditto playground/cloud
+- **Multiple XML Examples**: Processes all XML files in `schema/example_xml/`
+- **Collection Management**: Automatically handles different collection types based on document type
+- **DQL Integration**: Uses Ditto Query Language for document operations
+- **Semantic XML Comparison**: Handles XML formatting differences intelligently
+- **Peer-to-Peer Sync**: Validates document synchronization between multiple Ditto instances
+- **Conflict Resolution**: Tests CRDT merge behavior under realistic conditions
+- **Error Handling**: Comprehensive error reporting for debugging
+
+The E2E tests ensure that the library works correctly in production-like environments with real Ditto instances and provides confidence in the complete CoT → Ditto → CoT workflow, including distributed scenarios with multiple peers.
+
 ## 🛠️ Build System
 
 ### Makefile

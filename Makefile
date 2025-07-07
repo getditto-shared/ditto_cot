@@ -93,6 +93,23 @@ test-csharp:
 clean: clean-rust clean-java clean-csharp
 	@echo "All libraries cleaned."
 
+# Example targets
+.PHONY: example-rust
+example-rust:
+	@echo "Running Rust example..."
+	@cd rust && cargo run --example integration_client
+
+.PHONY: example-java
+example-java:
+	@echo "Running Java example..."
+	@cd java && ./gradlew :example:runIntegrationClient
+
+# Integration test target
+.PHONY: test-integration
+test-integration: example-rust example-java
+	@echo "Running cross-language integration test..."
+	@cd rust && cargo test --test integration_test
+
 # Help target
 .PHONY: help
 help:
@@ -107,6 +124,9 @@ help:
 	@echo "  test-rust     - Run tests for Rust library"
 	@echo "  test-java     - Run tests for Java library"
 	@echo "  test-csharp   - Run tests for C# library"
+	@echo "  example-rust  - Run Rust example client"
+	@echo "  example-java  - Run Java example client"
+	@echo "  test-integration - Run cross-language integration test"
 	@echo "  clean         - Clean all libraries"
 	@echo "  clean-rust    - Clean Rust library"
 	@echo "  clean-java    - Clean Java library"
