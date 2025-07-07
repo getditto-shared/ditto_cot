@@ -52,6 +52,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libffi-dev libffi8
+    
     - name: Set up JDK ${{ env.JAVA_VERSION }}
       uses: actions/setup-java@v4
       with:
@@ -114,6 +119,11 @@ jobs:
       DITTO_PLAYGROUND_TOKEN: ${{ secrets.DITTO_PLAYGROUND_TOKEN }}
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libffi-dev libffi8
     
     - name: Set up JDK ${{ env.JAVA_VERSION }}
       uses: actions/setup-java@v4
