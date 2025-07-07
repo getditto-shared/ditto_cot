@@ -10,9 +10,12 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 /**
  * Main converter class for transforming CoT XML to Ditto documents and vice versa
@@ -22,12 +25,14 @@ public class CoTConverter {
     private final JAXBContext jaxbContext;
     private final Unmarshaller unmarshaller;
     private final Marshaller marshaller;
+    private final ObjectMapper objectMapper;
     
     public CoTConverter() throws JAXBException {
         this.jaxbContext = JAXBContext.newInstance(CoTEvent.class);
         this.unmarshaller = jaxbContext.createUnmarshaller();
         this.marshaller = jaxbContext.createMarshaller();
         this.marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+        this.objectMapper = new ObjectMapper();
     }
     
     /**
@@ -572,5 +577,33 @@ public class CoTConverter {
                 cotEvent.setDetail(new CoTDetail());
             }
         }
+    }
+
+    /**
+     * Convert a CoT document to JSON string for Ditto storage
+     */
+    public String convertDocumentToJson(Object document) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(document);
+    }
+
+    /**
+     * Convert a CoT document to Map for Ditto storage
+     */
+    public Map<String, Object> convertDocumentToMap(Object document) {
+        return objectMapper.convertValue(document, new TypeReference<Map<String, Object>>() {});
+    }
+
+    /**
+     * Convert a Map from Ditto back to a CoT document
+     */
+    public <T> T convertMapToDocument(Map<String, Object> map, Class<T> documentClass) {
+        return objectMapper.convertValue(map, documentClass);
+    }
+
+    /**
+     * Convert JSON string from Ditto back to a CoT document
+     */
+    public <T> T convertJsonToDocument(String json, Class<T> documentClass) throws JsonProcessingException {
+        return objectMapper.readValue(json, documentClass);
     }
 }
