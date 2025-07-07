@@ -606,4 +606,5 @@ public class CoTConverter {
     public <T> T convertJsonToDocument(String json, Class<T> documentClass) throws JsonProcessingException {
         return objectMapper.readValue(json, documentClass);
     }
+
 }
