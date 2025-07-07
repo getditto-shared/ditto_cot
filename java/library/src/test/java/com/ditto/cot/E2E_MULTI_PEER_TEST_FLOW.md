@@ -45,6 +45,34 @@ The Java E2E multi-peer test (`e2eMultiPeerMapItemSyncTest`) is a comprehensive 
   - Location: Norfolk, VA coordinates (37.32699544764403, -75.2905272033264)
   - How: `m-d-a` (Machine-to-machine Data Automatic)
   - Track data: course 30.86°, speed 1.36 m/s
+
+- **Full CoT XML Message Used**:
+  ```xml
+  <?xml version="1.0" standalone="yes"?>
+  <event version="2.0" 
+         uid="MULTI-PEER-TEST-{UUID}" 
+         type="a-u-S" 
+         time="{ISO-8601-timestamp}" 
+         start="{ISO-8601-timestamp}" 
+         stale="{ISO-8601-timestamp + 30 minutes}" 
+         how="m-d-a">
+    <point ce="500.0" 
+           hae="0.0" 
+           lat="37.32699544764403" 
+           le="100.0" 
+           lon="-75.2905272033264" />
+    <detail>
+      <track course="30.86376880675669" 
+             speed="1.3613854354920412" />
+    </detail>
+  </event>
+  ```
+  
+  **Note for Developers**: This XML represents a sensor (`a-u-S`) reporting its position and movement. The sensor is located in Norfolk, VA, moving at ~1.36 m/s on a course of ~31°. Is this the appropriate message type and data for testing multi-peer sensor synchronization? Consider:
+  - Should we use a different CoT type (e.g., `a-f-G-U-C` for ground unit)?
+  - Should we include additional detail elements (e.g., `<contact>`, `<uid>`, `<precisionlocation>`)?
+  - Are the CE/LE error values (500m/100m) appropriate for the test scenario?
+
 - **Conversion Process**:
   1. XML → CoTEvent (JAXB parsing)
   2. CoTEvent → MapItemDocument (schema-based conversion)
