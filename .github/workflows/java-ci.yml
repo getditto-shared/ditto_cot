@@ -82,7 +82,7 @@ jobs:
     
     - name: Run tests
       working-directory: ./java
-      run: ./gradlew :library:test :example:test
+      run: ./gradlew :library:test :example:test --info
     
     - name: Generate test report
       working-directory: ./java
