@@ -34,15 +34,24 @@ public class DittoStoreTest {
         
         String appId = dotenv.get("DITTO_APP_ID", System.getenv("DITTO_APP_ID"));
         String playgroundToken = dotenv.get("DITTO_PLAYGROUND_TOKEN", System.getenv("DITTO_PLAYGROUND_TOKEN"));
+        String authUrl = dotenv.get("DITTO_AUTH_URL", System.getenv("DITTO_AUTH_URL"));
         
         if (appId == null || playgroundToken == null) {
             throw new RuntimeException("Missing environment variables. Please set DITTO_APP_ID and DITTO_PLAYGROUND_TOKEN in rust/.env file");
         }
         
         tempDir = Files.createTempDirectory("ditto-store-test-");
-        
+
+        DittoIdentity identity = new DittoIdentity.OnlinePlayground(
+            appId,
+            playgroundToken,
+                // This is required to be set to false to use the correct URLs
+            false,
+            authUrl
+        );
+
         DittoConfig config = new DittoConfig.Builder(tempDir.toFile())
-            .identity(new DittoIdentity.OnlinePlayground(appId, playgroundToken, false))
+            .identity(identity)
             .build();
         
         ditto = new Ditto(config);
