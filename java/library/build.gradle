@@ -64,7 +64,7 @@ dependencies {
     }
     
     // Add binary dependencies for CI testing
-    testImplementation('com.ditto:ditto-binaries:5.0.0-preview.1') {
+    implementation('com.ditto:ditto-binaries:5.0.0-preview.1') {
         capabilities {
             requireCapability('com.ditto:ditto-binaries-linux-x64')
         }

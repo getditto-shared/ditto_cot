@@ -1,7 +1,10 @@
 # Ditto CoT Makefile
 # Builds and cleans all language-specific libraries
 
-# Default target
+# Default target - show help when no command is given
+.DEFAULT_GOAL := help
+
+# Build all languages
 .PHONY: all
 all: rust java csharp
 

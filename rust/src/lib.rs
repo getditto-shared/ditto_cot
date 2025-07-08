@@ -115,6 +115,9 @@ pub mod cot_events;
 /// Detail section parsing utilities
 pub mod detail_parser;
 
+/// CRDT-optimized detail section parsing with stable keys
+pub mod crdt_detail_parser;
+
 /// Ditto document types and transformations
 pub mod ditto;
 

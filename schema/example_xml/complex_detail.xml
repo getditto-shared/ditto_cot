@@ -1,0 +1,28 @@
+<?xml version="1.0" standalone="yes"?>
+<event version="2.0" type="a-u-S" uid="complex-detail-test" time="2025-07-05T21:00:00Z" start="2025-07-05T21:00:00Z" stale="2025-07-05T21:30:00Z" how="m-d-a">
+  <point lat="35.123456" lon="-118.987654" hae="150.0" ce="100.0" le="50.0"/>
+  <detail>
+    <!-- Multiple sensor elements with same name but different attributes -->
+    <sensor type="optical" resolution="4K" zoom="10x" id="sensor-1"/>
+    <sensor type="thermal" resolution="1080p" zoom="5x" id="sensor-2"/>
+    <sensor type="radar" frequency="9.4GHz" range="50km" id="sensor-3"/>
+    
+    <!-- Multiple contact elements -->
+    <contact callsign="ALPHA-01" endpoint="192.168.1.100:8080" role="primary"/>
+    <contact callsign="BRAVO-02" endpoint="192.168.1.101:8080" role="backup"/>
+    
+    <!-- Multiple track elements representing historical positions -->
+    <track course="45.0" speed="2.5" timestamp="2025-07-05T20:55:00Z"/>
+    <track course="50.0" speed="3.0" timestamp="2025-07-05T20:58:00Z"/>
+    <track course="55.0" speed="2.8" timestamp="2025-07-05T21:00:00Z"/>
+    
+    <!-- Multiple remarks elements -->
+    <remarks type="operational">Primary surveillance platform</remarks>
+    <remarks type="maintenance">Last service: 2025-07-01</remarks>
+    <remarks type="alert">Low battery warning</remarks>
+    
+    <!-- Single elements that should remain unique -->
+    <status operational="true" last_maintenance="2025-07-01T10:00:00Z"/>
+    <acquisition method="manual" operator="SENSOR_OP_001"/>
+  </detail>
+</event>
