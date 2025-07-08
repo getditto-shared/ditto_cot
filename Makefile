@@ -77,7 +77,7 @@ test-rust:
 test-java:
 	@echo "Testing Java library and example..."
 	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
-		cd java && ./gradlew :library:test :example:test --console=rich --rerun-tasks; \
+		cd java && ./gradlew :library:test :example:test --info --console=rich --rerun-tasks; \
 	else \
 		echo "Java build files not found. Skipping tests."; \
 	fi
