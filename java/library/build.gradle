@@ -57,18 +57,7 @@ repositories {
 
 dependencies {
     implementation 'com.ditto:ditto-java:5.0.0-preview.1'
-    implementation('com.ditto:ditto-binaries:5.0.0-preview.1') {
-        capabilities {
-            requireCapability('com.ditto:ditto-binaries-macos-arm64')
-        }
-    }
-    
-    // Add binary dependencies for CI testing
-    implementation('com.ditto:ditto-binaries:5.0.0-preview.1') {
-        capabilities {
-            requireCapability('com.ditto:ditto-binaries-linux-x64')
-        }
-    }
+    implementation 'com.ditto:ditto-binaries:5.0.0-preview.1'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.1'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
