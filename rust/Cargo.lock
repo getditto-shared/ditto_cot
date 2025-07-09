@@ -884,6 +884,7 @@ name = "ditto_cot"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "base64 0.21.7",
  "cargo-nextest",
  "chrono",
  "criterion",

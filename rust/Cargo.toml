@@ -25,6 +25,7 @@ schemars = "0.8.15"
 anyhow = "1.0"
 similar = "2.2"
 dittolive-ditto = "4.11.0"
+base64 = "0.21"
 
 [dev-dependencies]
 pretty_assertions = "1.4"

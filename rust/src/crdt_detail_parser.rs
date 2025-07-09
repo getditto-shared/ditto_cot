@@ -4,14 +4,16 @@
 //! with stable key generation for duplicate elements, enabling differential updates
 //! in CRDT-based P2P networks while preserving all data.
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
 use serde_json::{Map, Value};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 const TAG_METADATA: &str = "_tag";
-const DOC_ID_METADATA: &str = "_docId";
-const INDEX_METADATA: &str = "_elementIndex";
+// Removed redundant metadata: _docId and _elementIndex are already encoded in the key
 const KEY_SEPARATOR: &str = "_";
 
 /// Parses the <detail> section with CRDT-optimized stable keys for duplicate elements.
@@ -20,10 +22,8 @@ const KEY_SEPARATOR: &str = "_";
 /// - Single occurrence elements use direct keys (e.g., "status" -> value)
 /// - Duplicate elements use stable keys (e.g., "docId_sensor_0" -> enhanced_value)
 ///
-/// Each duplicate element is enhanced with metadata for reconstruction:
-/// - `_tag`: Original element name
-/// - `_docId`: Source document identifier
-/// - `_elementIndex`: Element instance number
+/// Each duplicate element is enhanced with minimal metadata for reconstruction:
+/// - `_tag`: Original element name (docId and index are encoded in the key)
 ///
 /// # Arguments
 /// * `detail_xml` - XML content of the detail section
@@ -35,6 +35,7 @@ const KEY_SEPARATOR: &str = "_";
 /// # Example
 /// ```rust
 /// use ditto_cot::crdt_detail_parser::parse_detail_section_with_stable_keys;
+/// use serde_json::Value;
 ///
 /// let detail = r#"<detail>
 ///   <sensor type="optical" id="sensor-1"/>
@@ -47,9 +48,19 @@ const KEY_SEPARATOR: &str = "_";
 /// // Single element uses direct key
 /// assert!(result.contains_key("status"));
 ///
-/// // Duplicate elements use stable keys
-/// assert!(result.contains_key("test-doc_sensor_0"));
-/// assert!(result.contains_key("test-doc_sensor_1"));
+/// // Duplicate elements use stable keys (Base64 hash format)
+/// // We can verify by counting sensor elements in the result
+/// let sensor_count = result.values()
+///     .filter(|v| {
+///         if let Value::Object(obj) = v {
+///             if let Some(Value::String(tag)) = obj.get("_tag") {
+///                 return tag == "sensor";
+///             }
+///         }
+///         false
+///     })
+///     .count();
+/// assert_eq!(sensor_count, 2);
 /// ```
 pub fn parse_detail_section_with_stable_keys(
     detail_xml: &str,
@@ -270,40 +281,31 @@ fn skip_element<R: std::io::BufRead>(
     }
 }
 
-/// Generate a stable key for duplicate elements.
+/// Generate a stable key for duplicate elements using Base64 hash format.
+/// Format: base64(hash(document_id + element_name))_index
 fn generate_stable_key(document_id: &str, element_name: &str, index: u32) -> String {
-    format!(
-        "{}{}{}{}{}",
-        document_id, KEY_SEPARATOR, element_name, KEY_SEPARATOR, index
-    )
+    let mut hasher = DefaultHasher::new();
+    format!("{}{}{}", document_id, element_name, "stable_key_salt").hash(&mut hasher);
+    let hash = hasher.finish();
+
+    // Convert hash to bytes and encode as base64
+    let hash_bytes = hash.to_be_bytes();
+    let b64_hash = URL_SAFE_NO_PAD.encode(hash_bytes);
+
+    format!("{}{}{}", b64_hash, KEY_SEPARATOR, index)
 }
 
-/// Enhance a value with metadata for reconstruction.
-fn enhance_with_metadata(value: Value, tag: &str, doc_id: &str, element_index: u32) -> Value {
+/// Enhance a value with minimal metadata for reconstruction.
+/// Only stores the tag name - document ID and index are encoded in the key.
+fn enhance_with_metadata(value: Value, tag: &str, _doc_id: &str, _element_index: u32) -> Value {
     match value {
         Value::Object(mut map) => {
             map.insert(TAG_METADATA.to_string(), Value::String(tag.to_string()));
-            map.insert(
-                DOC_ID_METADATA.to_string(),
-                Value::String(doc_id.to_string()),
-            );
-            map.insert(
-                INDEX_METADATA.to_string(),
-                Value::Number(element_index.into()),
-            );
             Value::Object(map)
         }
         Value::String(text) => {
             let mut map = Map::new();
             map.insert(TAG_METADATA.to_string(), Value::String(tag.to_string()));
-            map.insert(
-                DOC_ID_METADATA.to_string(),
-                Value::String(doc_id.to_string()),
-            );
-            map.insert(
-                INDEX_METADATA.to_string(),
-                Value::Number(element_index.into()),
-            );
             map.insert("_text".to_string(), Value::String(text));
             Value::Object(map)
         }
@@ -311,14 +313,6 @@ fn enhance_with_metadata(value: Value, tag: &str, doc_id: &str, element_index: u
             // For other types, wrap in object with metadata
             let mut map = Map::new();
             map.insert(TAG_METADATA.to_string(), Value::String(tag.to_string()));
-            map.insert(
-                DOC_ID_METADATA.to_string(),
-                Value::String(doc_id.to_string()),
-            );
-            map.insert(
-                INDEX_METADATA.to_string(),
-                Value::Number(element_index.into()),
-            );
             map.insert("_value".to_string(), other);
             Value::Object(map)
         }
@@ -345,11 +339,16 @@ pub fn convert_stable_keys_to_xml(detail_map: &HashMap<String, Value>) -> String
 
     for (key, value) in detail_map {
         if is_stable_key(key) {
-            if let Some((tag, index)) = parse_stable_key(key) {
-                stable_elements
-                    .entry(tag)
-                    .or_default()
-                    .push((index, value.clone()));
+            if let Some(index) = parse_stable_key(key) {
+                // Extract tag name from metadata
+                if let Value::Object(obj) = value {
+                    if let Some(Value::String(tag)) = obj.get(TAG_METADATA) {
+                        stable_elements
+                            .entry(tag.clone())
+                            .or_default()
+                            .push((index, value.clone()));
+                    }
+                }
             }
         } else {
             direct_elements.push((key.clone(), value.clone()));
@@ -373,19 +372,18 @@ pub fn convert_stable_keys_to_xml(detail_map: &HashMap<String, Value>) -> String
     xml
 }
 
-/// Check if a key is a stable key (contains separators and ends with a number).
+/// Check if a key is a stable key (base64 hash format with index).
 fn is_stable_key(key: &str) -> bool {
     let parts: Vec<&str> = key.split(KEY_SEPARATOR).collect();
-    parts.len() >= 3 && parts.last().unwrap().parse::<u32>().is_ok()
+    parts.len() == 2 && parts.last().unwrap().parse::<u32>().is_ok()
 }
 
-/// Parse a stable key to extract tag name and index.
-fn parse_stable_key(key: &str) -> Option<(String, u32)> {
+/// Parse a stable key to extract index (tag name comes from metadata).
+fn parse_stable_key(key: &str) -> Option<u32> {
     let parts: Vec<&str> = key.split(KEY_SEPARATOR).collect();
-    if parts.len() >= 3 {
+    if parts.len() == 2 {
         if let Ok(index) = parts.last().unwrap().parse::<u32>() {
-            let tag = parts[parts.len() - 2].to_string();
-            return Some((tag, index));
+            return Some(index);
         }
     }
     None
@@ -406,11 +404,14 @@ fn value_to_xml_element(tag: &str, value: &Value, remove_metadata: bool) -> Stri
                             text_content = Some(text.clone());
                         }
                     }
-                    // Skip other metadata fields
+                    // Skip metadata fields (_tag, _value, etc.)
                 } else if key == "_text" {
                     if let Value::String(text) = val {
                         text_content = Some(text.clone());
                     }
+                } else if key == "_value" {
+                    // Handle wrapped primitive values
+                    return value_to_xml_element(tag, val, false);
                 } else if let Value::String(attr_val) = val {
                     attributes.push(format!("{}=\"{}\"", key, attr_val));
                 } else {
@@ -453,10 +454,14 @@ pub fn get_next_available_index(
     document_id: &str,
     element_name: &str,
 ) -> u32 {
-    let key_prefix = format!(
-        "{}{}{}{}",
-        document_id, KEY_SEPARATOR, element_name, KEY_SEPARATOR
-    );
+    // Generate the expected hash for this document_id + element_name combination
+    let mut hasher = DefaultHasher::new();
+    format!("{}{}{}", document_id, element_name, "stable_key_salt").hash(&mut hasher);
+    let hash = hasher.finish();
+    let hash_bytes = hash.to_be_bytes();
+    let b64_hash = URL_SAFE_NO_PAD.encode(hash_bytes);
+
+    let key_prefix = format!("{}{}", b64_hash, KEY_SEPARATOR);
 
     let mut max_index = 0u32;
     let mut found_any = false;
@@ -511,19 +516,29 @@ mod tests {
         // Single element uses direct key
         assert!(result.contains_key("status"));
 
-        // Duplicate elements use stable keys
-        assert!(result.contains_key("test-doc_sensor_0"));
-        assert!(result.contains_key("test-doc_sensor_1"));
-        assert!(result.contains_key("test-doc_sensor_2"));
+        // Duplicate elements use stable keys (base64 hash format)
+        let sensor_keys: Vec<String> = result
+            .keys()
+            .filter(|k| {
+                k.contains("_") && k.ends_with("_0") || k.ends_with("_1") || k.ends_with("_2")
+            })
+            .filter(|k| {
+                if let Some(Value::Object(obj)) = result.get(*k) {
+                    if let Some(Value::String(tag)) = obj.get(TAG_METADATA) {
+                        return tag == "sensor";
+                    }
+                }
+                false
+            })
+            .cloned()
+            .collect();
 
-        // Check metadata
-        let sensor0 = result.get("test-doc_sensor_0").unwrap();
+        assert_eq!(sensor_keys.len(), 3, "Should have 3 sensor keys");
+
+        // Check metadata on first sensor (only _tag remains)
+        let sensor0_key = sensor_keys.iter().find(|k| k.ends_with("_0")).unwrap();
+        let sensor0 = result.get(sensor0_key).unwrap();
         assert_eq!(sensor0[TAG_METADATA], Value::String("sensor".to_string()));
-        assert_eq!(
-            sensor0[DOC_ID_METADATA],
-            Value::String("test-doc".to_string())
-        );
-        assert_eq!(sensor0[INDEX_METADATA], Value::Number(0.into()));
         assert_eq!(sensor0["type"], Value::String("optical".to_string()));
     }
 
@@ -549,8 +564,16 @@ mod tests {
     #[test]
     fn test_get_next_available_index() {
         let mut detail_map = HashMap::new();
-        detail_map.insert("test-doc_sensor_0".to_string(), Value::Null);
-        detail_map.insert("test-doc_sensor_2".to_string(), Value::Null);
+
+        // Generate expected hash for sensor elements
+        let mut hasher = DefaultHasher::new();
+        format!("{}{}{}", "test-doc", "sensor", "stable_key_salt").hash(&mut hasher);
+        let hash = hasher.finish();
+        let hash_bytes = hash.to_be_bytes();
+        let b64_hash = URL_SAFE_NO_PAD.encode(hash_bytes);
+
+        detail_map.insert(format!("{}_0", b64_hash), Value::Null);
+        detail_map.insert(format!("{}_2", b64_hash), Value::Null);
 
         let next = get_next_available_index(&detail_map, "test-doc", "sensor");
         assert_eq!(next, 3); // Should be 3 (after max index 2)

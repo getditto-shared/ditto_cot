@@ -6,6 +6,9 @@ import org.w3c.dom.Node;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.util.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * CRDT-optimized DetailConverter that handles duplicate elements with stable keys
@@ -15,8 +18,7 @@ import java.util.*;
 public class CRDTOptimizedDetailConverter extends DetailConverter {
     
     private static final String TAG_METADATA = "_tag";
-    private static final String DOC_ID_METADATA = "_docId";
-    private static final String INDEX_METADATA = "_elementIndex";
+    // Removed redundant metadata: _docId and _elementIndex are already encoded in the key
     private static final String KEY_SEPARATOR = "_";
     
     /**
@@ -105,14 +107,21 @@ public class CRDTOptimizedDetailConverter extends DetailConverter {
             Object value = entry.getValue();
             
             if (isStableKey(key)) {
-                // Parse stable key to get tag name and index
-                String[] parts = key.split(KEY_SEPARATOR);
-                if (parts.length >= 3) {
-                    String tagName = parts[parts.length - 2];
-                    int index = Integer.parseInt(parts[parts.length - 1]);
+                // Parse stable key to get index, tag name comes from metadata
+                int lastSeparatorIndex = key.lastIndexOf(KEY_SEPARATOR);
+                if (lastSeparatorIndex > 0) {
+                    int index = Integer.parseInt(key.substring(lastSeparatorIndex + 1));
                     
-                    groupedElements.computeIfAbsent(tagName, k -> new ArrayList<>())
-                        .add(new StableKeyEntry(index, value));
+                    // Extract tag name from metadata
+                    if (value instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> valueMap = (Map<String, Object>) value;
+                        String tagName = (String) valueMap.get(TAG_METADATA);
+                        if (tagName != null) {
+                            groupedElements.computeIfAbsent(tagName, k -> new ArrayList<>())
+                                .add(new StableKeyEntry(index, value));
+                        }
+                    }
                 }
             } else {
                 // Direct key mapping
@@ -150,20 +159,36 @@ public class CRDTOptimizedDetailConverter extends DetailConverter {
     }
     
     /**
-     * Generate a stable key for duplicate elements
+     * Generate a stable key for duplicate elements using Base64 hash format
+     * Format: base64(hash(document_id + element_name))_index
      */
     private String generateStableKey(String documentId, String elementName, int index) {
-        return documentId + KEY_SEPARATOR + elementName + KEY_SEPARATOR + index;
+        try {
+            String input = documentId + elementName + "stable_key_salt";
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            
+            // Take first 8 bytes for shorter hash
+            byte[] truncated = Arrays.copyOf(hashBytes, 8);
+            String b64Hash = Base64.getUrlEncoder().withoutPadding().encodeToString(truncated);
+            
+            return b64Hash + KEY_SEPARATOR + index;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
     }
     
     /**
-     * Check if a key is a stable key (contains separators and ends with a number)
+     * Check if a key is a stable key (base64 hash format with index)
      */
     private boolean isStableKey(String key) {
-        String[] parts = key.split(KEY_SEPARATOR);
-        if (parts.length >= 3) {
+        // Handle Base64 keys that may contain underscores by looking for the pattern:
+        // base64hash_index where index is a number at the end
+        int lastSeparatorIndex = key.lastIndexOf(KEY_SEPARATOR);
+        if (lastSeparatorIndex > 0 && lastSeparatorIndex < key.length() - 1) {
+            String potentialIndex = key.substring(lastSeparatorIndex + 1);
             try {
-                Integer.parseInt(parts[parts.length - 1]);
+                Integer.parseInt(potentialIndex);
                 return true;
             } catch (NumberFormatException e) {
                 return false;
@@ -174,15 +199,14 @@ public class CRDTOptimizedDetailConverter extends DetailConverter {
     
     /**
      * Enhance value with minimal metadata for reconstruction
+     * Only stores the tag name - document ID and index are encoded in the key
      */
     private Map<String, Object> enhanceWithMetadata(Object baseValue, String tagName, 
                                                    String docId, int elementIndex) {
         Map<String, Object> enhanced = new HashMap<>();
         
-        // Add minimal metadata
+        // Add only essential metadata (docId and index are in the key)
         enhanced.put(TAG_METADATA, tagName);
-        enhanced.put(DOC_ID_METADATA, docId);
-        enhanced.put(INDEX_METADATA, elementIndex);
         
         // Add original value content
         if (baseValue instanceof Map) {
@@ -208,8 +232,6 @@ public class CRDTOptimizedDetailConverter extends DetailConverter {
         Map<String, Object> valueMap = (Map<String, Object>) value;
         Map<String, Object> cleaned = new HashMap<>(valueMap);
         cleaned.remove(TAG_METADATA);
-        cleaned.remove(DOC_ID_METADATA);
-        cleaned.remove(INDEX_METADATA);
         return cleaned;
     }
     
@@ -260,22 +282,34 @@ public class CRDTOptimizedDetailConverter extends DetailConverter {
      * This is useful when adding new elements in a P2P network
      */
     public int getNextAvailableIndex(Map<String, Object> detailMap, String documentId, String elementName) {
-        int maxIndex = -1;
-        
-        String keyPrefix = documentId + KEY_SEPARATOR + elementName + KEY_SEPARATOR;
-        
-        for (String key : detailMap.keySet()) {
-            if (key.startsWith(keyPrefix)) {
-                String indexStr = key.substring(keyPrefix.length());
-                try {
-                    int index = Integer.parseInt(indexStr);
-                    maxIndex = Math.max(maxIndex, index);
-                } catch (NumberFormatException e) {
-                    // Ignore malformed keys
+        try {
+            // Generate the expected hash for this document_id + element_name combination
+            String input = documentId + elementName + "stable_key_salt";
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            
+            // Take first 8 bytes for shorter hash
+            byte[] truncated = Arrays.copyOf(hashBytes, 8);
+            String b64Hash = Base64.getUrlEncoder().withoutPadding().encodeToString(truncated);
+            
+            String keyPrefix = b64Hash + KEY_SEPARATOR;
+            int maxIndex = -1;
+            
+            for (String key : detailMap.keySet()) {
+                if (key.startsWith(keyPrefix)) {
+                    String indexStr = key.substring(keyPrefix.length());
+                    try {
+                        int index = Integer.parseInt(indexStr);
+                        maxIndex = Math.max(maxIndex, index);
+                    } catch (NumberFormatException e) {
+                        // Ignore malformed keys
+                    }
                 }
             }
+            
+            return maxIndex + 1;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
         }
-        
-        return maxIndex + 1;
     }
 }
