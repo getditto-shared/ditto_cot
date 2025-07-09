@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone="yes"?>
+<event
+how="m-d-a"
+stale="2025-07-05T21:30:00Z"
+start="2025-07-05T21:00:00Z"
+time="2025-07-05T21:00:00Z"
+type="a-u-S"
+uid="sensor-unmanned-001"
+version="2.0">
+<point ce="500.0" hae="0.0" lat="37.32699544764403" le="100.0" lon="-75.2905272033264" />
+<detail>
+<sensor type="thermal" status="active" temperature="85.5"/>
+<platform name="UAV-SENSOR-01" model="Predator"/>
+<battery level="78" voltage="24.2"/>
+<track course="30.86376880675669" speed="1.3613854354920412" />
+<remarks>Thermal sensor platform on patrol route Alpha</remarks>
+</detail>
+</event>

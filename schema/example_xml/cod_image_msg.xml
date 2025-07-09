@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone="yes"?>
+<event
+type="b-i-e"
+stale="2022-10-15T20:13:43Z"
+start="2022-10-15T20:03:43Z"
+time="2022-10-15T20:03:43Z“
+how="m-g“
+uid="Seasats_X3_ASV_h8.img_ptz_15102022_200341"
+version="2.0">
+<point ce="0.0" hae="0.0" lat="32.0" le="0" lon="-118.0" />
+<detail>
+<_flow-tags_ Seasats_X3_ASV_h20="2022-10-15T21:38:36Z" />
+<image mime="image/jpeg" type="VIS">
+/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQECAgICAgQD
+AgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKD
+AkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCg
+oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgrsdfasffEEIMckdEi
+AkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCg
+</image>
+</detail>
+</event>

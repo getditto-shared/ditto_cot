@@ -212,11 +212,11 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
             stale: millis_to_datetime(map_item.o),
             how: map_item.p.clone(),
             point: Point {
-                lat: map_item.h.unwrap_or(0.0),
-                lon: map_item.i.unwrap_or(0.0),
-                hae: map_item.j.unwrap_or(0.0),
-                ce: map_item.b,
-                le: map_item.k.unwrap_or(0.0),
+                lat: map_item.j.unwrap_or(0.0), // j = LAT
+                lon: map_item.l.unwrap_or(0.0), // l = LON
+                hae: map_item.i.unwrap_or(0.0), // i = HAE
+                ce: map_item.b,                 // b = CE
+                le: map_item.k.unwrap_or(0.0),  // k = LE
             },
             // Serialize detail map to XML for round-trip fidelity
             detail: {

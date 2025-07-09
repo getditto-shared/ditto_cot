@@ -32,6 +32,9 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
         || event_type.contains("a-f-G-U")
         || event_type.contains("a-f-G-U-I")
         || event_type.contains("a-f-G-U-T")
+        || event_type.contains("a-u-S")
+        || event_type.contains("a-u-A")
+        || event_type.contains("a-u-G")
     {
         // Handle location update events
         CotDocument::MapItem(transform_location_event(event, peer_key))
@@ -60,11 +63,11 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         e: String::new(),                  // Callsign not parsed from raw detail string
         f: None,                           // Visibility flag
         g: "".to_string(),                 // Version string, default empty
-        h: Some(event.point.lat),          // Latitude
-        i: Some(event.point.lon),          // Longitude
-        j: Some(event.point.hae),          // Altitude
+        h: Some(event.point.ce),           // Circular Error
+        i: Some(event.point.hae),          // Height Above Ellipsoid
+        j: Some(event.point.lat),          // Latitude
         k: Some(event.point.le),           // Linear Error
-        l: None,                           // Course (not in CotEvent)
+        l: Some(event.point.lon),          // Longitude
         n: event.start.timestamp_micros(), // Start (microsecond precision)
         o: event.stale.timestamp_micros(), // Stale (microsecond precision)
         p: event.how.clone(),              // How
@@ -571,7 +574,15 @@ impl CotDocument {
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("Document is missing 'w' field"))?;
 
-        if doc_type.starts_with("a-f-G-U") || doc_type.starts_with("a-u-r-loc") {
+        if doc_type.contains("a-u-r-loc-g")
+            || doc_type.contains("a-f-G-U-C")
+            || doc_type.contains("a-f-G-U")
+            || doc_type.contains("a-f-G-U-I")
+            || doc_type.contains("a-f-G-U-T")
+            || doc_type.contains("a-u-S")
+            || doc_type.contains("a-u-A")
+            || doc_type.contains("a-u-G")
+        {
             // Deserialize as MapItem and handle defaults
             let mut map_item: MapItem = serde_json::from_value(json_value.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize as MapItem: {}", e))?;

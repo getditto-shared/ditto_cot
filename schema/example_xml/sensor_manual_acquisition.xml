@@ -1,0 +1,12 @@
+<?xml version="1.0" standalone="yes"?>
+<event version="2.0" type="a-u-S" uid="manual-sensor-002" time="2025-07-05T21:00:00Z" start="2025-07-05T21:00:00Z" stale="2025-07-05T21:30:00Z" how="m-d-a">
+  <point lat="35.123456" lon="-118.987654" hae="150.0" ce="100.0" le="50.0"/>
+  <detail>
+    <sensor type="optical" resolution="4K" zoom="10x"/>
+    <acquisition method="manual" operator="SENSOR_OP_001"/>
+    <status operational="true" last_maintenance="2025-07-01T10:00:00Z"/>
+    <contact callsign="SENSOR-01" endpoint="192.168.1.100:8080"/>
+    <track course="45.0" speed="2.5"/>
+    <remarks>Manual data acquisition sensor platform</remarks>
+  </detail>
+</event>
