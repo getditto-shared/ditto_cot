@@ -23,7 +23,7 @@ repositories {
 
 dependencies {
     // Depend on the library project
-    implementation project(':library')
+    implementation project(':ditto_cot')
     
     // Add additional dependencies needed for the example
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
