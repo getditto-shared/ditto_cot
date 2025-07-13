@@ -1,26 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "/Users/kitplummer/Code/Ditto/ditto_cot/csharp/Ditto.Cot.csproj": {}
+    "/Users/jakeferrante/Documents/code/ditto/_fed/ditto_cot/csharp/Ditto.Cot.csproj": {}
   },
   "projects": {
-    "/Users/kitplummer/Code/Ditto/ditto_cot/csharp/Ditto.Cot.csproj": {
+    "/Users/jakeferrante/Documents/code/ditto/_fed/ditto_cot/csharp/Ditto.Cot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/kitplummer/Code/Ditto/ditto_cot/csharp/Ditto.Cot.csproj",
+        "projectUniqueName": "/Users/jakeferrante/Documents/code/ditto/_fed/ditto_cot/csharp/Ditto.Cot.csproj",
         "projectName": "Ditto.Cot",
-        "projectPath": "/Users/kitplummer/Code/Ditto/ditto_cot/csharp/Ditto.Cot.csproj",
-        "packagesPath": "/Users/kitplummer/.nuget/packages/",
-        "outputPath": "/Users/kitplummer/Code/Ditto/ditto_cot/csharp/obj/",
+        "projectPath": "/Users/jakeferrante/Documents/code/ditto/_fed/ditto_cot/csharp/Ditto.Cot.csproj",
+        "packagesPath": "/Users/jakeferrante/.nuget/packages/",
+        "outputPath": "/Users/jakeferrante/Documents/code/ditto/_fed/ditto_cot/csharp/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/kitplummer/.nuget/NuGet/NuGet.Config"
+          "/Users/jakeferrante/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
         ],
         "sources": {
-          "/opt/homebrew/Cellar/dotnet/9.0.6/libexec/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -39,11 +38,33 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.100"
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.11.1, )"
+            },
+            "NUnit": {
+              "target": "Package",
+              "version": "[4.2.2, )"
+            },
+            "NUnit3TestAdapter": {
+              "target": "Package",
+              "version": "[4.6.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
+            },
+            "System.Xml.ReaderWriter": {
+              "target": "Package",
+              "version": "[4.3.1, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -60,7 +81,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/9.0.6/libexec/sdk/9.0.107/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.302/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

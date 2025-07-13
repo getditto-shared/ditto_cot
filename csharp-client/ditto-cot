@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Ditto CoT Client wrapper script
+# This script automatically uses the correct project file and handles the build
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if we need to build
+if [ ! -f "$SCRIPT_DIR/bin/Debug/net9.0/DittoCoTClient.dll" ] || [ "$SCRIPT_DIR/Program.cs" -nt "$SCRIPT_DIR/bin/Debug/net9.0/DittoCoTClient.dll" ]; then
+    echo "🔨 Building Ditto CoT Client..."
+    cd "$SCRIPT_DIR"
+    dotnet build DittoCoTClient.csproj > /dev/null 2>&1
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Build failed"
+        exit 1
+    fi
+fi
+
+# Run the client with all passed arguments
+cd "$SCRIPT_DIR"
+
+# If built assembly exists, use it directly (faster and cleaner)
+if [ -f "bin/Debug/net9.0/DittoCoTClient.dll" ]; then
+    dotnet bin/Debug/net9.0/DittoCoTClient.dll "$@"
+else
+    # Fall back to dotnet run
+    dotnet run --project DittoCoTClient.csproj -- "$@"
+fi

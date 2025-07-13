@@ -8,3 +8,6 @@ rust/.env
 java/.env
 
 
+#csharp
+csharp/bin/
+csharp-client/bin/

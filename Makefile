@@ -49,7 +49,7 @@ clean-java:
 .PHONY: csharp
 csharp:
 	@echo "Building C# library..."
-	@if [ -f "csharp/*.sln" ] || [ -f "csharp/*.csproj" ]; then \
+	@if ls csharp/*.sln 1> /dev/null 2>&1 || ls csharp/*.csproj 1> /dev/null 2>&1; then \
 		cd csharp && dotnet build; \
 	else \
 		echo "C# build files not found. Skipping."; \
@@ -58,7 +58,7 @@ csharp:
 .PHONY: clean-csharp
 clean-csharp:
 	@echo "Cleaning C# library..."
-	@if [ -f "csharp/*.sln" ] || [ -f "csharp/*.csproj" ]; then \
+	@if ls csharp/*.sln 1> /dev/null 2>&1 || ls csharp/*.csproj 1> /dev/null 2>&1; then \
 		cd csharp && dotnet clean; \
 	else \
 		echo "C# build files not found. Skipping."; \
@@ -85,7 +85,7 @@ test-java:
 .PHONY: test-csharp
 test-csharp:
 	@echo "Testing C# library..."
-	@if [ -f "csharp/*.sln" ] || [ -f "csharp/*.csproj" ]; then \
+	@if ls csharp/*.sln 1> /dev/null 2>&1 || ls csharp/*.csproj 1> /dev/null 2>&1; then \
 		cd csharp && dotnet test; \
 	else \
 		echo "C# build files not found. Skipping tests."; \
@@ -107,9 +107,14 @@ example-java:
 	@echo "Running Java example..."
 	@cd java && ./gradlew :example:runIntegrationClient
 
+.PHONY: example-csharp
+example-csharp:
+	@echo "Running C# example..."
+	@cd csharp/example && dotnet run
+
 # Integration test target
 .PHONY: test-integration
-test-integration: example-rust example-java
+test-integration: example-rust example-java example-csharp
 	@echo "Running cross-language integration test..."
 	@cd rust && cargo test --test integration_test
 
@@ -129,6 +134,7 @@ help:
 	@echo "  test-csharp   - Run tests for C# library"
 	@echo "  example-rust  - Run Rust example client"
 	@echo "  example-java  - Run Java example client"
+	@echo "  example-csharp - Run C# example client"
 	@echo "  test-integration - Run cross-language integration test"
 	@echo "  clean         - Clean all libraries"
 	@echo "  clean-rust    - Clean Rust library"

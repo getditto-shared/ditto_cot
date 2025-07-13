@@ -37,6 +37,21 @@ fn test_cross_language_integration() {
         );
     }
 
+    // Run C# integration client
+    println!("Running C# integration client...");
+    let csharp_output = Command::new("dotnet")
+        .args(["run"])
+        .current_dir("../csharp/example")
+        .output()
+        .expect("Failed to run C# example - make sure 'make example-csharp' was run first");
+
+    if !csharp_output.status.success() {
+        panic!(
+            "C# client failed: {}",
+            String::from_utf8_lossy(&csharp_output.stderr)
+        );
+    }
+
     // Parse outputs
     let rust_json: Value = serde_json::from_str(&String::from_utf8_lossy(&rust_output.stdout))
         .expect("Failed to parse Rust output as JSON");
@@ -44,38 +59,51 @@ fn test_cross_language_integration() {
     let java_json: Value = serde_json::from_str(&String::from_utf8_lossy(&java_output.stdout))
         .expect("Failed to parse Java output as JSON");
 
-    // Verify both succeeded
+    let csharp_json: Value = serde_json::from_str(&String::from_utf8_lossy(&csharp_output.stdout))
+        .expect("Failed to parse C# output as JSON");
+
+    // Verify all succeeded
     assert_eq!(rust_json["success"], true, "Rust client should succeed");
     assert_eq!(java_json["success"], true, "Java client should succeed");
+    assert_eq!(csharp_json["success"], true, "C# client should succeed");
 
     // Verify language identification
     assert_eq!(rust_json["lang"], "rust");
     assert_eq!(java_json["lang"], "java");
+    assert_eq!(csharp_json["lang"], "csharp");
 
-    // Verify same original XML (both should contain the expected UID)
+    // Verify same original XML (all should contain the expected UID)
     let rust_xml = rust_json["original_xml"]
         .as_str()
         .expect("Rust XML should be a string");
     let java_xml = java_json["original_xml"]
         .as_str()
         .expect("Java XML should be a string");
+    let csharp_xml = csharp_json["original_xml"]
+        .as_str()
+        .expect("C# XML should be a string");
 
-    // Both should contain the same UID - this verifies they processed the same event
+    // All should contain the same UID - this verifies they processed the same event
     assert!(rust_xml.contains("ANDROID-GeoChat.ANDROID-R52JB0CDC4N2877-01.10279"));
     assert!(java_xml.contains("ANDROID-GeoChat.ANDROID-R52JB0CDC4N2877-01.10279"));
+    assert!(csharp_xml.contains("ANDROID-GeoChat.ANDROID-R52JB0CDC4N2877-01.10279"));
     assert!(rust_xml.contains("b-m-p-s-p-loc"));
     assert!(java_xml.contains("b-m-p-s-p-loc"));
+    assert!(csharp_xml.contains("b-m-p-s-p-loc"));
 
     // Compare key fields in the Ditto documents
     let rust_doc = &rust_json["ditto_document"];
     let java_doc = &java_json["ditto_document"];
+    let csharp_doc = &csharp_json["ditto_document"];
 
     // These should be structurally equivalent
     // Note: We compare key fields rather than exact JSON due to potential
     // serialization differences between languages
     verify_document_equivalence(rust_doc, java_doc);
+    verify_document_equivalence(rust_doc, csharp_doc);
+    verify_document_equivalence(java_doc, csharp_doc);
 
-    // Verify both can round-trip
+    // Verify all can round-trip
     assert!(
         rust_json["roundtrip_xml"].is_string(),
         "Rust should produce roundtrip XML"
@@ -84,9 +112,13 @@ fn test_cross_language_integration() {
         java_json["roundtrip_xml"].is_string(),
         "Java should produce roundtrip XML"
     );
+    assert!(
+        csharp_json["roundtrip_xml"].is_string(),
+        "C# should produce roundtrip XML"
+    );
 
     println!("✅ Cross-language integration test passed!");
-    println!("🦀 Rust and ☕ Java clients produced equivalent results");
+    println!("🦀 Rust, ☕ Java, and 🔷 C# clients produced equivalent results");
 }
 
 fn verify_document_equivalence(rust_doc: &Value, java_doc: &Value) {
@@ -160,6 +192,19 @@ fn test_makefile_integration() {
         make_java.status.success(),
         "make example-java failed: {}",
         String::from_utf8_lossy(&make_java.stderr)
+    );
+
+    // Test make example-csharp
+    let make_csharp = Command::new("make")
+        .args(["example-csharp"])
+        .current_dir("..")
+        .output()
+        .expect("Failed to run make example-csharp");
+
+    assert!(
+        make_csharp.status.success(),
+        "make example-csharp failed: {}",
+        String::from_utf8_lossy(&make_csharp.stderr)
     );
 
     println!("✅ Makefile integration test passed!");
