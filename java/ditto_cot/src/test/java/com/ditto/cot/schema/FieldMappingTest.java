@@ -233,8 +233,8 @@ class FieldMappingTest {
         original.setJ(30.3);
         original.setK(40.4);
         original.setL(50.5);
-        original.setN(100);
-        original.setO(200);
+        original.setN(100.0);
+        original.setO(200.0);
         original.setP("complete-p");
         original.setQ("complete-q");
         original.setS("complete-s");

@@ -30,8 +30,8 @@ class CommonTest {
         document.setJ(37.7749);
         document.setK(5.2);
         document.setL(-122.4194);
-        document.setN(1672531200);
-        document.setO(1672534800);
+        document.setN(1672531200.0);
+        document.setO(1672534800.0);
         document.setP("h-e");
         document.setQ("unclassified");
         

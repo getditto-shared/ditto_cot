@@ -206,8 +206,8 @@ public class CoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -236,8 +236,8 @@ public class CoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -265,8 +265,8 @@ public class CoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -294,8 +294,8 @@ public class CoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -323,8 +323,8 @@ public class CoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -494,38 +494,38 @@ public class CoTConverter {
         if (document instanceof ApiDocument) {
             ApiDocument doc = (ApiDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof ChatDocument) {
             ChatDocument doc = (ChatDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof FileDocument) {
             FileDocument doc = (FileDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof MapItemDocument) {
             MapItemDocument doc = (MapItemDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof GenericDocument) {
             GenericDocument doc = (GenericDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         }
     }
     
     private void setCommonCoTEventFields(CoTEvent cotEvent, String id, String type, String version,
-                                       Double timeMillis, Integer startSeconds, Integer staleSeconds,
+                                       Double timeMillis, Long startMicros, Long staleMicros,
                                        String how, Double lat, Double lon, Double hae, 
                                        Double ce, Double le, Map<String, Object> detail) {
         
@@ -540,13 +540,13 @@ public class CoTConverter {
             cotEvent.setTime(DateTimeFormatter.ISO_INSTANT.format(timeInstant));
         }
         
-        if (startSeconds != null) {
-            Instant startInstant = Instant.ofEpochSecond(startSeconds);
+        if (startMicros != null) {
+            Instant startInstant = Instant.ofEpochSecond(startMicros / 1_000_000L, (startMicros % 1_000_000L) * 1_000L);
             cotEvent.setStart(DateTimeFormatter.ISO_INSTANT.format(startInstant));
         }
         
-        if (staleSeconds != null) {
-            Instant staleInstant = Instant.ofEpochSecond(staleSeconds);
+        if (staleMicros != null) {
+            Instant staleInstant = Instant.ofEpochSecond(staleMicros / 1_000_000L, (staleMicros % 1_000_000L) * 1_000L);
             cotEvent.setStale(DateTimeFormatter.ISO_INSTANT.format(staleInstant));
         }
         
@@ -585,19 +585,30 @@ public class CoTConverter {
     public String convertDocumentToJson(Object document) throws JsonProcessingException {
         return objectMapper.writeValueAsString(document);
     }
+    
+    /**
+     * Convert a Map to JSON string (for flattened documents)
+     */
+    public String convertMapToJson(Map<String, Object> map) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(map);
+    }
 
     /**
      * Convert a CoT document to Map for Ditto storage
+     * Flattens the 'r' field to individual r_* fields for DQL compatibility
      */
     public Map<String, Object> convertDocumentToMap(Object document) {
-        return objectMapper.convertValue(document, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> map = objectMapper.convertValue(document, new TypeReference<Map<String, Object>>() {});
+        return flattenRField(map);
     }
 
     /**
      * Convert a Map from Ditto back to a CoT document
+     * Reconstructs the 'r' field from flattened r_* fields
      */
     public <T> T convertMapToDocument(Map<String, Object> map, Class<T> documentClass) {
-        return objectMapper.convertValue(map, documentClass);
+        Map<String, Object> unflattenedMap = unflattenRField(map);
+        return objectMapper.convertValue(unflattenedMap, documentClass);
     }
 
     /**
@@ -605,6 +616,91 @@ public class CoTConverter {
      */
     public <T> T convertJsonToDocument(String json, Class<T> documentClass) throws JsonProcessingException {
         return objectMapper.readValue(json, documentClass);
+    }
+
+    /**
+     * Flatten the 'r' field into individual r_* fields for DQL compatibility
+     * Converts r.takv -> r_takv_*, r.contact -> r_contact_*, etc.
+     * Further flattens nested objects to simple key-value pairs
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> flattenRField(Map<String, Object> originalMap) {
+        Map<String, Object> flattened = new java.util.HashMap<>(originalMap);
+        
+        Object rField = flattened.get("r");
+        if (rField instanceof Map) {
+            Map<String, Object> rMap = (Map<String, Object>) rField;
+            
+            // Remove the original 'r' field
+            flattened.remove("r");
+            
+            // Add deeply flattened r_* fields
+            for (Map.Entry<String, Object> entry : rMap.entrySet()) {
+                String detailType = entry.getKey();
+                Object detailValue = entry.getValue();
+                
+                if (detailValue instanceof Map) {
+                    // Further flatten nested objects
+                    Map<String, Object> detailMap = (Map<String, Object>) detailValue;
+                    for (Map.Entry<String, Object> detailEntry : detailMap.entrySet()) {
+                        String flattenedKey = "r_" + detailType + "_" + detailEntry.getKey();
+                        flattened.put(flattenedKey, detailEntry.getValue());
+                    }
+                } else {
+                    // Simple value
+                    String flattenedKey = "r_" + detailType;
+                    flattened.put(flattenedKey, detailValue);
+                }
+            }
+        }
+        
+        return flattened;
+    }
+    
+    /**
+     * Reconstruct the 'r' field from flattened r_* fields
+     * Converts r_takv_* -> r.takv.*, r_contact_* -> r.contact.*, etc.
+     * Reconstructs nested objects from deeply flattened fields
+     */
+    private Map<String, Object> unflattenRField(Map<String, Object> flattenedMap) {
+        Map<String, Object> unflattened = new java.util.HashMap<>(flattenedMap);
+        Map<String, Object> rMap = new java.util.HashMap<>();
+        
+        // Find all r_* fields and reconstruct nested structure
+        java.util.Set<String> keysToRemove = new java.util.HashSet<>();
+        for (Map.Entry<String, Object> entry : flattenedMap.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("r_")) {
+                String withoutRPrefix = key.substring(2); // Remove "r_" prefix
+                String[] parts = withoutRPrefix.split("_", 2);
+                
+                if (parts.length == 1) {
+                    // Simple r_field case
+                    rMap.put(parts[0], entry.getValue());
+                } else if (parts.length == 2) {
+                    // Nested r_detailType_attribute case
+                    String detailType = parts[0];
+                    String attribute = parts[1];
+                    
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> detailMap = (Map<String, Object>) rMap.computeIfAbsent(detailType, k -> new java.util.HashMap<>());
+                    detailMap.put(attribute, entry.getValue());
+                }
+                keysToRemove.add(key);
+            }
+        }
+        
+        // Remove the r_* fields from the main map
+        for (String key : keysToRemove) {
+            unflattened.remove(key);
+        }
+        
+        // Add the reconstructed 'r' field if we found any r_* fields
+        if (!rMap.isEmpty()) {
+            unflattened.put("r", rMap);
+        }
+        
+        return unflattened;
     }
 
 }

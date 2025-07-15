@@ -5,9 +5,12 @@
 
 use crate::cot_events::CotEvent;
 use crate::detail_parser::parse_detail_section;
+use crate::ditto::r_field_flattening::flatten_document_r_field;
 
 use anyhow;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
 // No unused imports remaining
 
 pub use super::schema::*;
@@ -47,59 +50,151 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
     }
 }
 
+/// Convert a CoT event to a flattened Ditto document for DQL compatibility
+pub fn cot_to_flattened_document(event: &CotEvent, peer_key: &str) -> Value {
+    let event_type = &event.event_type;
+
+    if event_type == "a-u-emergency-g" {
+        // Handle emergency events
+        transform_emergency_event_flattened(event, peer_key)
+    } else if event_type.contains("b-t-f") || event_type.contains("chat") {
+        // Handle chat events
+        match transform_chat_event_flattened(event, peer_key) {
+            Some(chat_doc) => chat_doc,
+            None => transform_generic_event_flattened(event, peer_key),
+        }
+    } else if event_type.contains("a-u-r-loc-g")
+        || event_type.contains("a-f-G-U-C")
+        || event_type.contains("a-f-G-U")
+        || event_type.contains("a-f-G-U-I")
+        || event_type.contains("a-f-G-U-T")
+        || event_type.contains("a-u-S")
+        || event_type.contains("a-u-A")
+        || event_type.contains("a-u-G")
+    {
+        // Handle location update events
+        transform_location_event_flattened(event, peer_key)
+    } else if event_type.contains("file") || event_type.contains("attachment") {
+        // Handle file events
+        transform_file_event_flattened(event, peer_key)
+    } else {
+        // Fall back to generic document for all other event types
+        transform_generic_event_flattened(event, peer_key)
+    }
+}
+
 /// Transform a location CoT event to a Ditto location document
 pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     // Map CotEvent and peer_key to MapItem fields
     MapItem {
-        id: event.uid.clone(),             // Ditto document ID
-        a: peer_key.to_string(),           // Ditto peer key string
-        b: event.point.ce,                 // Circular error (ce) value
-        c: None,                           // Name/title not parsed from raw detail string
-        d: event.uid.clone(),              // TAK UID of author
-        d_c: 0,                            // Document counter (updates), default to 0
-        d_r: false,                        // Soft-delete flag, default to false
-        d_v: 2,                            // Schema version (2)
-        source: None,                      // Source not parsed from raw detail string
-        e: String::new(),                  // Callsign not parsed from raw detail string
-        f: None,                           // Visibility flag
-        g: "".to_string(),                 // Version string, default empty
-        h: Some(event.point.ce),           // Circular Error
-        i: Some(event.point.hae),          // Height Above Ellipsoid
-        j: Some(event.point.lat),          // Latitude
-        k: Some(event.point.le),           // Linear Error
-        l: Some(event.point.lon),          // Longitude
-        n: event.start.timestamp_micros(), // Start (microsecond precision)
-        o: event.stale.timestamp_micros(), // Stale (microsecond precision)
-        p: event.how.clone(),              // How
-        q: "".to_string(),                 // Access, default empty
-        r: {
-            let extras = parse_detail_section(&event.detail);
-            extras
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        match v {
-                            serde_json::Value::String(s) => MapItemRValue::String(s),
-                            serde_json::Value::Bool(b) => MapItemRValue::from(b),
-                            serde_json::Value::Number(n) => {
-                                MapItemRValue::from(n.as_f64().unwrap_or(0.0))
-                            }
-                            serde_json::Value::Object(obj) => MapItemRValue::from(obj.clone()),
-                            serde_json::Value::Array(arr) => MapItemRValue::from(arr.clone()),
-                            _ => MapItemRValue::from(false),
-                        },
-                    )
-                })
-                .collect()
-        },
-        s: "".to_string(), // Opex, default empty
-        t: "".to_string(), // Qos, default empty
-        u: "".to_string(), // Caveat, default empty
-        v: "".to_string(), // Releasable to, default empty
-        w: event.event_type.clone(),
-        // Type
+        id: event.uid.clone(),                          // Ditto document ID
+        a: peer_key.to_string(),                        // Ditto peer key string
+        b: event.point.ce,                              // Circular error (ce) value
+        c: None,                  // Name/title not parsed from raw detail string
+        d: event.uid.clone(),     // TAK UID of author
+        d_c: 0,                   // Document counter (updates), default to 0
+        d_r: false,               // Soft-delete flag, default to false
+        d_v: 2,                   // Schema version (2)
+        source: None,             // Source not parsed from raw detail string
+        e: String::new(),         // Callsign not parsed from raw detail string
+        f: None,                  // Visibility flag
+        g: "".to_string(),        // Version string, default empty
+        h: Some(event.point.ce),  // Circular Error
+        i: Some(event.point.hae), // Height Above Ellipsoid
+        j: Some(event.point.lat), // Latitude
+        k: Some(event.point.le),  // Linear Error
+        l: Some(event.point.lon), // Longitude
+        n: Some(event.start.timestamp_micros() as f64), // Start (microseconds)
+        o: Some(event.stale.timestamp_micros() as f64), // Stale (microseconds)
+        p: event.how.clone(),     // How
+        q: "".to_string(),        // Access, default empty
+        r: HashMap::new(),        // Empty - will use flattened r_* fields
+        s: "".to_string(),        // Opex, default empty
+        t: "".to_string(),        // Qos, default empty
+        u: "".to_string(),        // Caveat, default empty
+        v: "".to_string(),        // Releasable to, default empty
+        w: event.event_type.clone(), // Type
     }
+}
+
+/// Transform a location CoT event to a flattened JSON value for DQL compatibility
+pub fn transform_location_event_flattened(event: &CotEvent, peer_key: &str) -> Value {
+    // Parse detail section and flatten r field for DQL compatibility
+    let extras = parse_detail_section(&event.detail);
+
+    // Create base document as a HashMap for flattening
+    let mut base_doc = HashMap::new();
+    base_doc.insert("_id".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("a".to_string(), Value::String(peer_key.to_string()));
+    base_doc.insert(
+        "b".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("_c".to_string(), Value::Number(serde_json::Number::from(0)));
+    base_doc.insert("_r".to_string(), Value::Bool(false));
+    base_doc.insert("_v".to_string(), Value::Number(serde_json::Number::from(2)));
+    base_doc.insert("e".to_string(), Value::String(String::new()));
+    base_doc.insert("g".to_string(), Value::String("".to_string()));
+    base_doc.insert(
+        "h".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "i".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.hae).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "j".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lat).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "k".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.le).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "l".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lon).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "n".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.start.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "o".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.stale.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("p".to_string(), Value::String(event.how.clone()));
+    base_doc.insert("q".to_string(), Value::String("".to_string()));
+    base_doc.insert("s".to_string(), Value::String("".to_string()));
+    base_doc.insert("t".to_string(), Value::String("".to_string()));
+    base_doc.insert("u".to_string(), Value::String("".to_string()));
+    base_doc.insert("v".to_string(), Value::String("".to_string()));
+    base_doc.insert("w".to_string(), Value::String(event.event_type.clone()));
+
+    // Apply flattening to the r field
+    flatten_document_r_field(&mut base_doc, &extras);
+
+    // Convert to JSON Value
+    Value::Object(base_doc.into_iter().collect())
 }
 
 /// Transform a chat CoT event to a Ditto chat document
@@ -141,35 +236,12 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         j: Some(event.point.hae),
         k: None,
         l: None,
-        n: event.start.timestamp_millis(),
-        o: event.stale.timestamp_millis(),
+        n: Some(event.start.timestamp_micros() as f64),
+        o: Some(event.stale.timestamp_micros() as f64),
         p: event.how.clone(),
         q: "".to_string(),
-        // Parse detail XML into map for CRDT support
-        r: {
-            let extras = parse_detail_section(&event.detail);
-            extras
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        match v {
-                            serde_json::Value::String(s) => ChatRValue::String(s),
-                            serde_json::Value::Bool(b) => ChatRValue::from(b),
-                            serde_json::Value::Number(n) => {
-                                ChatRValue::from(n.as_f64().unwrap_or(0.0))
-                            }
-                            serde_json::Value::Object(obj) => {
-                                let map = serde_json::Map::from_iter(obj.clone());
-                                ChatRValue::Object(map)
-                            }
-                            serde_json::Value::Array(arr) => ChatRValue::Array(arr.clone()),
-                            _ => ChatRValue::Null,
-                        },
-                    )
-                })
-                .collect()
-        },
+        // Empty r field - will use flattened r_* fields
+        r: HashMap::new(),
         s: "".to_string(),
         t: "".to_string(),
         u: "".to_string(),
@@ -186,6 +258,103 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
         room_id,
         time: Some(event.time.to_rfc3339()),
     })
+}
+
+/// Transform a chat CoT event to a flattened JSON value for DQL compatibility
+pub fn transform_chat_event_flattened(event: &CotEvent, peer_key: &str) -> Option<Value> {
+    // Extract chat message and room from event.detail
+    let parts: Vec<&str> = event.detail.split_whitespace().collect();
+    let message = if parts.len() >= 2 {
+        Some(format!("{} {}", parts[0], parts[1]))
+    } else {
+        parts.first().map(|s| s.to_string())
+    };
+    let room = parts.get(2).map(|s| s.to_string());
+    let location = Some(format!(
+        "{},{},{}",
+        event.point.lat, event.point.lon, event.point.hae
+    ));
+
+    // If there's no message, return None
+    message.as_ref()?;
+
+    // Parse detail section and flatten r field for DQL compatibility
+    let extras = parse_detail_section(&event.detail);
+
+    // Create base document as a HashMap for flattening
+    let mut base_doc = HashMap::new();
+    base_doc.insert("_id".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("a".to_string(), Value::String(peer_key.to_string()));
+    base_doc.insert(
+        "b".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("_c".to_string(), Value::Number(serde_json::Number::from(0)));
+    base_doc.insert("_r".to_string(), Value::Bool(false));
+    base_doc.insert("_v".to_string(), Value::Number(serde_json::Number::from(2)));
+    base_doc.insert("e".to_string(), Value::String(String::new()));
+    base_doc.insert("g".to_string(), Value::String("".to_string()));
+    base_doc.insert(
+        "h".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lat).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "i".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lon).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "j".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.hae).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "n".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.start.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "o".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.stale.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("p".to_string(), Value::String(event.how.clone()));
+    base_doc.insert("q".to_string(), Value::String("".to_string()));
+    base_doc.insert("s".to_string(), Value::String("".to_string()));
+    base_doc.insert("t".to_string(), Value::String("".to_string()));
+    base_doc.insert("u".to_string(), Value::String("".to_string()));
+    base_doc.insert("v".to_string(), Value::String("".to_string()));
+    base_doc.insert("w".to_string(), Value::String(event.event_type.clone()));
+    base_doc.insert("time".to_string(), Value::String(event.time.to_rfc3339()));
+
+    // Add chat-specific fields
+    if let Some(msg) = message {
+        base_doc.insert("message".to_string(), Value::String(msg));
+    }
+    if let Some(r) = room {
+        base_doc.insert("room".to_string(), Value::String(r));
+    }
+    if let Some(loc) = location {
+        base_doc.insert("location".to_string(), Value::String(loc));
+    }
+    base_doc.insert("authorUid".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("authorType".to_string(), Value::String("user".to_string()));
+
+    // Apply flattening to the r field
+    flatten_document_r_field(&mut base_doc, &extras);
+
+    Some(Value::Object(base_doc.into_iter().collect()))
 }
 
 /// Transform an emergency CoT event to a Ditto emergency document
@@ -217,35 +386,12 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
         k: None,
         l: None,
         mime,
-        n: event.start.timestamp_millis(),
-        o: event.stale.timestamp_millis(),
+        n: Some(event.start.timestamp_micros() as f64),
+        o: Some(event.stale.timestamp_micros() as f64),
         p: event.how.clone(),
         q: "".to_string(),
-        // Parse detail XML into map for CRDT support
-        r: {
-            let extras = parse_detail_section(&event.detail);
-            extras
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        match v {
-                            serde_json::Value::String(s) => ApiRValue::String(s),
-                            serde_json::Value::Bool(b) => ApiRValue::from(b),
-                            serde_json::Value::Number(n) => {
-                                ApiRValue::from(n.as_f64().unwrap_or(0.0))
-                            }
-                            serde_json::Value::Object(obj) => {
-                                let map = serde_json::Map::from_iter(obj.clone());
-                                ApiRValue::Object(map)
-                            }
-                            serde_json::Value::Array(arr) => ApiRValue::Array(arr.clone()),
-                            _ => ApiRValue::Null,
-                        },
-                    )
-                })
-                .collect()
-        },
+        // Empty r field - will use flattened r_* fields
+        r: HashMap::new(),
         s: "".to_string(),
         t: "".to_string(),
         tag,
@@ -363,34 +509,12 @@ fn transform_file_event(event: &CotEvent, peer_key: &str) -> File {
         l: None,
         item_id,
         mime,
-        n: time_micros,  // Store time in microseconds
-        o: stale_micros, // Store stale in microseconds
+        n: Some(time_micros as f64),  // Store time in microseconds
+        o: Some(stale_micros as f64), // Store stale in microseconds
         p: event.how.clone(),
         q: "".to_string(),
-        // Parse detail XML into map for CRDT support
-        r: {
-            extras
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        match v {
-                            serde_json::Value::String(s) => FileRValue::String(s),
-                            serde_json::Value::Bool(b) => FileRValue::from(b),
-                            serde_json::Value::Number(n) => {
-                                FileRValue::from(n.as_f64().unwrap_or(0.0))
-                            }
-                            serde_json::Value::Object(obj) => {
-                                let map = serde_json::Map::from_iter(obj.clone());
-                                FileRValue::Object(map)
-                            }
-                            serde_json::Value::Array(arr) => FileRValue::Array(arr.clone()),
-                            _ => FileRValue::Null,
-                        },
-                    )
-                })
-                .collect()
-        },
+        // Empty r field - will use flattened r_* fields
+        r: HashMap::new(),
         s: "".to_string(),
         sz,
         t: "".to_string(),
@@ -447,34 +571,12 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> Generic {
         j: Some(event.point.hae),
         k: Some(event.point.le), // Store le properly
         l: None,
-        n: time_micros,  // Store time in microseconds
-        o: stale_micros, // Store stale in microseconds
+        n: Some(time_micros as f64),  // Store time in microseconds
+        o: Some(stale_micros as f64), // Store stale in microseconds
         p: event.how.clone(),
         q: "".to_string(),
-        // Parse detail XML into map for CRDT support
-        r: {
-            extras
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        match v {
-                            serde_json::Value::String(s) => GenericRValue::String(s),
-                            serde_json::Value::Bool(b) => GenericRValue::from(b),
-                            serde_json::Value::Number(n) => {
-                                GenericRValue::from(n.as_f64().unwrap_or(0.0))
-                            }
-                            serde_json::Value::Object(obj) => {
-                                let map = serde_json::Map::from_iter(obj.clone());
-                                GenericRValue::Object(map)
-                            }
-                            serde_json::Value::Array(arr) => GenericRValue::Array(arr.clone()),
-                            _ => GenericRValue::Null,
-                        },
-                    )
-                })
-                .collect()
-        },
+        // Empty r field - will use flattened r_* fields
+        r: HashMap::new(),
         s: "".to_string(),
         t: "".to_string(),
         u: "".to_string(),
@@ -503,6 +605,331 @@ pub enum CotDocument {
     MapItem(MapItem),
 }
 
+/// Transform an emergency CoT event to a flattened JSON value for DQL compatibility
+pub fn transform_emergency_event_flattened(event: &CotEvent, peer_key: &str) -> Value {
+    // Parse detail section and flatten r field for DQL compatibility
+    let extras = parse_detail_section(&event.detail);
+
+    // Create base document as a HashMap for flattening
+    let mut base_doc = HashMap::new();
+    base_doc.insert("_id".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("a".to_string(), Value::String(peer_key.to_string()));
+    base_doc.insert(
+        "b".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.time.timestamp_millis() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("_c".to_string(), Value::Number(serde_json::Number::from(0)));
+    base_doc.insert("_r".to_string(), Value::Bool(false));
+    base_doc.insert("_v".to_string(), Value::Number(serde_json::Number::from(2)));
+    base_doc.insert("e".to_string(), Value::String(String::new()));
+    base_doc.insert("g".to_string(), Value::String("".to_string()));
+    base_doc.insert(
+        "h".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lat).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "i".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lon).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "j".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.hae).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "n".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.start.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "o".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.stale.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("p".to_string(), Value::String(event.how.clone()));
+    base_doc.insert("q".to_string(), Value::String("".to_string()));
+    base_doc.insert("s".to_string(), Value::String("".to_string()));
+    base_doc.insert("t".to_string(), Value::String("".to_string()));
+    base_doc.insert("u".to_string(), Value::String("".to_string()));
+    base_doc.insert("v".to_string(), Value::String("".to_string()));
+    base_doc.insert("w".to_string(), Value::String(event.event_type.clone()));
+
+    // Add API-specific fields
+    base_doc.insert(
+        "contentType".to_string(),
+        Value::String("emergency".to_string()),
+    );
+    base_doc.insert(
+        "mime".to_string(),
+        Value::String("application/vnd.cot.emergency+json".to_string()),
+    );
+    base_doc.insert("isFile".to_string(), Value::Bool(false));
+    base_doc.insert("isRemoved".to_string(), Value::Bool(false));
+    base_doc.insert(
+        "timeMillis".to_string(),
+        Value::Number(serde_json::Number::from(event.time.timestamp_millis())),
+    );
+
+    // Apply flattening to the r field
+    flatten_document_r_field(&mut base_doc, &extras);
+
+    Value::Object(base_doc.into_iter().collect())
+}
+
+/// Transform a file CoT event to a flattened JSON value for DQL compatibility
+pub fn transform_file_event_flattened(event: &CotEvent, peer_key: &str) -> Value {
+    // Parse the detail section to extract file metadata
+    let mut extras = parse_detail_section(&event.detail);
+
+    // Extract filename from fileshare element if it exists
+    let file = if let Some(fileshare) = extras.get("fileshare") {
+        if let Some(filename) = fileshare.get("filename") {
+            filename
+                .as_str()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| event.uid.clone())
+        } else {
+            event.uid.clone()
+        }
+    } else {
+        event.uid.clone()
+    };
+
+    // Extract MIME type
+    let mime = if let Some(fileshare) = extras.get("fileshare") {
+        if let Some(mime_type) = fileshare.get("mime") {
+            mime_type
+                .as_str()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "application/octet-stream".to_string())
+        } else {
+            "application/octet-stream".to_string()
+        }
+    } else {
+        "application/octet-stream".to_string()
+    };
+
+    // Extract file size
+    let sz = if let Some(fileshare) = extras.get("fileshare") {
+        if let Some(size) = fileshare.get("size") {
+            if let Some(s) = size.as_str() {
+                s.parse::<f64>().ok()
+            } else {
+                size.as_f64()
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Add metadata to extras
+    extras.insert(
+        "_ce".to_string(),
+        serde_json::Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    extras.insert(
+        "_time".to_string(),
+        serde_json::Value::String(event.time.to_rfc3339()),
+    );
+    extras.insert(
+        "_start".to_string(),
+        serde_json::Value::String(event.start.to_rfc3339()),
+    );
+    extras.insert(
+        "_stale".to_string(),
+        serde_json::Value::String(event.stale.to_rfc3339()),
+    );
+
+    // Create base document as a HashMap for flattening
+    let mut base_doc = HashMap::new();
+    base_doc.insert("_id".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("a".to_string(), Value::String(peer_key.to_string()));
+    base_doc.insert(
+        "b".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("_c".to_string(), Value::Number(serde_json::Number::from(0)));
+    base_doc.insert("_r".to_string(), Value::Bool(false));
+    base_doc.insert("_v".to_string(), Value::Number(serde_json::Number::from(2)));
+    base_doc.insert("e".to_string(), Value::String(String::new()));
+    base_doc.insert("g".to_string(), Value::String("".to_string()));
+    base_doc.insert(
+        "h".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lat).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "i".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lon).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "j".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.hae).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "k".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.le).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "n".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.time.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "o".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.stale.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("p".to_string(), Value::String(event.how.clone()));
+    base_doc.insert("q".to_string(), Value::String("".to_string()));
+    base_doc.insert("s".to_string(), Value::String("".to_string()));
+    base_doc.insert("t".to_string(), Value::String("".to_string()));
+    base_doc.insert("u".to_string(), Value::String("".to_string()));
+    base_doc.insert("v".to_string(), Value::String("".to_string()));
+    base_doc.insert("w".to_string(), Value::String(event.event_type.clone()));
+
+    // Add file-specific fields
+    base_doc.insert("contentType".to_string(), Value::String("file".to_string()));
+    base_doc.insert("file".to_string(), Value::String(file));
+    base_doc.insert("mime".to_string(), Value::String(mime));
+    base_doc.insert("itemId".to_string(), Value::String(event.uid.clone()));
+    if let Some(size) = sz {
+        base_doc.insert(
+            "sz".to_string(),
+            Value::Number(
+                serde_json::Number::from_f64(size).unwrap_or(serde_json::Number::from(0)),
+            ),
+        );
+    }
+
+    // Apply flattening to the r field
+    flatten_document_r_field(&mut base_doc, &extras);
+
+    Value::Object(base_doc.into_iter().collect())
+}
+
+/// Transform any CoT event to a flattened generic Ditto document for DQL compatibility
+pub fn transform_generic_event_flattened(event: &CotEvent, peer_key: &str) -> Value {
+    // Store metadata in extras
+    let mut extras = parse_detail_section(&event.detail);
+    extras.insert(
+        "_ce".to_string(),
+        serde_json::Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    extras.insert(
+        "_time".to_string(),
+        serde_json::Value::String(event.time.to_rfc3339()),
+    );
+    extras.insert(
+        "_start".to_string(),
+        serde_json::Value::String(event.start.to_rfc3339()),
+    );
+    extras.insert(
+        "_stale".to_string(),
+        serde_json::Value::String(event.stale.to_rfc3339()),
+    );
+
+    // Create base document as a HashMap for flattening
+    let mut base_doc = HashMap::new();
+    base_doc.insert("_id".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("a".to_string(), Value::String(peer_key.to_string()));
+    base_doc.insert(
+        "b".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.ce).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
+    base_doc.insert("_c".to_string(), Value::Number(serde_json::Number::from(0)));
+    base_doc.insert("_r".to_string(), Value::Bool(false));
+    base_doc.insert("_v".to_string(), Value::Number(serde_json::Number::from(2)));
+    base_doc.insert("e".to_string(), Value::String(String::new()));
+    base_doc.insert("g".to_string(), Value::String("".to_string()));
+    base_doc.insert(
+        "h".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lat).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "i".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.lon).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "j".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.hae).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "k".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.point.le).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "n".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.time.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert(
+        "o".to_string(),
+        Value::Number(
+            serde_json::Number::from_f64(event.stale.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
+    base_doc.insert("p".to_string(), Value::String(event.how.clone()));
+    base_doc.insert("q".to_string(), Value::String("".to_string()));
+    base_doc.insert("s".to_string(), Value::String("".to_string()));
+    base_doc.insert("t".to_string(), Value::String("".to_string()));
+    base_doc.insert("u".to_string(), Value::String("".to_string()));
+    base_doc.insert("v".to_string(), Value::String("".to_string()));
+    base_doc.insert("w".to_string(), Value::String(event.event_type.clone()));
+
+    // Apply flattening to the r field
+    flatten_document_r_field(&mut base_doc, &extras);
+
+    Value::Object(base_doc.into_iter().collect())
+}
+
 impl CotDocument {
     /// Returns true if this is a MapItem variant
     pub fn is_map_item(&self) -> bool {
@@ -515,6 +942,17 @@ impl CotDocument {
             Some(item)
         } else {
             None
+        }
+    }
+
+    /// Converts this CotDocument to a flattened JSON value for DQL compatibility
+    pub fn to_flattened_json(&self) -> Value {
+        match self {
+            CotDocument::Api(api) => serde_json::to_value(api).unwrap_or(Value::Null),
+            CotDocument::Chat(chat) => serde_json::to_value(chat).unwrap_or(Value::Null),
+            CotDocument::File(file) => serde_json::to_value(file).unwrap_or(Value::Null),
+            CotDocument::Generic(generic) => serde_json::to_value(generic).unwrap_or(Value::Null),
+            CotDocument::MapItem(map_item) => serde_json::to_value(map_item).unwrap_or(Value::Null),
         }
     }
 

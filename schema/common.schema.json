@@ -17,8 +17,8 @@
     "j": { "type": "number", "default": 0.0, "description": "CotPoint LAT" },
     "k": { "type": "number", "default": 0.0, "description": "CotPoint LE" },
     "l": { "type": "number", "default": 0.0, "description": "CotPoint LON" },
-    "n": { "type": "integer", "default": 0, "description": "Start" },
-    "o": { "type": "integer", "default": 0, "description": "Stale" },
+    "n": { "type": "number", "default": 0, "description": "Start" },
+    "o": { "type": "number", "default": 0, "description": "Stale" },
     "p": { "type": "string", "default": "", "description": "How" },
     "q": { "type": "string", "default": "", "description": "Access" },
     "r": {

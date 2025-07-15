@@ -93,6 +93,47 @@ public class AndroidCoTEvent {
     public int getStaleSeconds() {
         return stale != null ? (int) Instant.parse(stale).getEpochSecond() : 0;
     }
+    
+    /**
+     * Convert CoT start time to microseconds since epoch (preserves full precision)
+     */
+    public long getStartMicros() {
+        if (start == null) return 0;
+        Instant instant = Instant.parse(start);
+        return instant.getEpochSecond() * 1_000_000L + instant.getNano() / 1_000L;
+    }
+    
+    /**
+     * Convert CoT stale time to microseconds since epoch (preserves full precision)
+     */
+    public long getStaleMicros() {
+        if (stale == null) return 0;
+        Instant instant = Instant.parse(stale);
+        return instant.getEpochSecond() * 1_000_000L + instant.getNano() / 1_000L;
+    }
+    
+    /**
+     * Convert CoT time to microseconds since epoch (preserves full precision)
+     */
+    public long getTimeMicros() {
+        if (time == null) return 0;
+        Instant instant = Instant.parse(time);
+        return instant.getEpochSecond() * 1_000_000L + instant.getNano() / 1_000L;
+    }
+    
+    /**
+     * Convert CoT start time to milliseconds since epoch (preserves sub-second precision)
+     */
+    public long getStartMillis() {
+        return start != null ? Instant.parse(start).toEpochMilli() : 0;
+    }
+    
+    /**
+     * Convert CoT stale time to milliseconds since epoch (preserves sub-second precision)
+     */
+    public long getStaleMillis() {
+        return stale != null ? Instant.parse(stale).toEpochMilli() : 0;
+    }
 }
 
 /**

@@ -49,7 +49,38 @@ public class AndroidCoTConverter {
     }
     
     /**
+     * Flatten the detail map into r_* fields for DQL compatibility.
+     * Converts nested structures like {takv: {os: "35"}} to r_takv_os: "35"
+     */
+    private Map<String, Object> flattenDetailToRFields(Map<String, Object> detailMap) {
+        Map<String, Object> flattened = new HashMap<>();
+        flattenRecursive("r", detailMap, flattened);
+        return flattened;
+    }
+    
+    private void flattenRecursive(String prefix, Map<String, Object> map, Map<String, Object> result) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            String newKey = prefix + "_" + key;
+            
+            if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nestedMap = (Map<String, Object>) value;
+                flattenRecursive(newKey, nestedMap, result);
+            } else {
+                result.put(newKey, value);
+            }
+        }
+    }
+    
+    /**
      * Parse CoT XML string into an AndroidCoTEvent object
+     * @param xmlContent the XML content to parse
+     * @return the parsed AndroidCoTEvent object
+     * @throws ParserConfigurationException if the parser configuration is invalid
+     * @throws IOException if an I/O error occurs
+     * @throws SAXException if the XML parsing fails
      */
     public AndroidCoTEvent parseCoTXml(String xmlContent) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
@@ -109,6 +140,9 @@ public class AndroidCoTConverter {
     
     /**
      * Convert CoT XML to appropriate Ditto document type based on CoT type
+     * @param xmlContent the XML content to convert
+     * @return the converted Ditto document
+     * @throws Exception if conversion fails
      */
     public Object convertToDocument(String xmlContent) throws Exception {
         AndroidCoTEvent cotEvent = parseCoTXml(xmlContent);
@@ -117,6 +151,8 @@ public class AndroidCoTConverter {
     
     /**
      * Convert AndroidCoTEvent to appropriate Ditto document type
+     * @param cotEvent the CoT event to convert
+     * @return the converted Ditto document
      */
     public Object convertCoTEventToDocument(AndroidCoTEvent cotEvent) {
         String cotType = cotEvent.getType();
@@ -270,8 +306,8 @@ public class AndroidCoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -300,8 +336,8 @@ public class AndroidCoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -329,8 +365,8 @@ public class AndroidCoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -358,8 +394,8 @@ public class AndroidCoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -387,8 +423,8 @@ public class AndroidCoTConverter {
             doc.setL(cotEvent.getPoint().getLonDouble());
         }
         
-        doc.setN(cotEvent.getStartSeconds());
-        doc.setO(cotEvent.getStaleSeconds());
+        doc.setN((double) cotEvent.getStartMicros());
+        doc.setO((double) cotEvent.getStaleMicros());
         doc.setP(cotEvent.getHow() != null ? cotEvent.getHow() : "");
         doc.setW(cotEvent.getType() != null ? cotEvent.getType() : "");
         
@@ -482,6 +518,9 @@ public class AndroidCoTConverter {
     
     /**
      * Convert Ditto document back to CoT XML
+     * @param document the Ditto document to convert
+     * @return the XML representation
+     * @throws Exception if conversion fails
      */
     public String convertDocumentToXml(Object document) throws Exception {
         AndroidCoTEvent cotEvent = convertDocumentToCoTEvent(document);
@@ -490,6 +529,10 @@ public class AndroidCoTConverter {
     
     /**
      * Convert AndroidCoTEvent to XML string
+     * @param cotEvent the CoT event to convert
+     * @return the XML representation
+     * @throws ParserConfigurationException if the parser configuration is invalid
+     * @throws TransformerException if XML transformation fails
      */
     public String convertCoTEventToXml(AndroidCoTEvent cotEvent) throws ParserConfigurationException, TransformerException {
         DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
@@ -602,38 +645,38 @@ public class AndroidCoTConverter {
         if (document instanceof ApiDocument) {
             ApiDocument doc = (ApiDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof ChatDocument) {
             ChatDocument doc = (ChatDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof FileDocument) {
             FileDocument doc = (FileDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof MapItemDocument) {
             MapItemDocument doc = (MapItemDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         } else if (document instanceof GenericDocument) {
             GenericDocument doc = (GenericDocument) document;
             setCommonCoTEventFields(cotEvent, doc.getId(), doc.getW(), doc.getG(), 
-                                  doc.getB(), doc.getN(), doc.getO(), doc.getP(),
+                                  doc.getB(), doc.getN().longValue(), doc.getO().longValue(), doc.getP(),
                                   doc.getJ(), doc.getL(), doc.getI(), doc.getH(), doc.getK(),
                                   doc.getR());
         }
     }
     
     private void setCommonCoTEventFields(AndroidCoTEvent cotEvent, String id, String type, String version,
-                                       Double timeMillis, Integer startSeconds, Integer staleSeconds,
+                                       Double timeMillis, Long startMicros, Long staleMicros,
                                        String how, Double lat, Double lon, Double hae, 
                                        Double ce, Double le, Map<String, Object> detail) {
         
@@ -648,13 +691,13 @@ public class AndroidCoTConverter {
             cotEvent.setTime(DateTimeFormatter.ISO_INSTANT.format(timeInstant));
         }
         
-        if (startSeconds != null) {
-            Instant startInstant = Instant.ofEpochSecond(startSeconds);
+        if (startMicros != null) {
+            Instant startInstant = Instant.ofEpochSecond(startMicros / 1_000_000L, (startMicros % 1_000_000L) * 1_000L);
             cotEvent.setStart(DateTimeFormatter.ISO_INSTANT.format(startInstant));
         }
         
-        if (staleSeconds != null) {
-            Instant staleInstant = Instant.ofEpochSecond(staleSeconds);
+        if (staleMicros != null) {
+            Instant staleInstant = Instant.ofEpochSecond(staleMicros / 1_000_000L, (staleMicros % 1_000_000L) * 1_000L);
             cotEvent.setStale(DateTimeFormatter.ISO_INSTANT.format(staleInstant));
         }
         
@@ -698,14 +741,76 @@ public class AndroidCoTConverter {
      * Convert a CoT document to Map for Ditto storage
      */
     public Map<String, Object> convertDocumentToMap(Object document) {
-        return objectMapper.convertValue(document, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> map = objectMapper.convertValue(document, new TypeReference<Map<String, Object>>() {});
+        
+        // Extract the nested r field and flatten it into r_* fields
+        Object rField = map.get("r");
+        if (rField instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> rMap = (Map<String, Object>) rField;
+            
+            // Remove the nested r field
+            map.remove("r");
+            
+            // Add flattened r_* fields
+            Map<String, Object> flattenedFields = flattenDetailToRFields(rMap);
+            map.putAll(flattenedFields);
+        }
+        
+        return map;
     }
 
+    /**
+     * Reconstruct the nested r field from flattened r_* fields.
+     * Converts r_takv_os: "35" back to {takv: {os: "35"}}
+     */
+    private Map<String, Object> unflattenRFieldsToDetail(Map<String, Object> map) {
+        Map<String, Object> rField = new HashMap<>();
+        Map<String, Object> mapCopy = new HashMap<>(map);
+        
+        // Find all r_* fields and reconstruct the nested structure
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("r_")) {
+                // Remove the r_ prefix
+                String withoutPrefix = key.substring(2);
+                
+                // Handle special case for __group (detail elements starting with underscores)
+                int lastUnderscore = withoutPrefix.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    String detailType = withoutPrefix.substring(0, lastUnderscore);
+                    String attribute = withoutPrefix.substring(lastUnderscore + 1);
+                    
+                    // Get or create the detail type map
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> detailMap = (Map<String, Object>) rField.computeIfAbsent(
+                        detailType, k -> new HashMap<String, Object>()
+                    );
+                    
+                    // Add the attribute
+                    detailMap.put(attribute, entry.getValue());
+                    
+                    // Remove the flattened field from the copy
+                    mapCopy.remove(key);
+                }
+            }
+        }
+        
+        // Add the reconstructed r field back to the map
+        if (!rField.isEmpty()) {
+            mapCopy.put("r", rField);
+        }
+        
+        return mapCopy;
+    }
+    
     /**
      * Convert a Map from Ditto back to a CoT document
      */
     public <T> T convertMapToDocument(Map<String, Object> map, Class<T> documentClass) {
-        return objectMapper.convertValue(map, documentClass);
+        // First unflatten any r_* fields back to nested r field
+        Map<String, Object> unflattenedMap = unflattenRFieldsToDetail(map);
+        return objectMapper.convertValue(unflattenedMap, documentClass);
     }
 
     /**
