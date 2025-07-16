@@ -78,7 +78,7 @@ fn test_generic_roundtrip() -> Result<()> {
     // Check point values
     assert!(
         (cot_event.point.lat - roundtrip_event.point.lat).abs() < 0.0001,
-        "Lat mismatch"
+        "Lat mismatch: {} vs {}", cot_event.point.lat, roundtrip_event.point.lat
     );
     assert!(
         (cot_event.point.lon - roundtrip_event.point.lon).abs() < 0.0001,

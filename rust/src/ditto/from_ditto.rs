@@ -32,23 +32,19 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
 
     match doc {
         CotDocument::Api(api) => CotEvent {
-            version: "2.0".to_string(),
+            version: api.g.clone(), // g = VERSION
             uid: api.id.clone(),
             event_type: api.w.clone(),
-            time: if api.n.unwrap_or(0.0) != 0.0 {
-                micros_to_datetime(api.n.unwrap_or(0.0) as i64)
-            } else {
-                Utc::now()
-            },
+            time: micros_to_datetime(api.b as i64), // b = TIME in microseconds
             start: micros_to_datetime(api.n.unwrap_or(0.0) as i64),
             stale: micros_to_datetime(api.o.unwrap_or(0.0) as i64),
             how: api.p.clone(),
             point: Point {
-                lat: api.h.unwrap_or(0.0),
-                lon: api.i.unwrap_or(0.0),
-                hae: api.j.unwrap_or(0.0),
-                ce: api.b,
-                le: api.k.unwrap_or(0.0),
+                lat: api.j.unwrap_or(0.0), // j = LAT
+                lon: api.l.unwrap_or(0.0), // l = LON  
+                hae: api.i.unwrap_or(0.0), // i = HAE
+                ce: api.h.unwrap_or(0.0),  // h = CE
+                le: api.k.unwrap_or(0.0),  // k = LE
             },
             // Serialize detail map to XML for round-trip fidelity
             detail: {
@@ -67,23 +63,19 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
             },
         },
         CotDocument::Chat(chat) => CotEvent {
-            version: "2.0".to_string(),
+            version: chat.g.clone(), // g = VERSION
             uid: chat.id.clone(),
             event_type: chat.w.clone(),
-            time: if chat.n.unwrap_or(0.0) != 0.0 {
-                micros_to_datetime(chat.n.unwrap_or(0.0) as i64)
-            } else {
-                Utc::now()
-            },
+            time: micros_to_datetime(chat.b as i64), // b = TIME in microseconds
             start: micros_to_datetime(chat.n.unwrap_or(0.0) as i64),
             stale: micros_to_datetime(chat.o.unwrap_or(0.0) as i64),
             how: chat.p.clone(),
             point: Point {
-                lat: chat.h.unwrap_or(0.0),
-                lon: chat.i.unwrap_or(0.0),
-                hae: chat.j.unwrap_or(0.0),
-                ce: chat.b,
-                le: chat.k.unwrap_or(0.0),
+                lat: chat.j.unwrap_or(0.0), // j = LAT
+                lon: chat.l.unwrap_or(0.0), // l = LON
+                hae: chat.i.unwrap_or(0.0), // i = HAE
+                ce: chat.h.unwrap_or(0.0),  // h = CE
+                le: chat.k.unwrap_or(0.0),  // k = LE
             },
             // Serialize detail map to XML for round-trip fidelity
             detail: {
@@ -107,24 +99,17 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 _ => 0.0, // Default if not found
             };
 
-            // Extract timestamp values from the detail map if they exist
-            let time = match &file.r.get("_time") {
-                Some(FileRValue::String(s)) => match s.parse::<DateTime<Utc>>() {
-                    Ok(dt) => dt,
-                    Err(_) => {
-                        if file.n.unwrap_or(0.0) != 0.0 {
-                            micros_to_datetime(file.n.unwrap_or(0.0) as i64)
-                        } else {
-                            Utc::now()
-                        }
-                    }
-                },
-                _ => {
-                    if file.n.unwrap_or(0.0) != 0.0 {
-                        micros_to_datetime(file.n.unwrap_or(0.0) as i64)
-                    } else {
-                        Utc::now()
-                    }
+            // Extract timestamp values - use b field as primary source (contains time in microseconds)
+            let time = if file.b != 0.0 {
+                micros_to_datetime(file.b as i64) // b = TIME in microseconds
+            } else {
+                // Fallback to _time field in detail map
+                match &file.r.get("_time") {
+                    Some(FileRValue::String(s)) => match s.parse::<DateTime<Utc>>() {
+                        Ok(dt) => dt,
+                        Err(_) => Utc::now()
+                    },
+                    _ => Utc::now()
                 }
             };
 
@@ -172,7 +157,7 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
             });
 
             CotEvent {
-                version: "2.0".to_string(),
+                version: file.g.clone(), // g = VERSION
                 uid: file.id.clone(),
                 event_type: file.w.clone(),
                 time,
@@ -180,11 +165,11 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 stale,
                 how: file.p.clone(),
                 point: Point {
-                    lat: file.h.unwrap_or(0.0),
-                    lon: file.i.unwrap_or(0.0),
-                    hae: file.j.unwrap_or(0.0),
-                    ce, // Use the extracted ce value
-                    le: file.k.unwrap_or(0.0),
+                    lat: file.j.unwrap_or(0.0), // j = LAT
+                    lon: file.l.unwrap_or(0.0), // l = LON
+                    hae: file.i.unwrap_or(0.0), // i = HAE  
+                    ce, // Use the extracted ce value from _ce field
+                    le: file.k.unwrap_or(0.0),  // k = LE
                 },
                 // Serialize detail map to XML for round-trip fidelity
                 detail: {
@@ -202,14 +187,10 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
             }
         }
         CotDocument::MapItem(map_item) => CotEvent {
-            version: "2.0".to_string(),
+            version: map_item.g.clone(), // g = VERSION
             uid: map_item.id.clone(),
             event_type: map_item.w.clone(),
-            time: if map_item.n.unwrap_or(0.0) != 0.0 {
-                micros_to_datetime(map_item.n.unwrap_or(0.0) as i64)
-            } else {
-                Utc::now()
-            },
+            time: micros_to_datetime(map_item.b as i64), // b = TIME in microseconds
             start: micros_to_datetime(map_item.n.unwrap_or(0.0) as i64),
             stale: micros_to_datetime(map_item.o.unwrap_or(0.0) as i64),
             how: map_item.p.clone(),
@@ -217,7 +198,7 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 lat: map_item.j.unwrap_or(0.0), // j = LAT
                 lon: map_item.l.unwrap_or(0.0), // l = LON
                 hae: map_item.i.unwrap_or(0.0), // i = HAE
-                ce: map_item.b,                 // b = CE
+                ce: map_item.h.unwrap_or(0.0),  // h = CE
                 le: map_item.k.unwrap_or(0.0),  // k = LE
             },
             // Serialize detail map to XML for round-trip fidelity
@@ -235,23 +216,19 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
             },
         },
         CotDocument::Generic(generic) => CotEvent {
-            version: "2.0".to_string(),
+            version: generic.g.clone(), // g = VERSION
             uid: generic.id.clone(),
             event_type: generic.w.clone(),
-            time: if generic.n.unwrap_or(0.0) != 0.0 {
-                micros_to_datetime(generic.n.unwrap_or(0.0) as i64)
-            } else {
-                Utc::now()
-            },
+            time: micros_to_datetime(generic.b as i64), // b = TIME in microseconds
             start: micros_to_datetime(generic.n.unwrap_or(0.0) as i64),
             stale: micros_to_datetime(generic.o.unwrap_or(0.0) as i64),
             how: generic.p.clone(),
             point: Point {
-                lat: generic.h.unwrap_or(0.0),
-                lon: generic.i.unwrap_or(0.0),
-                hae: generic.j.unwrap_or(0.0),
-                ce: generic.b,
-                le: generic.k.unwrap_or(0.0),
+                lat: generic.j.unwrap_or(0.0), // j = LAT
+                lon: generic.l.unwrap_or(0.0), // l = LON
+                hae: generic.i.unwrap_or(0.0), // i = HAE
+                ce: generic.h.unwrap_or(0.0),  // h = CE
+                le: generic.k.unwrap_or(0.0),  // k = LE
             },
             // Serialize detail map to XML for round-trip fidelity
             detail: {
@@ -305,8 +282,8 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
                 .to_string()
         };
 
-        // Helper function to get f64 value from JSON
-        let get_f64 = |key: &str| -> f64 {
+        // Helper function to get f64 value from JSON (unused but kept for future use)
+        let _get_f64 = |key: &str| -> f64 {
             document_map
                 .get(key)
                 .and_then(|v| v.as_f64())
@@ -327,15 +304,16 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
             || event_type.contains("a-u-S")
             || event_type.contains("a-u-A")
             || event_type.contains("a-u-G");
+        let is_file = event_type.contains("file") || event_type.contains("attachment") || event_type.contains("b-f-t-file");
 
         CotEvent {
-            version: "2.0".to_string(),
+            version: get_string("g"), // g = VERSION
             uid: get_string("_id"),
             event_type: get_string("w"),
             time: {
-                let n = get_opt_f64("n").unwrap_or(0.0);
-                if n != 0.0 {
-                    micros_to_datetime(n as i64)
+                let b = get_opt_f64("b").unwrap_or(0.0);
+                if b != 0.0 {
+                    micros_to_datetime(b as i64) // b = TIME in microseconds
                 } else {
                     Utc::now()
                 }
@@ -352,20 +330,34 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
             point: Point {
                 lat: if is_map_item {
                     get_opt_f64("j").unwrap_or(0.0)
+                } else if is_file {
+                    // For file documents, lat is stored in h field, but h might be overridden
+                    get_opt_f64("h").unwrap_or(0.0)  
                 } else {
                     get_opt_f64("h").unwrap_or(0.0)
                 },
                 lon: if is_map_item {
                     get_opt_f64("l").unwrap_or(0.0)
+                } else if is_file {
+                    // For file documents, lon is stored in i field
+                    get_opt_f64("i").unwrap_or(0.0)
                 } else {
                     get_opt_f64("i").unwrap_or(0.0)
                 },
                 hae: if is_map_item {
                     get_opt_f64("i").unwrap_or(0.0)
+                } else if is_file {
+                    // For file documents, hae is stored in j field  
+                    get_opt_f64("j").unwrap_or(0.0)
                 } else {
                     get_opt_f64("j").unwrap_or(0.0)
                 },
-                ce: get_f64("b"),
+                ce: if is_file {
+                    // For file documents, CE is stored in r__ce field, but after unflattening it would be in r_map["_ce"]
+                    r_map.get("_ce").and_then(|v| v.as_f64()).unwrap_or(0.0)
+                } else {
+                    get_opt_f64("h").unwrap_or(0.0) // h = CE for other document types
+                },
                 le: get_opt_f64("k").unwrap_or(0.0),
             },
             // Reconstruct detail XML from the unflattened r_map
@@ -414,20 +406,30 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
                     how: get_string("p"),
                     lat: if is_map_item {
                         get_opt_f64("j").unwrap_or(0.0)
+                    } else if is_file {
+                        get_opt_f64("h").unwrap_or(0.0)
                     } else {
                         get_opt_f64("h").unwrap_or(0.0)
                     },
                     lon: if is_map_item {
                         get_opt_f64("l").unwrap_or(0.0)
+                    } else if is_file {
+                        get_opt_f64("i").unwrap_or(0.0)
                     } else {
                         get_opt_f64("i").unwrap_or(0.0)
                     },
                     hae: if is_map_item {
                         get_opt_f64("i").unwrap_or(0.0)
+                    } else if is_file {
+                        get_opt_f64("j").unwrap_or(0.0)
                     } else {
                         get_opt_f64("j").unwrap_or(0.0)
                     },
-                    ce: get_f64("b"),
+                    ce: if is_file {
+                        get_opt_f64("r__ce").unwrap_or(0.0)
+                    } else {
+                        get_opt_f64("h").unwrap_or(0.0) // h = CE for other types
+                    },
                     le: get_opt_f64("k").unwrap_or(0.0),
                     callsign: None,      // Comes from detail_extra
                     group_name: None,    // Comes from detail_extra
@@ -447,7 +449,7 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
     } else {
         // Fallback for non-object JSON
         CotEvent {
-            version: "2.0".to_string(),
+            version: "2.0".to_string(), // Default version
             uid: "unknown".to_string(),
             event_type: "unknown".to_string(),
             time: Utc::now(),
