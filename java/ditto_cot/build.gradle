@@ -84,6 +84,13 @@ dependencies {
     testImplementation 'org.assertj:assertj-core:3.24.2'
     testImplementation 'org.mockito:mockito-core:5.4.0'
     testImplementation 'io.github.cdimascio:dotenv-java:3.0.0'
+    
+    // JMH for performance benchmarks
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    
+    // Additional dependencies for fuzz testing
+    testImplementation 'net.jqwik:jqwik:1.8.2'
 
 }
 
