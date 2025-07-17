@@ -31,7 +31,18 @@ java:
 		echo "Generating Java classes from schema..."; \
 		./gradlew generateSchemaClasses; \
 		echo "Building Java library..."; \
-		./gradlew build -x test; \
+		./gradlew build -x test -x jacocoTestCoverageVerification; \
+	else \
+		echo "Java build files not found. Skipping."; \
+	fi
+
+.PHONY: java-test-client
+java-test-client:
+	@echo "Building Java test client for cross-language tests..."
+	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
+		cd java && \
+		echo "Building test client with all dependencies..."; \
+		./gradlew :ditto_cot:fatJar; \
 	else \
 		echo "Java build files not found. Skipping."; \
 	fi
@@ -68,6 +79,11 @@ clean-csharp:
 .PHONY: test
 test: test-rust test-java test-csharp
 
+.PHONY: test-cross-lang
+test-cross-lang: java-test-client
+	@echo "Running cross-language multi-peer test..."
+	@cd rust && cargo test e2e_cross_lang_multi_peer_test
+
 .PHONY: test-rust
 test-rust:
 	@echo "Testing Rust library..."
@@ -77,7 +93,7 @@ test-rust:
 test-java:
 	@echo "Testing Java library and example..."
 	@if [ -f "java/build.gradle" ] || [ -f "java/build.gradle.kts" ]; then \
-		cd java && ./gradlew :library:test :example:test --info --console=rich --rerun-tasks; \
+		cd java && ./gradlew :ditto_cot:test :ditto_cot_example:test --info --console=rich --rerun-tasks; \
 	else \
 		echo "Java build files not found. Skipping tests."; \
 	fi
@@ -132,6 +148,7 @@ help:
 	@echo "  test-rust     - Run tests for Rust library"
 	@echo "  test-java     - Run tests for Java library"
 	@echo "  test-csharp   - Run tests for C# library"
+	@echo "  test-cross-lang - Run cross-language multi-peer test"
 	@echo "  example-rust  - Run Rust example client"
 	@echo "  example-java  - Run Java example client"
 	@echo "  example-csharp - Run C# example client"
@@ -140,4 +157,5 @@ help:
 	@echo "  clean-rust    - Clean Rust library"
 	@echo "  clean-java    - Clean Java library"
 	@echo "  clean-csharp  - Clean C# library"
+	@echo "  java-test-client - Build Java test client for cross-language tests"
 	@echo "  help          - Show this help message"

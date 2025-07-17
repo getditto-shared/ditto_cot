@@ -1,4 +1,4 @@
 rootProject.name = 'ditto-cot'
 
-include ':library'
-include ':example'
+include ':ditto_cot'
+include ':ditto_cot_example'
