@@ -1,0 +1,235 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'com.adarshr.test-logger' version '3.2.0'
+    id 'checkstyle'
+    id 'jacoco'
+}
+
+testlogger {
+    theme 'mocha'
+    showExceptions true
+    showStackTraces true
+    showFullStackTraces false
+    showCauses true
+    slowThreshold 2000
+    showSummary true
+    showSimpleNames false
+    showPassed true
+    showSkipped true
+    showFailed true
+    showStandardStreams false
+    showPassedStandardStreams true
+    showSkippedStandardStreams true
+    showFailedStandardStreams true
+}
+
+// Apply schema generation configuration
+apply from: 'schema.gradle'
+
+group = 'com.ditto'
+version = '1.0-SNAPSHOT'
+description = 'Ditto CoT Java Library'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withJavadocJar()
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.named('sourcesJar') {
+    from sourceSets.main.allSource
+    dependsOn generateSchemaClasses
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('jar') {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.ditto:ditto-java:5.0.0-preview.2'
+    implementation 'com.ditto:ditto-binaries:5.0.0-preview.2'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+    implementation 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.17.1'
+    implementation 'com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.17.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1'
+    
+    // Jackson for generated schema classes
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
+    
+    // XML processing dependencies - using standalone JAXB API and implementation
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1' // For Java 17 compatibility with javax.xml.bind.annotation.XmlElement
+    implementation 'com.sun.xml.bind:jaxb-impl:4.0.2'
+    implementation 'com.sun.xml.bind:jaxb-core:4.0.2'
+    implementation 'com.sun.activation:jakarta.activation:2.0.1'
+    
+    // Test dependencies
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.2'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'org.mockito:mockito-core:5.4.0'
+    testImplementation 'io.github.cdimascio:dotenv-java:3.0.0'
+    
+    // JMH for performance benchmarks
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    
+    // Additional dependencies for fuzz testing
+    testImplementation 'net.jqwik:jqwik:1.8.2'
+
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacoco {
+    toolVersion = "0.8.8"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'com/ditto/cot/example/**'
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn generateSchemaClasses, compileJava, processResources, test
+    
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.50
+            }
+        }
+    }
+    
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'com/ditto/cot/schema/**', // Exclude generated schema classes
+                'com/ditto/cot/example/**' // Exclude example classes
+            ])
+        }))
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+testlogger {
+    theme 'mocha'
+    showExceptions true
+    showStackTraces true
+    showFullStackTraces false
+    showCauses true
+    slowThreshold 2000
+    showSummary true
+    showSimpleNames false
+    showPassed true
+    showSkipped true
+    showFailed true
+    showStandardStreams false
+    showPassedStandardStreams true
+    showSkippedStandardStreams true
+    showFailedStandardStreams true
+}
+
+checkstyle {
+    toolVersion '10.12.1'
+    configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+    configProperties = [
+        'checkstyle.cache.file': "${buildDir}/checkstyle.cache"
+    ]
+    ignoreFailures = true
+    maxWarnings = 100
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Ditto CoT Library'
+                description = 'A Java library for working with Cursor on Target (CoT) messages in Ditto'
+                url = 'https://github.com/getditto/ditto_cot'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'ditto'
+                        name = 'Ditto Team'
+                        email = 'info@ditto.live'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/getditto/ditto_cot.git'
+                    developerConnection = 'scm:git:ssh://github.com/getditto/ditto_cot.git'
+                    url = 'https://github.com/getditto/ditto_cot'
+                }
+            }
+        }
+    }
+    
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/getditto/ditto_cot")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+// Task to generate a fat/uber JAR that includes all dependencies
+// This must be defined as early as possible to ensure it's available to the root build script
+task fatJar(type: Jar) {
+    archiveClassifier = 'all'
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': 'com.ditto.cot.CrossLanguageMultiPeerClient'
+    }
+}
+
+// Make sure the fatJar is built during the build process
+assemble.dependsOn fatJar

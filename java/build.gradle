@@ -76,12 +76,12 @@ subprojects {
 }
 
 // Configure specific subprojects
-project(':library') {
-    // Library-specific configuration is in library/build.gradle
+project(':ditto_cot') {
+    // Library-specific configuration is in ditto_cot/build.gradle
 }
 
-project(':example') {
-    // Example-specific configuration is in example/build.gradle
+project(':ditto_cot_example') {
+    // Example-specific configuration is in ditto_cot_example/build.gradle
 }
 
 // Task to build all subprojects
@@ -103,11 +103,11 @@ task cleanAll {
 }
 
 // Task to run the example
-// runExample task is now defined only in example/build.gradle
+// runExample task is now defined only in ditto_cot_example/build.gradle
 
 // Configure task dependencies for the library project
-project(':library') {
-    // fatJar dependency handled in library/build.gradle
+project(':ditto_cot') {
+    // fatJar dependency handled in ditto_cot/build.gradle
     
     // Configure task dependencies
     tasks.named('compileJava') {
@@ -120,7 +120,7 @@ project(':library') {
         dependsOn 'generateSchemaClasses'
     }
     
-    // sourcesJar configuration is handled in library/build.gradle
+    // sourcesJar configuration is handled in ditto_cot/build.gradle
 
 
 // Make check depend on coverage verification

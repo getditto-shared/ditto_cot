@@ -494,10 +494,10 @@ impl CotEvent {
         sender_callsign: &str,
         message: &str,
         chatroom: &str,
-        _chat_group_uid: &str,
+        chat_group_uid: &str,
     ) -> Self {
         let now = Utc::now();
-        let uid = format!("Chat-{}-", sender_uid);
+        let uid = sender_uid.to_string();
         Self {
             version: "2.0".to_string(),
             uid,
@@ -508,8 +508,8 @@ impl CotEvent {
             how: "h-g-i-g-o".to_string(),
             point: Point::default(),
             detail: format!(
-                "<detail>chat from={} room={} msg={}</detail>",
-                sender_callsign, chatroom, message
+                "<detail>chat from={} room={} roomId={} msg={}</detail>",
+                sender_callsign, chatroom, chat_group_uid, message
             ),
         }
     }
@@ -517,7 +517,7 @@ impl CotEvent {
     /// Creates a new emergency event
     pub fn new_emergency(
         uid: &str,
-        _callsign: &str,
+        callsign: &str,
         lat: f64,
         lon: f64,
         emergency_type: &str,
@@ -540,8 +540,8 @@ impl CotEvent {
                 le: 10.0,
             },
             detail: format!(
-                "<detail>emergency: type={} msg={}</detail>",
-                emergency_type, message
+                "<detail><contact callsign=\"{}\"/>emergency: type={} msg={}</detail>",
+                callsign, emergency_type, message
             ),
         }
     }
@@ -775,14 +775,14 @@ mod tests {
             "All Chat Rooms",
         );
 
-        assert_eq!(event.uid, "Chat-USER-123-");
+        assert_eq!(event.uid, "USER-123");
         assert_eq!(event.event_type, "b-t-f");
         assert_eq!(event.point.lat, 0.0);
         assert_eq!(event.point.lon, 0.0);
         assert_eq!(event.point.hae, 0.0);
         assert_eq!(
             event.detail,
-            "<detail>chat from=ALPHA-1 room=All Chat Rooms msg=Test message</detail>"
+            "<detail>chat from=ALPHA-1 room=All Chat Rooms roomId=All Chat Rooms msg=Test message</detail>"
         );
     }
 
@@ -801,7 +801,7 @@ mod tests {
         assert_eq!(event.event_type, "b-a-o-can");
         assert_eq!(
             event.detail,
-            "<detail>emergency: type=Emergency-911 msg=Need immediate assistance!</detail>"
+            "<detail><contact callsign=\"ALPHA-1\"/>emergency: type=Emergency-911 msg=Need immediate assistance!</detail>"
         );
     }
 
