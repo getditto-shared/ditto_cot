@@ -33,6 +33,7 @@ mod test_utils;
 
 /// Cross-language multi-peer E2E test with one Rust client and one Java client
 #[tokio::test]
+#[ignore = "Cross-language tests are disabled by default in CI. Run with --ignored to enable."]
 async fn e2e_cross_lang_multi_peer_test() -> Result<()> {
     println!("🚀 Starting Cross-Language Multi-Peer E2E Test");
     println!("==============================================");

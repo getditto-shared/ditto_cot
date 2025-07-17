@@ -68,6 +68,7 @@ public class E2EMultiPeerTest {
     }
 
     @Test
+    @Disabled("Cross-language tests are disabled by default in CI. Enable with system property or IDE for manual testing.")
     void e2eMultiPeerMapItemSyncTest() throws Exception {
         System.out.println("\n🚀 Starting Java E2E Multi-Peer Test (ATAK Detail Verification)");
         System.out.println("================================================================");

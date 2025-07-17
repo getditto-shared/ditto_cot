@@ -38,11 +38,11 @@ jobs:
     
     - name: Run Checkstyle
       working-directory: ./java
-      run: ./gradlew :library:checkstyleMain :library:checkstyleTest :example:checkstyleMain :example:checkstyleTest
+      run: ./gradlew :ditto_cot:checkstyleMain :ditto_cot:checkstyleTest :ditto_cot_example:checkstyleMain :ditto_cot_example:checkstyleTest
     
     - name: Generate schema classes
       working-directory: ./java
-      run: ./gradlew :library:generateSchemaClasses
+      run: ./gradlew :ditto_cot:generateSchemaClasses
 
   build-and-test:
     runs-on: ubuntu-latest
@@ -79,19 +79,19 @@ jobs:
     
     - name: Generate schema classes
       working-directory: ./java
-      run: ./gradlew :library:generateSchemaClasses
+      run: ./gradlew :ditto_cot:generateSchemaClasses
     
     - name: Build library
       working-directory: ./java
-      run: ./gradlew :library:build -x test
+      run: ./gradlew :ditto_cot:build -x test
     
     - name: Run tests
       working-directory: ./java
-      run: ./gradlew :library:test :example:test --info
+      run: ./gradlew :ditto_cot:test :ditto_cot_example:test --info
     
     - name: Generate test report
       working-directory: ./java
-      run: ./gradlew :library:jacocoTestReport
+      run: ./gradlew :ditto_cot:jacocoTestReport
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -99,14 +99,14 @@ jobs:
       with:
         name: test-results
         path: |
-          java/library/build/reports/tests/
-          java/library/build/reports/jacoco/
+          java/ditto_cot/build/reports/tests/
+          java/ditto_cot/build/reports/jacoco/
     
     - name: Upload coverage to Codecov (optional)
       uses: codecov/codecov-action@v4
       if: success()
       with:
-        file: java/library/build/reports/jacoco/test/jacocoTestReport.xml
+        file: java/ditto_cot/build/reports/jacoco/test/jacocoTestReport.xml
         flags: java
         name: java-coverage
         fail_ci_if_error: false
@@ -147,8 +147,8 @@ jobs:
     
     - name: Run integration tests
       working-directory: ./java
-      run: ./gradlew :library:test --tests "com.ditto.cot.CoTConverterIntegrationTest"
+      run: ./gradlew :ditto_cot:test --tests "com.ditto.cot.CoTConverterIntegrationTest"
     
     - name: Run XML round-trip tests
       working-directory: ./java
-      run: ./gradlew :library:test --tests "com.ditto.cot.CoTXmlRoundTripTest"
+      run: ./gradlew :ditto_cot:test --tests "com.ditto.cot.CoTXmlRoundTripTest"

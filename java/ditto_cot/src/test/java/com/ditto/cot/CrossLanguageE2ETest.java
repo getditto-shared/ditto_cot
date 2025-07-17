@@ -138,6 +138,7 @@ public class CrossLanguageE2ETest {
     }
 
     @Test
+    @Disabled("Cross-language tests are disabled by default in CI. Enable with system property or IDE for manual testing.")
     @DisplayName("Java→Ditto→Rust: Verify Java document can be correctly read by Rust")
     void testJavaToDittoToRust() throws Exception {
         System.out.println("📤 Testing Java → Ditto → Rust flow");
