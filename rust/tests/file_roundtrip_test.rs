@@ -107,7 +107,9 @@ fn test_file_roundtrip() -> Result<()> {
     );
     assert!(
         (cot_event.point.ce - roundtrip_event.point.ce).abs() < 0.0001,
-        "CE mismatch: {} vs {}", cot_event.point.ce, roundtrip_event.point.ce
+        "CE mismatch: {} vs {}",
+        cot_event.point.ce,
+        roundtrip_event.point.ce
     );
     assert!(
         (cot_event.point.le - roundtrip_event.point.le).abs() < 0.0001,

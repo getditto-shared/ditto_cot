@@ -41,7 +41,7 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
             how: api.p.clone(),
             point: Point {
                 lat: api.j.unwrap_or(0.0), // j = LAT
-                lon: api.l.unwrap_or(0.0), // l = LON  
+                lon: api.l.unwrap_or(0.0), // l = LON
                 hae: api.i.unwrap_or(0.0), // i = HAE
                 ce: api.h.unwrap_or(0.0),  // h = CE
                 le: api.k.unwrap_or(0.0),  // k = LE
@@ -107,9 +107,9 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 match &file.r.get("_time") {
                     Some(FileRValue::String(s)) => match s.parse::<DateTime<Utc>>() {
                         Ok(dt) => dt,
-                        Err(_) => Utc::now()
+                        Err(_) => Utc::now(),
                     },
-                    _ => Utc::now()
+                    _ => Utc::now(),
                 }
             };
 
@@ -167,8 +167,8 @@ pub fn cot_event_from_ditto_document(doc: &CotDocument) -> CotEvent {
                 point: Point {
                     lat: file.j.unwrap_or(0.0), // j = LAT
                     lon: file.l.unwrap_or(0.0), // l = LON
-                    hae: file.i.unwrap_or(0.0), // i = HAE  
-                    ce, // Use the extracted ce value from _ce field
+                    hae: file.i.unwrap_or(0.0), // i = HAE
+                    ce,                         // Use the extracted ce value from _ce field
                     le: file.k.unwrap_or(0.0),  // k = LE
                 },
                 // Serialize detail map to XML for round-trip fidelity
@@ -304,7 +304,9 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
             || event_type.contains("a-u-S")
             || event_type.contains("a-u-A")
             || event_type.contains("a-u-G");
-        let is_file = event_type.contains("file") || event_type.contains("attachment") || event_type.contains("b-f-t-file");
+        let is_file = event_type.contains("file")
+            || event_type.contains("attachment")
+            || event_type.contains("b-f-t-file");
 
         CotEvent {
             version: get_string("g"), // g = VERSION
@@ -330,26 +332,20 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
             point: Point {
                 lat: if is_map_item {
                     get_opt_f64("j").unwrap_or(0.0)
-                } else if is_file {
-                    // For file documents, lat is stored in h field, but h might be overridden
-                    get_opt_f64("h").unwrap_or(0.0)  
                 } else {
+                    // For file and other documents, lat is stored in h field
                     get_opt_f64("h").unwrap_or(0.0)
                 },
                 lon: if is_map_item {
                     get_opt_f64("l").unwrap_or(0.0)
-                } else if is_file {
-                    // For file documents, lon is stored in i field
-                    get_opt_f64("i").unwrap_or(0.0)
                 } else {
+                    // For file and other documents, lon is stored in i field
                     get_opt_f64("i").unwrap_or(0.0)
                 },
                 hae: if is_map_item {
                     get_opt_f64("i").unwrap_or(0.0)
-                } else if is_file {
-                    // For file documents, hae is stored in j field  
-                    get_opt_f64("j").unwrap_or(0.0)
                 } else {
+                    // For file and other documents, hae is stored in j field
                     get_opt_f64("j").unwrap_or(0.0)
                 },
                 ce: if is_file {
@@ -406,22 +402,16 @@ pub fn cot_event_from_flattened_json(json_value: &Value) -> CotEvent {
                     how: get_string("p"),
                     lat: if is_map_item {
                         get_opt_f64("j").unwrap_or(0.0)
-                    } else if is_file {
-                        get_opt_f64("h").unwrap_or(0.0)
                     } else {
                         get_opt_f64("h").unwrap_or(0.0)
                     },
                     lon: if is_map_item {
                         get_opt_f64("l").unwrap_or(0.0)
-                    } else if is_file {
-                        get_opt_f64("i").unwrap_or(0.0)
                     } else {
                         get_opt_f64("i").unwrap_or(0.0)
                     },
                     hae: if is_map_item {
                         get_opt_f64("i").unwrap_or(0.0)
-                    } else if is_file {
-                        get_opt_f64("j").unwrap_or(0.0)
                     } else {
                         get_opt_f64("j").unwrap_or(0.0)
                     },

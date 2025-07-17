@@ -110,17 +110,22 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         q: "".to_string(),        // Access, default empty
         r: {
             let detail_map = parse_detail_section(&event.detail);
-            detail_map.into_iter().map(|(k, v)| {
-                let rvalue = match v {
-                    serde_json::Value::String(s) => MapItemRValue::String(s),
-                    serde_json::Value::Number(n) => MapItemRValue::Number(n.as_f64().unwrap_or(0.0)),
-                    serde_json::Value::Bool(b) => MapItemRValue::Boolean(b),
-                    serde_json::Value::Object(o) => MapItemRValue::Object(o),
-                    serde_json::Value::Array(a) => MapItemRValue::Array(a),
-                    serde_json::Value::Null => MapItemRValue::Null,
-                };
-                (k, rvalue)
-            }).collect()
+            detail_map
+                .into_iter()
+                .map(|(k, v)| {
+                    let rvalue = match v {
+                        serde_json::Value::String(s) => MapItemRValue::String(s),
+                        serde_json::Value::Number(n) => {
+                            MapItemRValue::Number(n.as_f64().unwrap_or(0.0))
+                        }
+                        serde_json::Value::Bool(b) => MapItemRValue::Boolean(b),
+                        serde_json::Value::Object(o) => MapItemRValue::Object(o),
+                        serde_json::Value::Array(a) => MapItemRValue::Array(a),
+                        serde_json::Value::Null => MapItemRValue::Null,
+                    };
+                    (k, rvalue)
+                })
+                .collect()
         }, // Parse detail elements into r field
         s: "".to_string(),        // Opex, default empty
         t: "".to_string(),        // Qos, default empty
@@ -142,7 +147,8 @@ pub fn transform_location_event_flattened(event: &CotEvent, peer_key: &str) -> V
     base_doc.insert(
         "b".to_string(),
         Value::Number(
-            serde_json::Number::from_f64(event.time.timestamp_micros() as f64).unwrap_or(serde_json::Number::from(0)),
+            serde_json::Number::from_f64(event.time.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
         ),
     );
     base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
@@ -214,12 +220,12 @@ pub fn transform_location_event_flattened(event: &CotEvent, peer_key: &str) -> V
 pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
     // Parse chat message details from the detail XML
     // Expected format: <detail>chat from=SENDER room=ROOM msg=MESSAGE</detail>
-    
+
     let mut message = None;
     let mut room = None;
     let mut room_id = None;
     let mut author_callsign = None;
-    
+
     // Simple regex-like extraction for chat details
     if let Some(msg_start) = event.detail.find("msg=") {
         let msg_part = &event.detail[msg_start + 4..];
@@ -227,21 +233,21 @@ pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
             message = Some(msg_part[..msg_end].trim().to_string());
         }
     }
-    
+
     if let Some(room_start) = event.detail.find("room=") {
         let room_part = &event.detail[room_start + 5..];
         if let Some(room_end) = room_part.find(" roomId=") {
             room = Some(room_part[..room_end].trim().to_string());
         }
     }
-    
+
     if let Some(room_id_start) = event.detail.find("roomId=") {
         let room_id_part = &event.detail[room_id_start + 7..];
         if let Some(room_id_end) = room_id_part.find(" msg=") {
             room_id = Some(room_id_part[..room_id_end].trim().to_string());
         }
     }
-    
+
     if let Some(from_start) = event.detail.find("from=") {
         let from_part = &event.detail[from_start + 5..];
         if let Some(from_end) = from_part.find(" ") {
@@ -327,7 +333,8 @@ pub fn transform_chat_event_flattened(event: &CotEvent, peer_key: &str) -> Optio
     base_doc.insert(
         "b".to_string(),
         Value::Number(
-            serde_json::Number::from_f64(event.time.timestamp_micros() as f64).unwrap_or(serde_json::Number::from(0)),
+            serde_json::Number::from_f64(event.time.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
         ),
     );
     base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
@@ -417,7 +424,7 @@ pub fn transform_emergency_event(event: &CotEvent, peer_key: &str) -> Api {
         d_v: 2,
         source: None,
         data,
-        e: event.uid.clone(), // Use UID for e field  
+        e: event.uid.clone(),     // Use UID for e field
         g: event.version.clone(), // Preserve version in g field
         h: Some(event.point.lat),
         i: Some(event.point.lon),
@@ -619,28 +626,33 @@ fn transform_generic_event(event: &CotEvent, peer_key: &str) -> Generic {
                 event.uid.clone()
             }
         }, // Extract callsign from detail or use UID
-        g: event.version.clone(), // Preserve version in g field
-        h: Some(event.point.ce),  // h = CE (circular error)
-        i: Some(event.point.hae), // i = HAE (height above ellipsoid)
-        j: Some(event.point.lat), // j = LAT (latitude)
-        k: Some(event.point.le),  // k = LE (linear error)
-        l: Some(event.point.lon), // l = LON (longitude)
+        g: event.version.clone(),     // Preserve version in g field
+        h: Some(event.point.ce),      // h = CE (circular error)
+        i: Some(event.point.hae),     // i = HAE (height above ellipsoid)
+        j: Some(event.point.lat),     // j = LAT (latitude)
+        k: Some(event.point.le),      // k = LE (linear error)
+        l: Some(event.point.lon),     // l = LON (longitude)
         n: Some(time_micros as f64),  // Store time in microseconds
         o: Some(stale_micros as f64), // Store stale in microseconds
         p: event.how.clone(),
         q: "".to_string(),
         r: {
-            extras.into_iter().map(|(k, v)| {
-                let rvalue = match v {
-                    serde_json::Value::String(s) => GenericRValue::String(s),
-                    serde_json::Value::Number(n) => GenericRValue::Number(n.as_f64().unwrap_or(0.0)),
-                    serde_json::Value::Bool(b) => GenericRValue::Boolean(b),
-                    serde_json::Value::Object(o) => GenericRValue::Object(o),
-                    serde_json::Value::Array(a) => GenericRValue::Array(a),
-                    serde_json::Value::Null => GenericRValue::Null,
-                };
-                (k, rvalue)
-            }).collect()
+            extras
+                .into_iter()
+                .map(|(k, v)| {
+                    let rvalue = match v {
+                        serde_json::Value::String(s) => GenericRValue::String(s),
+                        serde_json::Value::Number(n) => {
+                            GenericRValue::Number(n.as_f64().unwrap_or(0.0))
+                        }
+                        serde_json::Value::Bool(b) => GenericRValue::Boolean(b),
+                        serde_json::Value::Object(o) => GenericRValue::Object(o),
+                        serde_json::Value::Array(a) => GenericRValue::Array(a),
+                        serde_json::Value::Null => GenericRValue::Null,
+                    };
+                    (k, rvalue)
+                })
+                .collect()
         }, // Parse detail elements into r field
         s: "".to_string(),
         t: "".to_string(),
@@ -829,7 +841,8 @@ pub fn transform_file_event_flattened(event: &CotEvent, peer_key: &str) -> Value
     base_doc.insert(
         "b".to_string(),
         Value::Number(
-            serde_json::Number::from_f64(event.time.timestamp_micros() as f64).unwrap_or(serde_json::Number::from(0)),
+            serde_json::Number::from_f64(event.time.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
         ),
     );
     base_doc.insert("d".to_string(), Value::String(event.uid.clone()));
@@ -934,7 +947,8 @@ pub fn transform_generic_event_flattened(event: &CotEvent, peer_key: &str) -> Va
     base_doc.insert(
         "b".to_string(),
         Value::Number(
-            serde_json::Number::from_f64(event.time.timestamp_micros() as f64).unwrap_or(serde_json::Number::from(0)),
+            serde_json::Number::from_f64(event.time.timestamp_micros() as f64)
+                .unwrap_or(serde_json::Number::from(0)),
         ),
     );
     base_doc.insert("d".to_string(), Value::String(event.uid.clone()));

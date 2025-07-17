@@ -3,9 +3,9 @@
 //! This test module validates the serialization, deserialization, and field
 //! handling for all Ditto document types (Api, Chat, File, MapItem, Generic).
 
+use ditto_cot::cot_events::CotEvent;
 use ditto_cot::ditto::schema::*;
 use ditto_cot::ditto::{cot_to_document, CotDocument};
-use ditto_cot::cot_events::CotEvent;
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -13,9 +13,12 @@ use std::collections::HashMap;
 #[test]
 fn test_api_document_serialization() {
     let mut r_field = HashMap::new();
-    r_field.insert("emergency".to_string(), ApiRValue::String("Medical".to_string()));
+    r_field.insert(
+        "emergency".to_string(),
+        ApiRValue::String("Medical".to_string()),
+    );
     r_field.insert("severity".to_string(), ApiRValue::Number(3.0));
-    
+
     let api_doc = Api {
         id: "TEST-EMERGENCY-001".to_string(),
         a: "test-peer-key".to_string(),
@@ -51,13 +54,13 @@ fn test_api_document_serialization() {
         time_millis: None,
         title: None,
     };
-    
+
     // Test serialization
     let json = serde_json::to_string(&api_doc).unwrap();
     assert!(json.contains("\"_id\":\"TEST-EMERGENCY-001\""));
     assert!(json.contains("\"w\":\"a-u-emergency-g\""));
     assert!(json.contains("\"emergency\":\"Medical\""));
-    
+
     // Test deserialization
     let deserialized: Api = serde_json::from_str(&json).unwrap();
     assert_eq!(deserialized.id, "TEST-EMERGENCY-001");
@@ -72,8 +75,11 @@ fn test_api_document_serialization() {
 #[test]
 fn test_chat_document_fields() {
     let mut r_field = HashMap::new();
-    r_field.insert("chatroom".to_string(), ChatRValue::String("All Chat Rooms".to_string()));
-    
+    r_field.insert(
+        "chatroom".to_string(),
+        ChatRValue::String("All Chat Rooms".to_string()),
+    );
+
     let chat_doc = Chat {
         id: "CHAT-MSG-001".to_string(),
         a: "test-peer-key".to_string(),
@@ -110,13 +116,13 @@ fn test_chat_document_fields() {
         time: Some("2023-01-01T12:00:00Z".to_string()),
         source: None,
     };
-    
+
     // Test JSON serialization
     let json = serde_json::to_string(&chat_doc).unwrap();
     assert!(json.contains("\"message\":\"Test chat message\""));
     assert!(json.contains("\"room\":\"All Chat Rooms\""));
     assert!(json.contains("\"authorCallsign\":\"BRAVO-2\""));
-    
+
     // Test deserialization
     let deserialized: Chat = serde_json::from_str(&json).unwrap();
     assert_eq!(deserialized.message, Some("Test chat message".to_string()));
@@ -127,13 +133,16 @@ fn test_chat_document_fields() {
 #[test]
 fn test_map_item_document_validation() {
     let mut r_field = HashMap::new();
-    r_field.insert("contact".to_string(), MapItemRValue::Object({
-        let mut contact = serde_json::Map::new();
-        contact.insert("callsign".to_string(), json!("CHARLIE-3"));
-        contact.insert("endpoint".to_string(), json!("192.168.1.100:8080"));
-        contact
-    }));
-    
+    r_field.insert(
+        "contact".to_string(),
+        MapItemRValue::Object({
+            let mut contact = serde_json::Map::new();
+            contact.insert("callsign".to_string(), json!("CHARLIE-3"));
+            contact.insert("endpoint".to_string(), json!("192.168.1.100:8080"));
+            contact
+        }),
+    );
+
     let map_item = MapItem {
         id: "MAP-ITEM-001".to_string(),
         a: "test-peer-key".to_string(),
@@ -163,7 +172,7 @@ fn test_map_item_document_validation() {
         w: "a-f-G-U-C".to_string(),
         source: None,
     };
-    
+
     // Test that all required fields are present
     let json_value = serde_json::to_value(&map_item).unwrap();
     assert!(json_value.get("_id").is_some());
@@ -174,7 +183,7 @@ fn test_map_item_document_validation() {
     assert!(json_value.get("_r").is_some());
     assert!(json_value.get("_v").is_some());
     assert!(json_value.get("e").is_some());
-    
+
     // Test optional fields
     assert_eq!(json_value.get("c").unwrap(), "Friendly Unit");
     assert_eq!(json_value.get("f").unwrap(), true);
@@ -216,7 +225,7 @@ fn test_file_document_fields() {
         item_id: None,
         source: None,
     };
-    
+
     let json = serde_json::to_string(&file_doc).unwrap();
     assert!(json.contains("\"c\":\"test_image.jpg\""));
     assert!(json.contains("\"contentType\":\"image/jpeg\""));
@@ -254,10 +263,10 @@ fn test_generic_document_fallback() {
         w: "x-custom-type".to_string(),
         source: None,
     };
-    
+
     // Generic should handle any event type
     assert_eq!(generic_doc.w, "x-custom-type");
-    
+
     let json = serde_json::to_value(&generic_doc).unwrap();
     assert!(json.is_object());
 }
@@ -285,11 +294,11 @@ fn test_document_json_round_trip() {
         "v": "",
         "w": "a-u-emergency-g"
     });
-    
+
     let api_doc: Api = serde_json::from_value(api_json.clone()).unwrap();
     let api_back = serde_json::to_value(&api_doc).unwrap();
     assert_eq!(api_back.get("_id"), api_json.get("_id"));
-    
+
     // Test Chat round-trip
     let chat_json = json!({
         "_id": "CHAT-TEST",
@@ -311,7 +320,7 @@ fn test_document_json_round_trip() {
         "w": "b-t-f",
         "message": "Hello world"
     });
-    
+
     let chat_doc: Chat = serde_json::from_value(chat_json.clone()).unwrap();
     assert_eq!(chat_doc.message, Some("Hello world".to_string()));
 }
@@ -324,15 +333,15 @@ fn test_rvalue_variants() {
     let number_val = ApiRValue::Number(42.0);
     let bool_val = ApiRValue::Boolean(true);
     let null_val = ApiRValue::Null;
-    
+
     // Test array variant
     let _array_val = ApiRValue::Array(vec![json!("item1"), json!("item2")]);
-    
+
     // Test object variant
     let mut obj = serde_json::Map::new();
     obj.insert("key".to_string(), json!("value"));
     let _object_val = ApiRValue::Object(obj);
-    
+
     // Verify serialization
     assert_eq!(serde_json::to_value(&string_val).unwrap(), json!("test"));
     assert_eq!(serde_json::to_value(&number_val).unwrap(), json!(42.0));
@@ -344,7 +353,7 @@ fn test_rvalue_variants() {
 #[test]
 fn test_cot_document_enum_resolution() {
     // Create different CoT events and verify they resolve to correct document types
-    
+
     // Emergency event -> Api document
     let emergency_event = CotEvent::new_emergency(
         "EMRG-001",
@@ -352,44 +361,32 @@ fn test_cot_document_enum_resolution() {
         34.12345,
         -118.12345,
         "Emergency-911",
-        "Medical emergency"
+        "Medical emergency",
     );
     let emergency_doc = cot_to_document(&emergency_event, "test-peer");
     // Note: new_emergency creates "b-a-o-can" type, which maps to Generic, not Api
     assert!(matches!(emergency_doc, CotDocument::Generic(_)));
-    
+
     // Chat event -> Chat document
     let chat_event = CotEvent::new_chat_message(
         "CHAT-001",
         "BRAVO-2",
         "Hello team",
         "All Chat Rooms",
-        "AllChatRooms"
+        "AllChatRooms",
     );
     let chat_doc = cot_to_document(&chat_event, "test-peer");
     assert!(matches!(chat_doc, CotDocument::Chat(_)));
-    
+
     // Location event -> MapItem document
-    let location_event = CotEvent::new_location_update(
-        "LOC-001",
-        "CHARLIE-3",
-        "Cyan",
-        35.0,
-        -120.0,
-        100.0
-    );
+    let location_event =
+        CotEvent::new_location_update("LOC-001", "CHARLIE-3", "Cyan", 35.0, -120.0, 100.0);
     let location_doc = cot_to_document(&location_event, "test-peer");
     assert!(matches!(location_doc, CotDocument::MapItem(_)));
-    
+
     // Unknown type -> Generic document
-    let mut generic_event = CotEvent::new_location_update(
-        "GENERIC-001",
-        "DELTA-4",
-        "Red",
-        36.0,
-        -121.0,
-        50.0
-    );
+    let mut generic_event =
+        CotEvent::new_location_update("GENERIC-001", "DELTA-4", "Red", 36.0, -121.0, 50.0);
     generic_event.event_type = "x-custom-unknown".to_string();
     let generic_doc = cot_to_document(&generic_event, "test-peer");
     assert!(matches!(generic_doc, CotDocument::Generic(_)));
@@ -435,9 +432,9 @@ fn test_schema_version_enforcement() {
         time_millis: None,
         title: None,
     };
-    
+
     assert_eq!(api.d_v, 2);
-    
+
     // Test deserialization enforces schema version
     let json_with_wrong_version = json!({
         "_id": "TEST",
@@ -458,7 +455,7 @@ fn test_schema_version_enforcement() {
         "v": "",
         "w": ""
     });
-    
+
     // This should still deserialize but with d_v = 1
     let result: Result<Api, _> = serde_json::from_value(json_with_wrong_version);
     assert!(result.is_ok());
@@ -479,7 +476,7 @@ fn test_optional_field_serialization() {
         d_v: 2,
         e: "call".to_string(),
         g: String::new(),
-        h: None, // Should be skipped in serialization
+        h: None,        // Should be skipped in serialization
         i: Some(100.0), // Should be included
         j: None,
         k: None,
@@ -504,13 +501,13 @@ fn test_optional_field_serialization() {
         time_millis: None,
         title: None,
     };
-    
+
     let json = serde_json::to_value(&api).unwrap();
-    
+
     // None values should be omitted
     assert!(!json.as_object().unwrap().contains_key("h"));
     assert!(!json.as_object().unwrap().contains_key("j"));
-    
+
     // Some values should be present
     assert!(json.as_object().unwrap().contains_key("i"));
     assert_eq!(json.get("i").unwrap(), 100.0);

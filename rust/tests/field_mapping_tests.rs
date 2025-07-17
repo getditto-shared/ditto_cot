@@ -3,10 +3,10 @@
 //! This module validates the conversion logic that maps CoT event fields
 //! to their corresponding Ditto document fields.
 
-use ditto_cot::cot_events::{CotEvent, Point};
-use ditto_cot::ditto::{cot_to_document, CotDocument};
-use ditto_cot::ditto::from_ditto::cot_event_from_ditto_document;
 use chrono::{DateTime, Utc};
+use ditto_cot::cot_events::{CotEvent, Point};
+use ditto_cot::ditto::from_ditto::cot_event_from_ditto_document;
+use ditto_cot::ditto::{cot_to_document, CotDocument};
 use std::str::FromStr;
 
 /// Test basic CoT to Ditto field mapping
@@ -29,30 +29,30 @@ fn test_cot_to_ditto_field_mapping() {
         },
         detail: "<detail><contact callsign=\"ALPHA-1\"/></detail>".to_string(),
     };
-    
+
     let doc = cot_to_document(&event, "test-peer-key");
-    
+
     match doc {
         CotDocument::MapItem(map_item) => {
             // Verify UID mapping
             assert_eq!(map_item.id, "TEST-UID-123"); // uid -> _id
-            
+
             // Verify peer key
             assert_eq!(map_item.a, "test-peer-key"); // peer_key -> a
-            
+
             // Verify event type mapping
             assert_eq!(map_item.w, "a-f-G-U-C"); // event_type -> w
-            
+
             // Verify how mapping
             assert_eq!(map_item.p, "m-g"); // how -> p
-            
+
             // Verify point mapping
             assert_eq!(map_item.j, Some(34.12345)); // lat -> j
             assert_eq!(map_item.l, Some(-118.12345)); // lon -> l
             assert_eq!(map_item.i, Some(150.0)); // hae -> i
             assert_eq!(map_item.h, Some(10.0)); // ce -> h
             assert_eq!(map_item.k, Some(20.0)); // le -> k
-            
+
             // Verify version mapping
             assert_eq!(map_item.g, "2.0"); // version -> g
         }
@@ -65,7 +65,7 @@ fn test_cot_to_ditto_field_mapping() {
 fn test_ditto_to_cot_field_mapping() {
     use ditto_cot::ditto::schema::MapItem;
     use std::collections::HashMap;
-    
+
     let map_item = MapItem {
         id: "REVERSE-TEST-001".to_string(),
         a: "peer-key".to_string(),
@@ -95,16 +95,16 @@ fn test_ditto_to_cot_field_mapping() {
         w: "a-f-G-U-C".to_string(),
         source: None,
     };
-    
+
     let doc = CotDocument::MapItem(map_item);
     let event = cot_event_from_ditto_document(&doc);
-    
+
     // Verify reverse mapping
     assert_eq!(event.uid, "REVERSE-TEST-001"); // _id -> uid
     assert_eq!(event.event_type, "a-f-G-U-C"); // w -> event_type
     assert_eq!(event.how, "h-g-i-g-o"); // p -> how
     assert_eq!(event.version, "2.0"); // g -> version
-    
+
     // Verify point reverse mapping
     assert_eq!(event.point.lat, 35.6789); // j -> lat
     assert_eq!(event.point.lon, -119.6789); // l -> lon
@@ -119,31 +119,31 @@ fn test_timestamp_field_conversions() {
     let now = Utc::now();
     let start = now - chrono::Duration::minutes(1);
     let stale = now + chrono::Duration::minutes(10);
-    
+
     let event = CotEvent {
         version: "2.0".to_string(),
         uid: "TIME-TEST-001".to_string(),
         event_type: "a-f-G-U-C".to_string(),
         time: now,
-        start: start,
-        stale: stale,
+        start,
+        stale,
         how: "m-g".to_string(),
         point: Point::default(),
         detail: "<detail/>".to_string(),
     };
-    
+
     let doc = cot_to_document(&event, "test-peer");
-    
+
     match doc {
         CotDocument::MapItem(map_item) => {
             // b field should be time in microseconds
             let expected_micros = now.timestamp_micros() as f64;
             assert!((map_item.b - expected_micros).abs() < 1000.0); // Allow some tolerance
-            
+
             // n field should be start in microseconds
             let expected_start = start.timestamp_micros() as f64;
             assert_eq!(map_item.n, Some(expected_start));
-            
+
             // o field should be stale in microseconds
             let expected_stale = stale.timestamp_micros() as f64;
             assert_eq!(map_item.o, Some(expected_stale));
@@ -161,7 +161,7 @@ fn test_custom_field_preservation() {
         <status battery="85" readiness="green"/>
         <custom_field value="preserve_me" important="true"/>
     </detail>"#;
-    
+
     let event = CotEvent {
         version: "2.0".to_string(),
         uid: "CUSTOM-TEST-001".to_string(),
@@ -173,15 +173,18 @@ fn test_custom_field_preservation() {
         point: Point::default(),
         detail: detail_xml.to_string(),
     };
-    
+
     let doc = cot_to_document(&event, "test-peer");
-    
+
     match doc {
         CotDocument::MapItem(map_item) => {
             // Check that custom fields are preserved in r field
-            assert!(!map_item.r.is_empty(), "r field should contain detail elements");
+            assert!(
+                !map_item.r.is_empty(),
+                "r field should contain detail elements"
+            );
             println!("r field contents: {:?}", map_item.r);
-            
+
             // The detail parser should have preserved these fields
             // Note: exact structure depends on detail parser implementation
             println!("r field contents: {:?}", map_item.r);
@@ -201,10 +204,10 @@ fn test_field_type_conversions() {
         <point lat="34.12345" lon="-118.12345" hae="150.0" ce="10.0" le="20.0"/>
         <detail/>
     </event>"#;
-    
+
     let event = CotEvent::from_xml(xml).unwrap();
     let doc = cot_to_document(&event, "test-peer");
-    
+
     match doc {
         CotDocument::MapItem(map_item) => {
             // Verify string-to-number conversions
@@ -213,7 +216,7 @@ fn test_field_type_conversions() {
             assert_eq!(map_item.i, Some(150.0));
             assert_eq!(map_item.h, Some(10.0));
             assert_eq!(map_item.k, Some(20.0));
-            
+
             // All numeric fields should be proper f64 values
             assert!(map_item.j.is_some());
             assert!(map_item.l.is_some());
@@ -230,11 +233,11 @@ fn test_chat_message_field_mapping() {
         "DELTA-4",
         "Test message content",
         "Operations Room",
-        "ops-room-001"
+        "ops-room-001",
     );
-    
+
     let doc = cot_to_document(&chat_event, "test-peer");
-    
+
     match doc {
         CotDocument::Chat(chat) => {
             assert_eq!(chat.id, "CHAT-MAP-001"); // UID preserved correctly
@@ -257,11 +260,11 @@ fn test_emergency_event_field_mapping() {
         36.0,
         -121.0,
         "Emergency-911",
-        "Medical assistance required"
+        "Medical assistance required",
     );
-    
+
     let doc = cot_to_document(&emrg_event, "test-peer");
-    
+
     // Note: new_emergency creates "b-a-o-can" type, which maps to Generic, not Api
     match doc {
         CotDocument::Generic(generic) => {
@@ -270,7 +273,7 @@ fn test_emergency_event_field_mapping() {
             assert_eq!(generic.w, "b-a-o-can");
             assert_eq!(generic.j, Some(36.0));
             assert_eq!(generic.l, Some(-121.0));
-            
+
             // Emergency details should be in r field
             assert!(!generic.r.is_empty());
         }
@@ -290,16 +293,16 @@ fn test_file_event_field_mapping() {
             <file name="test_document.pdf" size="2048000" hash="abc123def456"/>
         </detail>
     </event>"#;
-    
+
     let event = CotEvent::from_xml(file_xml).unwrap();
     let doc = cot_to_document(&event, "test-peer");
-    
+
     match doc {
         CotDocument::File(file) => {
             assert_eq!(file.id, "FILE-MAP-001");
             assert_eq!(file.w, "b-f-t-file");
             assert_eq!(file.p, "h-e");
-            
+
             // File details should be preserved
             // Note: exact mapping depends on detail parser
         }
@@ -319,23 +322,23 @@ fn test_special_cot_field_mapping() {
         <point lat="34.0" lon="-118.0" hae="100" ce="10" le="10"/>
         <detail/>
     </event>"#;
-    
+
     // Note: Standard CoT XML doesn't include these as event attributes
     // They would typically be in the detail section
     // This test documents expected behavior if they were mapped
-    
+
     let event = CotEvent::from_xml(xml).unwrap();
     let doc = cot_to_document(&event, "test-peer");
-    
+
     match doc {
         CotDocument::MapItem(map_item) => {
             // Document the field mappings:
             // access -> q
-            // qos -> t  
+            // qos -> t
             // opex -> s
             // caveat -> u
             // releasableTo -> v
-            
+
             // These would need to be extracted from detail or custom parsing
             // Current implementation may use defaults
             assert_eq!(map_item.q, ""); // access field
@@ -362,9 +365,9 @@ fn test_unknown_type_to_generic_mapping() {
         point: Point::default(),
         detail: "<detail><custom>Special data</custom></detail>".to_string(),
     };
-    
+
     let doc = cot_to_document(&unknown_event, "test-peer");
-    
+
     match doc {
         CotDocument::Generic(generic) => {
             assert_eq!(generic.id, "UNKNOWN-001");
@@ -385,7 +388,7 @@ fn test_sensor_event_type_mapping() {
         ("a-u-A", "Unmanned System - Air"),
         ("a-u-G", "Unmanned System - Ground"),
     ];
-    
+
     for (event_type, _description) in sensor_types {
         let mut event = CotEvent::new_location_update(
             &format!("SENSOR-{}", event_type),
@@ -393,12 +396,12 @@ fn test_sensor_event_type_mapping() {
             "Blue",
             35.0,
             -120.0,
-            500.0
+            500.0,
         );
         event.event_type = event_type.to_string();
-        
+
         let doc = cot_to_document(&event, "test-peer");
-        
+
         match doc {
             CotDocument::MapItem(map_item) => {
                 assert_eq!(map_item.w, event_type);
@@ -430,27 +433,29 @@ fn test_round_trip_field_preservation() {
         },
         detail: r#"<detail><contact callsign="FOXTROT-6"/></detail>"#.to_string(),
     };
-    
+
     // Convert to Ditto document
     let doc = cot_to_document(&original_event, "test-peer");
-    
+
     // Convert back to CoT event
     let recovered_event = cot_event_from_ditto_document(&doc);
-    
+
     // Verify all fields are preserved
     assert_eq!(original_event.uid, recovered_event.uid);
     assert_eq!(original_event.event_type, recovered_event.event_type);
     assert_eq!(original_event.version, recovered_event.version);
     assert_eq!(original_event.how, recovered_event.how);
-    
+
     // Points should match (with floating point tolerance)
     assert!((original_event.point.lat - recovered_event.point.lat).abs() < 0.000001);
     assert!((original_event.point.lon - recovered_event.point.lon).abs() < 0.000001);
     assert!((original_event.point.hae - recovered_event.point.hae).abs() < 0.01);
     assert!((original_event.point.ce - recovered_event.point.ce).abs() < 0.1);
     assert!((original_event.point.le - recovered_event.point.le).abs() < 0.1);
-    
+
     // Times should be within 1 second (due to millisecond conversion)
-    let time_diff = (original_event.time - recovered_event.time).num_seconds().abs();
+    let time_diff = (original_event.time - recovered_event.time)
+        .num_seconds()
+        .abs();
     assert!(time_diff <= 1);
 }

@@ -1,5 +1,4 @@
 use ditto_cot::ditto::cot_event_from_flattened_json;
-use serde_json::json;
 
 fn main() {
     // Use the exact JSON from the CLI output to test our fix
@@ -52,42 +51,48 @@ fn main() {
     }"#;
 
     println!("=== Testing CLI Data with Our Fix ===");
-    
-    let json_value: serde_json::Value = serde_json::from_str(json_str)
-        .expect("Failed to parse CLI JSON");
-    
+
+    let json_value: serde_json::Value =
+        serde_json::from_str(json_str).expect("Failed to parse CLI JSON");
+
     // This should use our fixed cot_event_from_flattened_json function
     let cot_event = cot_event_from_flattened_json(&json_value);
-    
+
     println!("Reconstructed UID: {}", cot_event.uid);
     println!("Reconstructed Type: {}", cot_event.event_type);
     println!("Detail length: {} chars", cot_event.detail.len());
     println!("Detail content: {}", cot_event.detail);
-    
+
     // Convert to XML
     match cot_event.to_xml() {
         Ok(xml) => {
             println!("\n=== Generated XML ===");
             println!("{}", xml);
-            
+
             // Verify our fix worked
-            if cot_event.detail.len() > 200 
-                && cot_event.detail.contains("contact") 
+            if cot_event.detail.len() > 200
+                && cot_event.detail.contains("contact")
                 && cot_event.detail.contains("callsign=\"GRAY KNIGHT\"")
-                && cot_event.detail.contains("endpoint=\"192.168.1.101:4242:tcp\"")
+                && cot_event
+                    .detail
+                    .contains("endpoint=\"192.168.1.101:4242:tcp\"")
                 && cot_event.detail.contains("takv")
                 && cot_event.detail.contains("device=\"SAMSUNG SM-G781U\"")
                 && cot_event.detail.contains("status")
                 && cot_event.detail.contains("battery=\"100\"")
                 && cot_event.detail.contains("__group")
                 && cot_event.detail.contains("name=\"Cyan\"")
-                && cot_event.detail.contains("role=\"Team Member\"") {
+                && cot_event.detail.contains("role=\"Team Member\"")
+            {
                 println!("\n✅ SUCCESS: All detail elements properly reconstructed!");
                 println!("   - Contact with callsign and endpoint ✓");
                 println!("   - Group with name and role ✓");
                 println!("   - TAKV with device info ✓");
                 println!("   - Status with battery ✓");
-                println!("   - Rich detail length: {} chars ✓", cot_event.detail.len());
+                println!(
+                    "   - Rich detail length: {} chars ✓",
+                    cot_event.detail.len()
+                );
             } else {
                 println!("\n❌ FAILED: Detail reconstruction is incomplete");
                 println!("   Detail length: {}", cot_event.detail.len());
