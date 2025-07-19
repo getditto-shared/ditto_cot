@@ -845,7 +845,7 @@ public class CoTConverter {
      * Converts r_takv_* -> r.takv.*, r_contact_* -> r.contact.*, etc.
      * Reconstructs nested objects from deeply flattened fields
      */
-    private Map<String, Object> unflattenRField(Map<String, Object> flattenedMap) {
+    public Map<String, Object> unflattenRField(Map<String, Object> flattenedMap) {
         Map<String, Object> unflattened = new java.util.HashMap<>(flattenedMap);
         Map<String, Object> rMap = new java.util.HashMap<>();
         

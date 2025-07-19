@@ -33,6 +33,8 @@ See the [Rust README](rust/README.md) for detailed documentation.
 ditto_cot = { git = "https://github.com/getditto-shared/ditto_cot", package = "ditto_cot" }
 ```
 
+**New in Rust**: SDK observer document conversion utilities via `sdk_conversion` module enable converting observer documents (`BoxedDocument`) to typed `CotDocument` instances with automatic r-field reconstruction.
+
 ### End-to-End (e2e) Testing for Rust
 
 The e2e test is located in `rust/examples/e2e_test.rs` and verifies integration with Ditto. To run it:
@@ -54,6 +56,8 @@ See the [Java README](java/README.md) for detailed documentation.
 </dependency>
 ```
 
+**New in Java**: SDK observer document conversion utilities via `SdkDocumentConverter` class enable converting observer documents (`Map<String, Object>`) to typed schema objects with automatic r-field reconstruction.
+
 ### C #
 
 See the [C# README](csharp/README.md) for detailed documentation.
@@ -74,6 +78,8 @@ See the [C# README](csharp/README.md) for detailed documentation.
 ### 🛠️ **Core Functionality**
 - **Ergonomic Builder Patterns** (Rust): Create CoT events with fluent, chainable APIs
 - **Full Round-trip Conversion**: CoT XML ↔ Ditto Document ↔ JSON/CRDT conversions
+- **SDK Observer Document Conversion**: Convert observer documents to typed schema objects
+- **R-field Reconstruction**: Rebuild hierarchical detail structures from flattened observer fields
 - **Schema-validated Document Types**: Chat, Location, Emergency, File, and Generic events
 - **Automatic Type Inference**: CoT event types automatically mapped to document types
 - **Flexible Point Construction** (Rust): Multiple ways to specify coordinates and accuracy
@@ -126,6 +132,131 @@ details: {
 **Result**: Only individual sensor updates sync across the P2P network, not entire document arrays.
 
 ## 🔄 Usage Examples
+
+### 📱 SDK Observer Document Conversion
+
+The Ditto CoT library now provides utilities to convert documents from Ditto SDK observer callbacks to typed schema objects, solving the limitation where observer callbacks could only extract document IDs but couldn't access full document content.
+
+#### Rust SDK Conversion
+
+```rust
+use ditto_cot::ditto::sdk_conversion::{observer_json_to_cot_document, observer_json_to_json_with_r_fields};
+
+// In an observer callback - convert BoxedDocument to typed CotDocument
+let boxed_doc: BoxedDocument = item.value(); // From observer callback
+let typed_doc = observer_json_to_cot_document(&boxed_doc)?;
+
+match typed_doc {
+    Some(CotDocument::MapItem(map_item)) => {
+        println!("Location update: {} at {},{}", 
+                 map_item.e, map_item.j.unwrap_or(0.0), map_item.l.unwrap_or(0.0));
+        
+        // Access reconstructed r-field details
+        if let Some(r_fields) = &map_item.r {
+            println!("Detail data: {:?}", r_fields);
+        }
+    },
+    Some(CotDocument::Chat(chat)) => {
+        println!("Chat from {}: {}", chat.author_callsign, chat.message);
+    },
+    Some(CotDocument::File(file)) => {
+        println!("File shared: {}", file.file.unwrap_or_default());
+    },
+    _ => println!("Other document type or conversion failed"),
+}
+
+// Reconstruct hierarchical JSON with r-fields from flattened observer document
+let json_with_r_fields = observer_json_to_json_with_r_fields(&boxed_doc)?;
+println!("Full document JSON: {}", json_with_r_fields);
+```
+
+#### Java SDK Conversion
+
+```java
+import com.ditto.cot.SdkDocumentConverter;
+import com.ditto.cot.schema.*;
+
+// Initialize converter
+SdkDocumentConverter converter = new SdkDocumentConverter();
+
+// In observer callback - convert Map<String, Object> to typed schema object
+store.registerObserver("SELECT * FROM map_items", (result, event) -> {
+    for (DittoQueryResultItem item : result.getItems()) {
+        Map<String, Object> docMap = item.getValue();
+        
+        // Convert to typed document
+        Object typedDoc = converter.observerMapToTypedDocument(docMap);
+        
+        if (typedDoc instanceof MapItemDocument) {
+            MapItemDocument mapItem = (MapItemDocument) typedDoc;
+            System.out.println("Location: " + mapItem.getId() + 
+                             " at " + mapItem.getJ() + "," + mapItem.getL());
+                             
+            // Access reconstructed r-field details
+            if (mapItem.getR() != null) {
+                System.out.println("Detail data: " + mapItem.getR());
+            }
+        } else if (typedDoc instanceof ChatDocument) {
+            ChatDocument chat = (ChatDocument) typedDoc;
+            System.out.println("Chat from " + chat.getAuthorCallsign() + 
+                             ": " + chat.getMessage());
+        }
+        
+        // Get JSON with reconstructed hierarchical r-fields
+        String jsonWithRFields = converter.observerMapToJsonWithRFields(docMap);
+        System.out.println("Full JSON: " + jsonWithRFields);
+        
+        // Extract document ID and type easily
+        String docId = converter.getDocumentId(docMap);
+        String docType = converter.getDocumentType(docMap);
+        System.out.println("Document " + docId + " of type " + docType);
+    }
+});
+```
+
+#### Key Benefits of SDK Conversion
+
+1. **Type-Safe Access**: Convert observer documents to strongly-typed schema objects
+2. **R-field Reconstruction**: Automatically rebuild hierarchical detail structures from flattened `r_*` fields
+3. **Cross-Platform Consistency**: Identical behavior between Rust and Java implementations  
+4. **Easy Document Inspection**: Helper methods to extract document IDs and types
+5. **Full Content Access**: No longer limited to just document IDs in observer callbacks
+
+#### Observer Document Structure
+
+Observer documents contain flattened `r_*` fields for DQL compatibility:
+
+```json
+{
+  "_id": "location-001",
+  "w": "a-u-r-loc-g",
+  "j": 37.7749,
+  "l": -122.4194,
+  "r_contact_callsign": "Unit-Alpha",
+  "r_track_speed": "15.0",
+  "r_track_course": "90.0"
+}
+```
+
+The conversion utilities reconstruct the hierarchical structure:
+
+```json
+{
+  "_id": "location-001", 
+  "w": "a-u-r-loc-g",
+  "j": 37.7749,
+  "l": -122.4194,
+  "r": {
+    "contact": {
+      "callsign": "Unit-Alpha"
+    },
+    "track": {
+      "speed": "15.0",
+      "course": "90.0" 
+    }
+  }
+}
+```
 
 ### Smart CoT XML Processing with CRDT Benefits
 
@@ -422,11 +553,21 @@ if let CotDocument::Generic(generic) = doc {
 The library includes comprehensive tests for all functionality:
 
 ```bash
-# Run all tests
+# Run all tests (Rust and Java)
+make test
+
+# Run Rust tests only
 cargo test --all-targets
+
+# Run Java tests only  
+cd java && ./gradlew test
 
 # Run specific test
 cargo test test_underscore_key_handling
+
+# Test SDK conversion utilities specifically
+cargo test sdk_conversion
+cd java && ./gradlew test --tests "SdkDocumentConverterTest"
 ```
 
 ### Cross-Language Integration Testing
