@@ -525,6 +525,59 @@ public class CoTConverter {
     }
     
     /**
+     * Get the appropriate Ditto collection name for this document
+     */
+    public String getCollectionName(Object document) {
+        if (document instanceof MapItemDocument) {
+            MapItemDocument mapItem = (MapItemDocument) document;
+            // Check if this is a track (PLI/location with track data) or map item (persistent graphics)
+            if (isTrackDocument(mapItem)) {
+                return "track";
+            } else {
+                return "map_items";
+            }
+        } else if (document instanceof ChatDocument) {
+            return "chat_messages";
+        } else if (document instanceof FileDocument) {
+            return "files";
+        } else if (document instanceof ApiDocument) {
+            return "api_events";
+        } else {
+            return "generic";
+        }
+    }
+
+    /**
+     * Determine if a MapItemDocument should be considered a track (transient location/movement)
+     * vs a map item (persistent graphics)
+     */
+    private boolean isTrackDocument(MapItemDocument mapItem) {
+        // Track documents are characterized by:
+        // 1. Having track data in the r field
+        // 2. Being location/movement related types (PLI - Position Location Information)
+        
+        // Check if document contains track data
+        boolean hasTrackData = mapItem.getR() != null && mapItem.getR().containsKey("track");
+        
+        // Check if the CoT type indicates this is a moving entity (track/PLI)
+        String cotType = mapItem.getW() != null ? mapItem.getW() : "";
+        boolean isTrackType = cotType.contains("a-f-S") ||  // Friendly surface units (like USVs)
+                             cotType.contains("a-f-A") ||  // Friendly air units  
+                             cotType.contains("a-f-G") ||  // Friendly ground units
+                             cotType.contains("a-u-S") ||  // Unknown surface units
+                             cotType.contains("a-u-A") ||  // Unknown air units
+                             cotType.contains("a-u-G") ||  // Unknown ground units
+                             cotType.contains("a-h-S") ||  // Hostile surface units
+                             cotType.contains("a-h-A") ||  // Hostile air units
+                             cotType.contains("a-h-G") ||  // Hostile ground units
+                             cotType.contains("a-n-") ||   // Neutral units
+                             cotType.contains("a-u-r-loc"); // Location reports
+        
+        // A document is a track if it has track data OR is a track-type entity
+        return hasTrackData || isTrackType;
+    }
+
+    /**
      * Determine if CoT type should be converted to MapItemDocument
      */
     private boolean isMapItemType(String cotType) {
@@ -534,7 +587,8 @@ public class CoTConverter {
             cotType.startsWith("a-n-") || // Neutral units
             cotType.equals("a-u-G") ||    // Ground units (specific MapItem type)
             cotType.equals("a-u-S") ||    // Sensor unmanned system
-            cotType.equals("a-u-A")       // Airborne unmanned system
+            cotType.equals("a-u-A") ||    // Airborne unmanned system
+            cotType.contains("a-u-r-loc") // Location reports
             // Note: a-u-emergency-g, b-m-p-s-r are treated as Generic
             // Note: b-m-p-s-p-i (sensor) is treated as API
         );

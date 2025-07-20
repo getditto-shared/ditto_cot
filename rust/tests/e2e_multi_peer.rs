@@ -127,27 +127,27 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
     let store_1 = ditto_1.store();
     let store_2 = ditto_2.store();
 
-    // Set up sync subscriptions and observers for the map_items collection on both peers using DQL
+    // Set up sync subscriptions and observers for the track collection on both peers using DQL
     // Subscriptions enable peer-to-peer sync, observers detect local changes
-    println!("🔗 Setting up DQL sync subscriptions and observers for map_items collection...");
+    println!("🔗 Setting up DQL sync subscriptions and observers for track collection...");
 
     // Set up sync subscriptions on both peers to enable peer-to-peer replication
     let sync_subscription_1 = ditto_1
         .sync()
-        .register_subscription_v2("SELECT * FROM map_items")?;
+        .register_subscription_v2("SELECT * FROM track")?;
     let sync_subscription_2 = ditto_2
         .sync()
-        .register_subscription_v2("SELECT * FROM map_items")?;
+        .register_subscription_v2("SELECT * FROM track")?;
 
     // Set up observers on both peers to actively listen for changes using DQL
-    let observer_1 = store_1.register_observer_v2("SELECT * FROM map_items", move |result| {
+    let observer_1 = store_1.register_observer_v2("SELECT * FROM track", move |result| {
         println!(
             "🔔 Peer 1 DQL observer: received {} documents",
             result.item_count()
         );
     })?;
 
-    let observer_2 = store_2.register_observer_v2("SELECT * FROM map_items", move |result| {
+    let observer_2 = store_2.register_observer_v2("SELECT * FROM track", move |result| {
         println!(
             "🔔 Peer 2 DQL observer: received {} documents",
             result.item_count()
@@ -288,7 +288,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
 
     // Insert document into peer 1
     let doc_json = serde_json::to_value(map_item)?;
-    let query = "INSERT INTO map_items DOCUMENTS (:doc) ON ID CONFLICT DO MERGE";
+    let query = "INSERT INTO track DOCUMENTS (:doc) ON ID CONFLICT DO MERGE";
     let _query_result = store_1
         .execute_v2((
             query,
@@ -304,7 +304,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
     println!("🔄 Step 3: Verifying document sync between peers...");
 
     // Query document from peer 1 first to ensure it exists
-    let query = format!("SELECT * FROM map_items WHERE _id = '{}'", doc_id);
+    let query = format!("SELECT * FROM track WHERE _id = '{}'", doc_id);
     let result_1 = store_1.execute_v2(&query).await?;
     assert!(result_1.item_count() > 0, "Document not found on peer 1");
     println!("✅ Document confirmed on peer 1");
@@ -352,10 +352,10 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
 
     if !found {
         // Check if we can find any documents at all on peer 2
-        let all_docs_query = "SELECT * FROM map_items";
+        let all_docs_query = "SELECT * FROM track";
         let all_result = store_2.execute_v2(all_docs_query).await?;
         println!(
-            "❌ Sync failed - peer 2 has {} total documents in map_items collection",
+            "❌ Sync failed - peer 2 has {} total documents in track collection",
             all_result.item_count()
         );
 
@@ -517,7 +517,7 @@ async fn e2e_multi_peer_mapitem_sync_test() -> Result<()> {
     };
 
     // Update on peer 1 by inserting the modified document
-    let insert_query = "INSERT INTO map_items DOCUMENTS (:doc) ON ID CONFLICT DO MERGE";
+    let insert_query = "INSERT INTO track DOCUMENTS (:doc) ON ID CONFLICT DO MERGE";
     let _update_result_1 = store_1
         .execute_v2((
             insert_query,

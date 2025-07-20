@@ -90,15 +90,15 @@ async fn e2e_cross_lang_multi_peer_test() -> Result<()> {
     let store_rust = ditto_rust.store();
 
     // Set up sync subscriptions and observers (same as working Rust test)
-    println!("🔗 Setting up DQL sync subscriptions and observers for map_items collection...");
+    println!("🔗 Setting up DQL sync subscriptions and observers for track collection...");
 
     // Set up sync subscription to enable peer-to-peer replication
     let _sync_subscription_rust = ditto_rust
         .sync()
-        .register_subscription_v2("SELECT * FROM map_items")?;
+        .register_subscription_v2("SELECT * FROM track")?;
 
     let _observer_rust =
-        store_rust.register_observer_v2("SELECT * FROM map_items", move |result| {
+        store_rust.register_observer_v2("SELECT * FROM track", move |result| {
             println!(
                 "🔔 Rust client observer: received {} documents",
                 result.item_count()
@@ -234,7 +234,7 @@ async fn e2e_cross_lang_multi_peer_test() -> Result<()> {
 
     // Insert document into Rust client
     let doc_json = serde_json::to_value(map_item)?;
-    let query = "INSERT INTO map_items DOCUMENTS (:doc) ON ID CONFLICT DO MERGE";
+    let query = "INSERT INTO track DOCUMENTS (:doc) ON ID CONFLICT DO MERGE";
     let _query_result = store_rust
         .execute_v2((
             query,
@@ -280,7 +280,7 @@ async fn e2e_cross_lang_multi_peer_test() -> Result<()> {
     sleep(Duration::from_secs(5)).await;
 
     // Verify document still exists on Rust client
-    let verify_query = format!("SELECT * FROM map_items WHERE _id = '{}'", doc_id);
+    let verify_query = format!("SELECT * FROM track WHERE _id = '{}'", doc_id);
     let rust_result = store_rust.execute_v2(&verify_query).await?;
 
     if rust_result.item_count() == 0 {
