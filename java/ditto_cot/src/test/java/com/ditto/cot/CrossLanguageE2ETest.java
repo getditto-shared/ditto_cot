@@ -84,8 +84,12 @@ public class CrossLanguageE2ETest {
         }
         store = ditto.getStore();
         
-        // Subscribe to map_items collection to enable sync using DQL
+        // Subscribe to all collections to enable sync using DQL  
         try {
+            // Subscribe to both track and map_items collections since tests may use either
+            store.registerObserver("SELECT * FROM track", (result, event) -> {
+                // Observer callback - just needed to establish subscription
+            });
             store.registerObserver("SELECT * FROM map_items", (result, event) -> {
                 // Observer callback - just needed to establish subscription
             });
@@ -157,6 +161,10 @@ public class CrossLanguageE2ETest {
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> dittoDoc = converter.convertDocumentToMap(mapItem);
         
+        // Determine the correct collection for this document type
+        String collectionName = converter.getCollectionName(mapItem);
+        System.out.println("📁 Using collection: " + collectionName);
+        
         // Count and log r_* fields
         int rFieldCount = (int) dittoDoc.entrySet().stream()
             .filter(entry -> entry.getKey().startsWith("r_"))
@@ -167,10 +175,10 @@ public class CrossLanguageE2ETest {
         System.out.println("Step 3: Storing document in Ditto...");
         String docId = (String) dittoDoc.get("_id");
         
-        // Use the flattened insertion approach from E2EMultiPeerTest
+        // Use the flattened insertion approach with dynamic collection
         String basicInsert = String.format(
-            "INSERT INTO map_items DOCUMENTS ({ '_id': '%s', 'w': '%s', 'j': %f, 'l': %f, 'c': '%s', '@type': 'mapitem' })",
-            docId, dittoDoc.get("w"), dittoDoc.get("j"), dittoDoc.get("l"), dittoDoc.get("c")
+            "INSERT INTO %s DOCUMENTS ({ '_id': '%s', 'w': '%s', 'j': %f, 'l': %f, 'c': '%s', '@type': 'mapitem' })",
+            collectionName, docId, dittoDoc.get("w"), dittoDoc.get("j"), dittoDoc.get("l"), dittoDoc.get("c")
         );
         
         CompletionStage<DittoQueryResult> insertStage = store.execute(basicInsert);
@@ -183,14 +191,14 @@ public class CrossLanguageE2ETest {
                 String updateQuery;
                 Object value = entry.getValue();
                 if (value instanceof String) {
-                    updateQuery = String.format("UPDATE map_items SET `%s` = '%s' WHERE _id = '%s'", 
-                        key, value.toString().replace("'", "''"), docId);
+                    updateQuery = String.format("UPDATE %s SET `%s` = '%s' WHERE _id = '%s'", 
+                        collectionName, key, value.toString().replace("'", "''"), docId);
                 } else if (value instanceof Number) {
-                    updateQuery = String.format("UPDATE map_items SET `%s` = %s WHERE _id = '%s'", 
-                        key, value, docId);
+                    updateQuery = String.format("UPDATE %s SET `%s` = %s WHERE _id = '%s'", 
+                        collectionName, key, value, docId);
                 } else {
-                    updateQuery = String.format("UPDATE map_items SET `%s` = '%s' WHERE _id = '%s'", 
-                        key, value.toString().replace("'", "''"), docId);
+                    updateQuery = String.format("UPDATE %s SET `%s` = '%s' WHERE _id = '%s'", 
+                        collectionName, key, value.toString().replace("'", "''"), docId);
                 }
                 
                 CompletionStage<DittoQueryResult> updateStage = store.execute(updateQuery);
@@ -202,7 +210,7 @@ public class CrossLanguageE2ETest {
         
         // Step 4: Retrieve document from Ditto
         System.out.println("Step 4: Retrieving document from Ditto...");
-        String selectQuery = "SELECT * FROM map_items WHERE _id = '" + docId + "'";
+        String selectQuery = "SELECT * FROM " + collectionName + " WHERE _id = '" + docId + "'";
         CompletionStage<DittoQueryResult> selectStage = store.execute(selectQuery);
         DittoQueryResult queryResult = selectStage.toCompletableFuture().get();
         assertEquals(1, queryResult.getItems().size(), "Should find exactly one document");

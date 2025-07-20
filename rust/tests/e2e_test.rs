@@ -74,6 +74,9 @@ async fn e2e_xml_roundtrip() -> Result<()> {
     let cot_event = CotEvent::from_xml(&cot_xml)
         .with_context(|| format!("Failed to parse CoT XML: {}", cot_xml))?;
 
+    // 2. Convert CotEvent to CotDocument to determine collection name
+    let ditto_doc = cot_to_document(&cot_event, "e2e-test-peer");
+
     // 3. Convert CotEvent to flattened Ditto document for DQL compatibility
     let flattened_doc = cot_to_flattened_document(&cot_event, "e2e-test-peer");
 
@@ -89,30 +92,8 @@ async fn e2e_xml_roundtrip() -> Result<()> {
         .to_string();
     println!("Document ID from flattened document: {}", doc_id);
 
-    // Determine the collection name based on the document type (using 'w' field)
-    let event_type = flattened_doc
-        .get("w")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let collection_name = if event_type.contains("a-u-r-loc-g")
-        || event_type.contains("a-f-G-U-C")
-        || event_type.contains("a-f-G-U")
-        || event_type.contains("a-f-G-U-I")
-        || event_type.contains("a-f-G-U-T")
-        || event_type.contains("a-u-S")
-        || event_type.contains("a-u-A")
-        || event_type.contains("a-u-G")
-    {
-        "map_items"
-    } else if event_type.contains("b-t-f") || event_type.contains("chat") {
-        "chat_messages"
-    } else if event_type == "a-u-emergency-g" {
-        "api_events"
-    } else if event_type.contains("file") || event_type.contains("attachment") {
-        "files"
-    } else {
-        "generic_documents"
-    };
+    // Determine the collection name using the document's get_collection_name method
+    let collection_name = ditto_doc.get_collection_name();
 
     // Use the flattened document directly for insertion
     let doc_json = flattened_doc;
