@@ -152,13 +152,50 @@ class CoTConverterIntegrationTest {
         assertThat(generic.getR()).containsKey("boolean_field");
     }
 
+    @Test
+    void testUsvTrackConversion() throws Exception {
+        // Given
+        String xmlContent = readExampleXml("usv_track.xml");
+        
+        // When
+        Object document = converter.convertToDocument(xmlContent);
+        
+        // Then
+        assertThat(document).isInstanceOf(MapItemDocument.class);
+        
+        MapItemDocument mapItem = (MapItemDocument) document;
+        assertThat(mapItem.getId()).isEqualTo("00000000-0000-0000-0000-333333333333");
+        assertThat(mapItem.getW()).isEqualTo("a-f-S-C-U"); // USV track event type
+        assertThat(mapItem.getJ()).isEqualTo(-22.553768); // lat
+        assertThat(mapItem.getL()).isEqualTo(150.818542); // lon
+        assertThat(mapItem.getI()).isEqualTo(48.4075); // hae
+        assertThat(mapItem.getH()).isEqualTo(50.0); // ce
+        assertThat(mapItem.getK()).isEqualTo(10.0); // le
+        assertThat(mapItem.getP()).isEqualTo("m-g"); // how
+        
+        // Verify callsign extraction - this is the key test
+        System.out.println("ACTUAL Java USV Track Callsign (e): '" + mapItem.getE() + "'");
+        System.out.println("EXPECTED: 'USV-4'");
+        assertThat(mapItem.getE()).isEqualTo("USV-4"); // callsign should be extracted to 'e' field
+        
+        // Verify detail fields contain USV track information
+        assertThat(mapItem.getR()).isNotNull();
+        assertThat(mapItem.getR()).containsKey("contact");
+        assertThat(mapItem.getR()).containsKey("track");
+        assertThat(mapItem.getR()).containsKey("status");
+        
+        System.out.println("Java USV Track Callsign (e): " + mapItem.getE());
+        System.out.println("Java USV Track Detail (r): " + mapItem.getR());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
         "friendly_unit.xml",
         "emergency_beacon.xml", 
         "atak_test.xml",
         "sensor_spi.xml",
-        "custom_type.xml"
+        "custom_type.xml",
+        "usv_track.xml"
     })
     void testFullRoundTripConversion(String xmlFile) throws Exception {
         // Given
@@ -294,6 +331,72 @@ class CoTConverterIntegrationTest {
         assertThat(cotEvent.getDetail()).isNotNull();
         Map<String, Object> detailMap = cotEvent.getDetail().toMap();
         assertThat(detailMap).containsKey("contact");
+    }
+
+    @Test
+    void testAndroidCoTConverterUnflattenRField() throws Exception {
+        // Given - create an AndroidCoTConverter
+        AndroidCoTConverter androidConverter = new AndroidCoTConverter();
+        
+        // Given - a flattened map like ATAK would receive from Ditto
+        Map<String, Object> flattenedMap = new java.util.HashMap<>();
+        flattenedMap.put("_id", "00000000-0000-0000-0000-333333333333");
+        flattenedMap.put("e", "USV-4"); // callsign field
+        flattenedMap.put("w", "a-f-S-C-U"); // event type
+        flattenedMap.put("j", -22.553768); // lat
+        flattenedMap.put("l", 150.818542); // lon
+        // Flattened detail fields
+        flattenedMap.put("r_contact_callsign", "USV-4");
+        flattenedMap.put("r_contact_endpoint", "*:-1:stcp");
+        flattenedMap.put("r_track_speed", "2.5");
+        flattenedMap.put("r_track_course", "275.0");
+        flattenedMap.put("r_status_battery", "85");
+        
+        System.out.println("Input flattened map: " + flattenedMap);
+        
+        // When - ATAK calls the unflatten method
+        Map<String, Object> unflattenedMap = androidConverter.unflattenRField(flattenedMap);
+        
+        System.out.println("Output unflattened map: " + unflattenedMap);
+        
+        // Then - verify the r field is properly reconstructed
+        assertThat(unflattenedMap).containsKey("r");
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rField = (Map<String, Object>) unflattenedMap.get("r");
+        assertThat(rField).isNotNull();
+        
+        // Verify contact structure
+        assertThat(rField).containsKey("contact");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> contactMap = (Map<String, Object>) rField.get("contact");
+        assertThat(contactMap.get("callsign")).isEqualTo("USV-4");
+        assertThat(contactMap.get("endpoint")).isEqualTo("*:-1:stcp");
+        
+        // Verify track structure
+        assertThat(rField).containsKey("track");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trackMap = (Map<String, Object>) rField.get("track");
+        assertThat(trackMap.get("speed")).isEqualTo("2.5");
+        assertThat(trackMap.get("course")).isEqualTo("275.0");
+        
+        // Verify status structure
+        assertThat(rField).containsKey("status");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statusMap = (Map<String, Object>) rField.get("status");
+        assertThat(statusMap.get("battery")).isEqualTo("85");
+        
+        // Verify other fields are preserved
+        assertThat(unflattenedMap.get("e")).isEqualTo("USV-4");
+        assertThat(unflattenedMap.get("w")).isEqualTo("a-f-S-C-U");
+        assertThat(unflattenedMap.get("_id")).isEqualTo("00000000-0000-0000-0000-333333333333");
+        
+        // Verify flattened r_* fields are removed
+        assertThat(unflattenedMap).doesNotContainKey("r_contact_callsign");
+        assertThat(unflattenedMap).doesNotContainKey("r_contact_endpoint");
+        assertThat(unflattenedMap).doesNotContainKey("r_track_speed");
+        
+        System.out.println("✓ AndroidCoTConverter.unflattenRField() works correctly for ATAK");
     }
 
     // Helper methods
