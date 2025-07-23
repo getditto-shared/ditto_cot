@@ -17,6 +17,60 @@ pub use super::schema::*;
 
 // Removed unused imports
 
+/// Extract callsign from parsed detail section by searching for "callsign" key anywhere in the structure
+fn extract_callsign(extras: &HashMap<String, Value>) -> Option<String> {
+    // Helper function to recursively search for callsign in JSON values
+    fn find_callsign(value: &Value) -> Option<String> {
+        match value {
+            Value::Object(map) => {
+                // First check if this object has a "callsign" key
+                if let Some(callsign_value) = map.get("callsign") {
+                    if let Some(cs) = callsign_value.as_str() {
+                        return Some(cs.to_string());
+                    }
+                }
+                // Also check for "from" key (used in chat messages)
+                if let Some(from_value) = map.get("from") {
+                    if let Some(cs) = from_value.as_str() {
+                        return Some(cs.to_string());
+                    }
+                }
+                // Otherwise, recursively search all values
+                for (_, v) in map {
+                    if let Some(cs) = find_callsign(v) {
+                        return Some(cs);
+                    }
+                }
+            }
+            Value::Array(arr) => {
+                // Search each element in the array
+                for v in arr {
+                    if let Some(cs) = find_callsign(v) {
+                        return Some(cs);
+                    }
+                }
+            }
+            _ => {}
+        }
+        None
+    }
+    
+    // Search for callsign in the entire extras map
+    for (key, value) in extras {
+        // Check if the key itself is "callsign" or "from"
+        if key == "callsign" || key == "from" {
+            if let Some(cs) = value.as_str() {
+                return Some(cs.to_string());
+            }
+        }
+        // Otherwise search within the value
+        if let Some(cs) = find_callsign(value) {
+            return Some(cs);
+        }
+    }
+    None
+}
+
 /// Convert a CoT event to the appropriate Ditto document type
 pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
     let event_type = &event.event_type;
@@ -35,6 +89,8 @@ pub fn cot_to_document(event: &CotEvent, peer_key: &str) -> CotDocument {
         || event_type.contains("a-f-G-U")
         || event_type.contains("a-f-G-U-I")
         || event_type.contains("a-f-G-U-T")
+        || event_type.contains("a-f-S-C-U")
+        || event_type.contains("a-f-A-M-F-Q")
         || event_type.contains("a-u-S")
         || event_type.contains("a-u-A")
         || event_type.contains("a-u-G")
@@ -68,6 +124,8 @@ pub fn cot_to_flattened_document(event: &CotEvent, peer_key: &str) -> Value {
         || event_type.contains("a-f-G-U")
         || event_type.contains("a-f-G-U-I")
         || event_type.contains("a-f-G-U-T")
+        || event_type.contains("a-f-S-C-U")
+        || event_type.contains("a-f-A-M-F-Q")
         || event_type.contains("a-u-S")
         || event_type.contains("a-u-A")
         || event_type.contains("a-u-G")
@@ -85,6 +143,10 @@ pub fn cot_to_flattened_document(event: &CotEvent, peer_key: &str) -> Value {
 
 /// Transform a location CoT event to a Ditto location document
 pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
+    // Parse detail section to extract callsign and other fields
+    let detail_map = parse_detail_section(&event.detail);
+    let callsign = extract_callsign(&detail_map).unwrap_or_default();
+    
     // Map CotEvent and peer_key to MapItem fields
     MapItem {
         id: event.uid.clone(),                          // Ditto document ID
@@ -96,7 +158,7 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         d_r: false,               // Soft-delete flag, default to false
         d_v: 2,                   // Schema version (2)
         source: None,             // Source not parsed from raw detail string
-        e: String::new(),         // Callsign not parsed from raw detail string
+        e: callsign,              // Extract callsign from detail section
         f: None,                  // Visibility flag
         g: event.version.clone(), // Version string from event
         h: Some(event.point.ce),  // Circular Error
@@ -109,7 +171,6 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
         p: event.how.clone(),     // How
         q: "".to_string(),        // Access, default empty
         r: {
-            let detail_map = parse_detail_section(&event.detail);
             detail_map
                 .into_iter()
                 .map(|(k, v)| {
@@ -1096,6 +1157,8 @@ impl CotDocument {
             || doc_type.contains("a-f-G-U")
             || doc_type.contains("a-f-G-U-I")
             || doc_type.contains("a-f-G-U-T")
+            || doc_type.contains("a-f-S-C-U")
+            || doc_type.contains("a-f-A-M-F-Q")
             || doc_type.contains("a-u-S")
             || doc_type.contains("a-u-A")
             || doc_type.contains("a-u-G")
@@ -1127,6 +1190,51 @@ impl CotDocument {
                 .map_err(|e| anyhow::anyhow!("Failed to deserialize as File: {}", e))?;
             Ok(CotDocument::File(file))
         }
+    }
+
+    /// Get the appropriate Ditto collection name for this document type
+    pub fn get_collection_name(&self) -> &'static str {
+        match self {
+            CotDocument::MapItem(map_item) => {
+                // Check if this is a track (PLI/location with track data) or map item (persistent graphics)
+                if Self::is_track_document(map_item) {
+                    "track"
+                } else {
+                    "map_items"
+                }
+            }
+            CotDocument::Chat(_) => "chat_messages",
+            CotDocument::File(_) => "files",
+            CotDocument::Api(_) => "api_events",
+            CotDocument::Generic(_) => "generic",
+        }
+    }
+
+    /// Determine if a MapItem should be considered a track (transient location/movement)
+    /// vs a map item (persistent graphics)
+    fn is_track_document(map_item: &MapItem) -> bool {
+        // Track documents are characterized by:
+        // 1. Having track data in the r field
+        // 2. Being location/movement related types (PLI - Position Location Information)
+        
+        // Check if document contains track data
+        let has_track_data = map_item.r.contains_key("track");
+        
+        // Check if the CoT type indicates this is a moving entity (track/PLI)
+        let is_track_type = map_item.w.contains("a-f-S") ||  // Friendly surface units (like USVs)
+                           map_item.w.contains("a-f-A") ||  // Friendly air units  
+                           map_item.w.contains("a-f-G") ||  // Friendly ground units
+                           map_item.w.contains("a-u-S") ||  // Unknown surface units
+                           map_item.w.contains("a-u-A") ||  // Unknown air units
+                           map_item.w.contains("a-u-G") ||  // Unknown ground units
+                           map_item.w.contains("a-h-S") ||  // Hostile surface units
+                           map_item.w.contains("a-h-A") ||  // Hostile air units
+                           map_item.w.contains("a-h-G") ||  // Hostile ground units
+                           map_item.w.contains("a-n-") ||   // Neutral units
+                           map_item.w.contains("a-u-r-loc"); // Location reports
+        
+        // A document is a track if it has track data OR is a track-type entity
+        has_track_data || is_track_type
     }
 
     /// Converts this Ditto document back into a CoT (Cursor on Target) event.

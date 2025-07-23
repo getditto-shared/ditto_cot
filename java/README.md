@@ -1,37 +1,19 @@
-# Ditto CoT Java Library
+# Java Implementation
 
-Java implementation of Ditto's Cursor-on-Target (CoT) event processing. This library provides utilities for converting between CoT XML events and Ditto documents.
+Java implementation of the Ditto CoT library with type-safe document models and Android compatibility.
 
-## Features
+## 🚀 Quick Start
 
-- Convert between CoT XML and Ditto documents
-- Type-safe document models
-- Builder pattern for easy document creation
-- Full schema validation
-- Support for all standard CoT message types
+### Installation
 
-## Requirements
-
-- Java 17 or later
-- Gradle 7.0+
-
-## Installation
-
-### Gradle
-
+**Gradle**:
 ```groovy
-repositories {
-    mavenCentral()
-    // Or your private Maven repository
-}
-
 dependencies {
     implementation 'com.ditto:ditto-cot:1.0-SNAPSHOT'
 }
 ```
 
-### Maven
-
+**Maven**:
 ```xml
 <dependency>
   <groupId>com.ditto</groupId>
@@ -40,203 +22,129 @@ dependencies {
 </dependency>
 ```
 
-## Usage
-
-### Converting CoT XML to Ditto Document
+### Basic Usage
 
 ```java
 import com.ditto.cot.CotEvent;
-import com.ditto.cot.DittoDocument;
 
-// Parse CoT XML
-String cotXml = "<event>...</event>";
-CotEvent event = CotEvent.fromXml(cotXml);
+CotEvent event = CotEvent.builder()
+    .uid("USER-123")
+    .type("a-f-G-U-C")
+    .point(34.12345, -118.12345, 150.0)
+    .callsign("ALPHA-1")
+    .build();
 
-// Convert to Ditto Document
-DittoDocument doc = event.toDittoDocument();
-
-// Work with the document
-String json = doc.toJson();
+String xml = event.toXml();
 ```
 
-### Creating a New CoT Event
+## 🏗️ Java-Specific Features
+
+### Requirements
+- **Java 17+** (LTS recommended)
+- **Android API 26+** for mobile applications
+- **Gradle 7.0+** build system
+
+### Type System
+- **Map-based Documents**: Java works with `Map<String, Object>` for Ditto integration
+- **Schema DTOs**: Generated POJOs from JSON schema for type safety
+- **Jackson Integration**: Seamless JSON serialization/deserialization
+
+### Builder Pattern API
 
 ```java
 import com.ditto.cot.CotEvent;
 import java.time.Instant;
 
-// Create a new CoT event
+// Complex event with detail section
 CotEvent event = CotEvent.builder()
     .uid("USER-123")
     .type("a-f-G-U-C")
     .time(Instant.now())
-    .start(Instant.now())
-    .stale(Instant.now().plusSeconds(300))
-    .how("h-g-i-gdo")
     .point(34.12345, -118.12345, 150.0, 10.0, 25.0)
     .detail()
         .callsign("ALPHA-1")
         .groupName("BLUE")
-        .add("original_type", "a-f-G-U-C")
+        .add("custom_field", "value")
         .build()
     .build();
-
-// Convert to XML
-String xml = event.toXml();
 ```
 
-## Building from Source
+### Android Support
 
-### Prerequisites
+Optimized for Android development:
+- **Minimal APK Impact**: Core library < 500KB
+- **ProGuard Ready**: Obfuscation rules included
+- **API 26+ Compatible**: Modern Android versions
+- **Background Services**: Efficient P2P sync
 
-- JDK 17 or later
-- Gradle 7.0+
+## 🔌 Ditto SDK Integration
 
-### Build Commands
+### Document Conversion
+
+```java
+import com.ditto.cot.SdkDocumentConverter;
+import com.ditto.cot.schema.*;
+
+SdkDocumentConverter converter = new SdkDocumentConverter();
+
+// Observer callback integration
+store.registerObserver("SELECT * FROM map_items", (result, event) -> {
+    for (DittoQueryResultItem item : result.getItems()) {
+        Map<String, Object> docMap = item.getValue();
+        
+        // Convert to typed document
+        Object typedDoc = converter.observerMapToTypedDocument(docMap);
+        
+        if (typedDoc instanceof MapItemDocument) {
+            MapItemDocument mapItem = (MapItemDocument) typedDoc;
+            System.out.println("Location: " + mapItem.getId());
+        }
+    }
+});
+```
+
+### Fat JAR Command Line
 
 ```bash
-# Build the project (includes tests, Javadoc, and fat JAR)
-./gradlew build
-
-# Run tests
-./gradlew test
-
-# Run tests with coverage report (HTML report in build/reports/jacoco)
-./gradlew jacocoTestReport
-
-# Generate Javadoc (output in build/docs/javadoc)
-./gradlew javadoc
-
-# Build just the fat JAR (includes all dependencies)
+# Build standalone JAR
 ./gradlew fatJar
-```
 
-### Build Outputs
-
-After a successful build, the following artifacts will be available in the `build/libs/` directory:
-
-- `ditto-cot-1.0-SNAPSHOT.jar` - The main JAR file (dependencies not included)
-- `ditto-cot-1.0-SNAPSHOT-sources.jar` - Source code JAR
-- `ditto-cot-1.0-SNAPSHOT-javadoc.jar` - Javadoc JAR
-- `ditto-cot-all.jar` - Fat JAR with all dependencies included (use this for standalone execution)
-
-### Using the Fat JAR
-
-The fat JAR (`ditto-cot-all.jar`) includes all required dependencies and can be run directly with Java:
-
-```bash
-# Show help
-java -jar build/libs/ditto-cot-all.jar --help
-
-# Convert a CoT XML file to JSON
+# Convert files
 java -jar build/libs/ditto-cot-all.jar convert input.xml output.json
-
-# Convert a JSON file to CoT XML
-java -jar build/libs/ditto-cot-all.jar convert input.json output.xml
 ```
 
-### Known Issues
-
-1. **Checkstyle**: The build currently has Checkstyle disabled due to configuration issues. The `checkstyle.xml` file exists but cannot be loaded properly. This needs to be investigated further.
-
-2. **Test Coverage**: The JaCoCo test coverage threshold has been temporarily lowered to 60% to allow the build to pass. The current test coverage is approximately 60%, but we aim to improve this in future releases.
-
-3. **Javadoc Warnings**: There are several Javadoc warnings for missing comments in generated source files. These should be addressed by adding proper documentation to the source schema files.
-
-## Example Usage
-
-### Running the Example
-
-The project includes a simple example that demonstrates the basic functionality of the library. The example is located in the test source set at `src/test/java/com/ditto/cot/example/SimpleExample.java`.
-
-To run the example, use the following command:
+## 🧪 Testing
 
 ```bash
-# Build the project first
-./gradlew build
+# All tests with coverage
+./gradlew test jacocoTestReport
 
-# Run the example
+# Specific test patterns
+./gradlew test --tests "*CRDT*"
+./gradlew test --tests "*IntegrationTest"
+
+# Example demonstration
 ./gradlew test --tests "com.ditto.cot.example.SimpleExample"
 ```
 
-This will:
-1. Create a sample CoT event
-2. Convert it to a Ditto document
-3. Convert it back to a CoT event
-4. Verify the round-trip conversion
+## 🏗️ Build System
 
-### Example Output
+**Gradle Features**:
+- Multi-module support
+- Code generation from JSON schema
+- JaCoCo coverage reporting (targeting 80%+)
+- Checkstyle integration
+- Javadoc generation
 
-```
-> Task :test
+**Build Outputs**:
+- `ditto-cot-1.0-SNAPSHOT.jar` - Main library
+- `ditto-cot-all.jar` - Fat JAR with dependencies
+- Coverage reports in `build/reports/jacoco/`
 
-SimpleExample > STANDARD_OUT
-    === Creating a CoT Event ===
-    Original CoT Event XML:
-    <event ...>
-      <!-- Event details will be shown here -->
-    </event>
-    
-    === Converting to Ditto Document ===
-    Ditto Document JSON:
-    {
-      "_type": "a-f-G-U-C",
-      "_w": "a-f-G-U-C",
-      "_c": 0,
-      // Additional fields will be shown here
-    }
-    
-    === Converting back to CoT Event ===
-    Round-tripped CoT Event XML:
-    <event ...>
-      <!-- Event details will be shown here -->
-    </event>
-    
-    === Verification ===
-    Original and round-tripped XML are equal: true
-```
+## 📚 Documentation
 
-## Code Style
+- **Javadoc**: Generated in `build/docs/javadoc/`
+- **Examples**: `src/test/java/com/ditto/cot/example/`
+- **Integration Guide**: [Java Examples](../docs/integration/examples/java.md)
 
-This project uses Checkstyle to enforce code style. The configuration is in `config/checkstyle/checkstyle.xml`.
-
-To apply the code style automatically, you can use the following IDE plugins:
-
-- **IntelliJ IDEA**: Install the CheckStyle-IDEA plugin and import the `config/checkstyle/checkstyle.xml` file.
-- **Eclipse**: Install the Checkstyle Plugin and import the `config/checkstyle/checkstyle.xml` file.
-
-## Testing
-
-The test suite includes unit tests and integration tests. To run them:
-
-```bash
-# Run all tests
-./gradlew test
-
-# Run a specific test class
-./gradlew test --tests "com.ditto.cot.CotEventTest"
-
-# Run tests with debug output
-./gradlew test --info
-
-# Run tests with coverage report (generates HTML in build/reports/jacoco)
-./gradlew jacocoTestReport
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Ditto](https://www.ditto.live/) for the inspiration
-- [Apache Commons Lang](https://commons.apache.org/proper/commons-lang/) for utility functions
-- [JAXB](https://javaee.github.io/jaxb-v2/) for XML processing
+For comprehensive documentation, see the [main documentation](../docs/).

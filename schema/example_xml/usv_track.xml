@@ -1,0 +1,10 @@
+<event version="2.0" uid="00000000-0000-0000-0000-333333333333" type="a-f-S-C-U" how="m-g" time="2025-07-20T01:42:23Z" start="2025-07-20T01:42:22Z" stale="2025-07-20T01:43:22Z">
+  <point lat="-22.553768" lon="150.818542" hae="48.4075" ce="50.0" le="10.0"/>
+  <detail>
+    <contact callsign="USV-4"/>
+    <_flow-tags_ TAK-Server-bfd02d25da334126969d9519c6f0e0df="2023-09-20T12:57:58Z" TAK-Server-cbe8ead63f6848b3adf20200c711c3dc="2025-07-20T01:42:10Z" TAK-Server-732b686d97764a7394a88f107fd59e40="2025-07-20T01:42:23Z"/>
+    <track speed="3.0" course="-3.0778898812212523"/>
+    <status battery="0"/>
+    <precisionlocation geopointsrc="" altsrc=""/>
+  </detail>
+</event>

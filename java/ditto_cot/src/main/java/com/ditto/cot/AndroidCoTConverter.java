@@ -820,4 +820,56 @@ public class AndroidCoTConverter {
         return objectMapper.readValue(json, documentClass);
     }
 
+    /**
+     * Public method to unflatten r_* fields back to nested r field structure.
+     * This method should be called by ATAK when processing flattened Ditto documents
+     * to restore the nested detail structure needed for callsign and other detail access.
+     * 
+     * Example:
+     * Input:  {r_contact_callsign: "USV-4", r_contact_endpoint: "*:-1:stcp", e: "USV-4"}
+     * Output: {r: {contact: {callsign: "USV-4", endpoint: "*:-1:stcp"}}, e: "USV-4"}
+     * 
+     * @param flattenedMap Map containing flattened r_* fields from Ditto
+     * @return Map with r_* fields reconstructed into nested r field structure
+     */
+    public Map<String, Object> unflattenRField(Map<String, Object> flattenedMap) {
+        Map<String, Object> result = unflattenRFieldsToDetail(flattenedMap);
+        
+        // Extract important fields from the reconstructed r structure and set them as top-level keys
+        // This ensures insertTopLevelProperties can find them in the expected locations
+        Object rField = result.get("r");
+        if (rField instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> rMap = (Map<String, Object>) rField;
+            
+            // Extract contact callsign and set it in 'e' field (DITTO_KEY_AUTHOR_CALLSIGN)
+            Object contact = rMap.get("contact");
+            if (contact instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> contactMap = (Map<String, Object>) contact;
+                Object callsign = contactMap.get("callsign");
+                if (callsign instanceof String && !((String) callsign).isEmpty()) {
+                    result.put("e", callsign); // DITTO_KEY_AUTHOR_CALLSIGN
+                }
+            }
+            
+            // Extract track speed and course if present
+            Object track = rMap.get("track");
+            if (track instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> trackMap = (Map<String, Object>) track;
+                Object speed = trackMap.get("speed");
+                if (speed != null) {
+                    result.put("r1", speed); // DITTO_KEY_COT_EVENT_DETAIL_TRACK_SPEED
+                }
+                Object course = trackMap.get("course");
+                if (course != null) {
+                    result.put("r2", course); // DITTO_KEY_COT_EVENT_DETAIL_TRACK_COURSE
+                }
+            }
+        }
+        
+        return result;
+    }
+
 }

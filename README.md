@@ -1,51 +1,18 @@
 # Ditto CoT
 
-High-performance, multi-language libraries for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents. Built with advanced **CRDT optimization** to handle all CoT XML processing in a smart, efficient, and performant way for distributed P2P networks.
+High-performance, multi-language libraries for translating between [Cursor-on-Target (CoT)](https://www.mitre.org/sites/default/files/pdf/09_4937.pdf) XML events and Ditto-compatible CRDT documents. Built with advanced **CRDT optimization** for efficient P2P network synchronization.
 
-## 📁 Repository Structure
+## 🚀 Quick Start
 
-```
-ditto_cot/
-├── schema/               # Shared schema definitions
-│   ├── cot_event.xsd     # XML Schema for CoT events
-│   └── ditto.schema.json # JSON Schema for Ditto documents
-├── rust/                 # Rust implementation
-├── java/                 # Java implementation
-└── csharp/              # C# implementation
-```
+### Installation
 
-## 🛠 Getting Started
-
-### Prerequisites
-
-- [Rust](https://www.rust-lang.org/tools/install) (for Rust implementation)
-- [Java JDK](https://adoptium.net/) 11+ (for Java implementation)
-- [.NET SDK](https://dotnet.microsoft.com/download) 6.0+ (for C# implementation)
-
-## 📚 Language-Specific Documentation
-
-### Rust
-
-See the [Rust README](rust/README.md) for detailed documentation.
-
+**Rust**:
 ```toml
 [dependencies]
-ditto_cot = { git = "https://github.com/getditto-shared/ditto_cot", package = "ditto_cot" }
+ditto_cot = { git = "https://github.com/getditto-shared/ditto_cot" }
 ```
 
-### End-to-End (e2e) Testing for Rust
-
-The e2e test is located in `rust/examples/e2e_test.rs` and verifies integration with Ditto. To run it:
-
-- Use `cargo run --example e2e_test` from the `rust` directory.
-- Ensure Ditto dependencies are set up (e.g., via `make rust` or `cargo build`).
-
-This test checks full workflows, including schema and conversion logic.
-
-### Java
-
-See the [Java README](java/README.md) for detailed documentation.
-
+**Java**:
 ```xml
 <dependency>
   <groupId>com.ditto</groupId>
@@ -54,531 +21,105 @@ See the [Java README](java/README.md) for detailed documentation.
 </dependency>
 ```
 
-### C #
-
-See the [C# README](csharp/README.md) for detailed documentation.
-
+**C#** (planned):
 ```xml
 <PackageReference Include="Ditto.Cot" Version="1.0.0" />
 ```
 
-## ✨ Features
+### Basic Usage
 
-### 🚀 **CRDT-Optimized Performance**
-- **100% Data Preservation**: All duplicate CoT XML elements maintained (13/13 vs 6/13 in legacy systems)
-- **Differential Updates**: Only changed fields sync in P2P networks, not entire documents
-- **Smart Stable Keys**: Size-optimized Base64 hash keys reduce metadata by ~74%
-- **Cross-Language Consistency**: Identical CRDT behavior across Java and Rust implementations
-- **P2P Network Ready**: Multi-node convergence scenarios validated and tested
-
-### 🛠️ **Core Functionality**
-- **Ergonomic Builder Patterns** (Rust): Create CoT events with fluent, chainable APIs
-- **Full Round-trip Conversion**: CoT XML ↔ Ditto Document ↔ JSON/CRDT conversions
-- **Schema-validated Document Types**: Chat, Location, Emergency, File, and Generic events
-- **Automatic Type Inference**: CoT event types automatically mapped to document types
-- **Flexible Point Construction** (Rust): Multiple ways to specify coordinates and accuracy
-- **Proper Field Handling**: Underscore-prefixed fields in JSON serialization/deserialization
-- **Asynchronous Ditto Integration**: Native support for Ditto's CRDT document model
-- **Comprehensive Test Coverage**: All implementations thoroughly tested
-
-## 🚀 **CRDT Optimization Benefits**
-
-### **Smart CoT XML Processing**
-
-The Ditto CoT library employs advanced CRDT optimization to handle CoT XML processing efficiently:
-
-```xml
-<!-- Complex CoT XML with duplicate elements -->
-<detail>
-  <sensor type="optical" id="sensor-1"/>
-  <sensor type="thermal" id="sensor-2"/>  
-  <sensor type="radar" id="sensor-3"/>
-  <!-- Legacy systems: Only 6/13 elements preserved -->
-  <!-- Ditto CoT: ALL 13 elements preserved -->
-</detail>
-```
-
-### **Performance Improvements**
-
-| Metric | Legacy Systems | Ditto CoT Solution | Improvement |
-|--------|---------------|-------------------|-------------|
-| **Data Preservation** | 6/13 elements (46%) | 13/13 elements (100%) | +54% |
-| **P2P Sync Efficiency** | Full document sync | Differential field sync | ~70% bandwidth savings |
-| **Metadata Size** | Large keys + redundant data | Base64 optimized keys | ~74% reduction |
-| **CRDT Compatibility** | ❌ Arrays break updates | ✅ Stable keys enable granular updates | ✅ |
-
-### **CRDT-Optimized Storage**
-
-```javascript
-// Before: Array-based (breaks differential updates)
-details: [
-  {"name": "sensor", "type": "optical"},
-  {"name": "sensor", "type": "thermal"}
-]
-
-// After: Stable key storage (enables differential updates)
-details: {
-  "aG1k_0": {"type": "optical", "_tag": "sensor"},
-  "aG1k_1": {"type": "thermal", "_tag": "sensor"}
-}
-```
-
-**Result**: Only individual sensor updates sync across the P2P network, not entire document arrays.
-
-## 🔄 Usage Examples
-
-### Smart CoT XML Processing with CRDT Benefits
-
-The Ditto CoT library intelligently handles complex CoT XML structures, automatically optimizing for distributed P2P networks:
-
+**Rust**:
 ```rust
-// Smart processing preserves ALL duplicate elements
-let complex_xml = r#"
-<event version="2.0" uid="COMPLEX-123" type="a-f-G-U-C">
-  <detail>
-    <sensor type="optical" id="sensor-1"/>
-    <sensor type="thermal" id="sensor-2"/>
-    <sensor type="radar" id="sensor-3"/>
-    <contact callsign="ALPHA-1"/>
-    <contact callsign="BRAVO-2"/>
-    <!-- All 13 elements preserved with stable CRDT keys -->
-  </detail>
-</event>
-"#;
+use ditto_cot::{cot_events::CotEvent, ditto::cot_to_document};
 
-// Automatic CRDT optimization
-let event = CotEvent::from_xml(complex_xml)?;
-let doc = cot_to_document(&event, "peer-123");
-
-// Result: Efficient P2P sync with differential updates
-// Only changed sensor.zoom syncs, not entire sensor arrays
-```
-
-### Performance Benefits in Action
-
-```rust
-// P2P Network Scenario
-Node A: Updates sensor_1.zoom = "20x"     // Only this field syncs
-Node B: Removes contact_0                 // Only this removal syncs  
-Node C: Adds new sensor_4                 // Only this addition syncs
-
-// All nodes converge efficiently without full document sync
-```
-
-### Creating CoT Events with Builder Pattern (Rust)
-
-The Rust implementation provides ergonomic builder patterns for creating CoT events:"
-
-```rust
-use ditto_cot::cot_events::CotEvent;
-use chrono::Duration;
-
-// Create a simple location update
 let event = CotEvent::builder()
     .uid("USER-123")
     .event_type("a-f-G-U-C")
     .location(34.12345, -118.12345, 150.0)
     .callsign("ALPHA-1")
-    .stale_in(Duration::minutes(10))
     .build();
 
-// Create with team and accuracy information
-let tactical_event = CotEvent::builder()
-    .uid("BRAVO-2")
-    .location_with_accuracy(35.0, -119.0, 200.0, 5.0, 10.0)
-    .callsign_and_team("BRAVO-2", "Blue")
+let doc = cot_to_document(&event, "peer-123");
+```
+
+**Java**:
+```java
+CotEvent event = CotEvent.builder()
+    .uid("USER-123")
+    .type("a-f-G-U-C")
+    .point(34.12345, -118.12345, 150.0)
+    .callsign("ALPHA-1")
     .build();
 
-// Point construction with fluent API
-let point = Point::builder()
-    .coordinates(34.0526, -118.2437, 100.0)
-    .accuracy(3.0, 5.0)
-    .build();
+DittoDocument doc = event.toDittoDocument();
 ```
 
-### Converting CoT XML to CotDocument with CRDT Optimization
+## 📁 Repository Structure
 
-This section shows how to convert a CoT XML string into a `CotDocument` with **CRDT optimization** that preserves all duplicate elements and enables efficient P2P synchronization. `CotDocument` is the main enum used for Ditto/CoT transformations in this library, implementing the `DittoDocument` trait for DQL/SDK support.
-
-```rust
-// Parse CoT XML into a CotEvent
-let cot_xml = "<event version='2.0' uid='ANDROID-123' type='a-f-G-U-C'...";
-let cot_event = CotEvent::from_xml(cot_xml)?;
-
-// Convert to a CotDocument (the main enum for Ditto/CoT transformations)
-let peer_id = "my-peer-id";
-let cot_doc = cot_to_document(&cot_event, peer_id); // Returns a CotDocument
-
-// The document type is automatically inferred from the CoT event type
-// CotDocument is the enum used for CoT-to-Ditto transformations.
-// Note: DittoDocument is a trait that CotDocument implements for DQL support, not a struct or enum.
-match cot_doc {
-    CotDocument::MapItem(map_item) => {
-        println!("Received a location update");
-    },
-    CotDocument::Chat(chat) => {
-        println!("Received a chat message");
-    },
-    CotDocument::File(file) => {
-        println!("Received a file: {}", file.file.unwrap_or_default());
-    },
-    // Other document types...
-}
+```
+ditto_cot/
+├── docs/                 # 📚 Documentation
+│   ├── technical/        # Architecture, CRDT, Performance  
+│   ├── development/      # Getting Started, Building, Testing
+│   ├── integration/      # SDK integration guides
+│   └── reference/        # API reference, schemas
+├── schema/               # Shared schema definitions
+├── rust/                 # Rust implementation
+├── java/                 # Java implementation  
+└── csharp/              # C# implementation (planned)
 ```
 
-> **Note:**
->
-> - `CotEvent`: Struct representing a CoT event (parsed from XML).
-> - `CotDocument`: Enum representing a Ditto-compatible document (used for transformations).
-> - `DittoDocument`: Trait implemented by CotDocument for DQL/SDK support. Not a struct or enum.
+## ✨ Key Features
 
-### Converting CotDocument to CoT XML
+- **🔄 100% Data Preservation**: All duplicate CoT XML elements maintained vs 46% in legacy systems
+- **⚡ CRDT-Optimized**: 70% bandwidth savings through differential field sync  
+- **🌐 Cross-Language**: Identical behavior across Java, Rust, and C#
+- **🛡️ Type-Safe**: Schema-driven development with strong typing
+- **📱 SDK Integration**: Observer document conversion with r-field reconstruction
+- **🔧 Builder Patterns**: Ergonomic APIs for creating CoT events
+- **🧪 Comprehensive Testing**: E2E tests including multi-peer P2P scenarios
 
-```rust
-// Convert a CotDocument back to a CotEvent (for round-trip or XML serialization)
-let roundtrip_event = cot_event_from_ditto_document(&cot_doc); // Returns a CotEvent
+## 📚 Documentation
 
-// Serialize to CoT XML
-let xml = roundtrip_event.to_xml()?;
-println!("CoT XML: {}", xml);
-```
+For detailed information, see our comprehensive documentation:
 
-*The function `cot_event_from_ditto_document` takes a `CotDocument` (not a DittoDocument) and returns a `CotEvent`.*
+### 🏗️ Technical Deep Dives
+- **[Architecture](docs/technical/architecture.md)** - System design and components
+- **[CRDT Optimization](docs/technical/crdt-optimization.md)** - Advanced P2P synchronization
+- **[Performance](docs/technical/performance.md)** - Benchmarks and optimization
 
-### CotDocument vs DittoDocument
+### 🛠️ Development Guides  
+- **[Getting Started](docs/development/getting-started.md)** - Quick setup for all languages
+- **[Building](docs/development/building.md)** - Build procedures and requirements
+- **[Testing](docs/development/testing.md)** - Testing strategies and E2E scenarios
 
-- **CotDocument**: The main enum representing Ditto-compatible documents for CoT transformations. Used throughout this library for all conversions.
-- **DittoDocument**: A trait implemented by CotDocument (and possibly other types) to provide DQL/SDK support. Do not instantiate DittoDocument directly; use CotDocument and its trait methods where needed.
+### 🔌 Integration Guides
+- **[Ditto SDK Integration](docs/integration/ditto-sdk.md)** - Observer patterns and DQL
+- **[Rust Examples](docs/integration/examples/rust.md)** - Rust-specific patterns
+- **[Java Examples](docs/integration/examples/java.md)** - Java-specific patterns
+- **[Migration Guide](docs/integration/migration.md)** - Version upgrades and legacy system migration
 
----
+### 📖 Reference
+- **[API Reference](docs/reference/api-reference.md)** - Complete API documentation
+- **[Schema Reference](docs/reference/schema.md)** - Document schemas and validation
+- **[Troubleshooting](docs/reference/troubleshooting.md)** - Common issues and solutions
 
-## 🧩 Interacting with the DittoDocument Trait and Ditto DQL
+### 🎯 Language-Specific READMEs
+- **[Rust Implementation](rust/README.md)** - Rust-specific APIs and patterns
+- **[Java Implementation](java/README.md)** - Java-specific APIs and patterns
 
-### What is the DittoDocument Trait?
-
-The `DittoDocument` trait is part of the Ditto SDK and defines the interface for documents that can be queried, mutated, and synchronized using Ditto's DQL (Ditto Query Language). It is not a struct or enum, but a set of methods that types (like `CotDocument`) implement to be compatible with Ditto's real-time database and query engine.
-
-### How Does CotDocument Implement DittoDocument?
-
-`CotDocument` implements the `DittoDocument` trait, so you can use any `CotDocument` (produced from a CoT event or elsewhere) directly with Ditto's DQL APIs. This allows you to store, query, and synchronize CoT-derived documents in Ditto collections.
-
-### Example: CoT Event → CotDocument → DQL
-
-```rust
-use ditto_cot::{cot_events::CotEvent, ditto::{CotDocument, cot_to_document}};
-use dittolive_ditto::prelude::*;
-
-// Parse CoT XML and convert to CotDocument
-// "peer-key" is the Ditto peer key (a unique identifier for the device or user in Ditto)
-enum CotDocument = cot_to_document(&CotEvent::from_xml(cot_xml)?, "peer-key");
-
-// Insert into a Ditto collection (DQL)
-let collection = ditto.store().collection("cot_events");
-collection.upsert(&DittoDocument::id(&cot_doc), &cot_doc)?;
-
-// Query using DQL
-let results = collection.find("e == $callsign").query_with_parameters(params)?;
-for doc in results.documents() {
-    // doc is a DittoDocument, which CotDocument implements
-    let callsign: String = DittoDocument::get(&doc, "e").unwrap();
-    println!("Found callsign: {}", callsign);
-}
-```
-
-> **Note:**
-> The `peer-key` argument should be set to the unique Ditto peer key for your device or user. This key is used to identify the origin of the document in Ditto's sync system. You can obtain or configure it according to your Ditto SDK setup.
-
-### Example: DQL Document → CotDocument → CoT XML
-
-When you receive a document from Ditto's DQL (e.g. as a `DittoDocument`), you can deserialize it to a `CotDocument` and then convert it back to a `CotEvent` for CoT XML serialization:
-
-```rust
-use ditto_cot::{ditto::CotDocument, cot_events::CotEvent};
-
-// Suppose you get a DittoDocument from a query
-let doc: CotDocument = DittoDocument::from_json_str(doc_json)?;
-
-// Convert back to a CotEvent
-let cot_event = cot_event_from_ditto_document(&doc);
-let xml = cot_event.to_xml()?;
-println!("CoT XML: {}", xml);
-```
-
-### Summary of the Flow
-
-- **CoT XML → CotEvent → CotDocument → DittoDocument trait → DQL** (store/query)
-- **DQL (DittoDocument) → CotDocument → CotEvent → CoT XML** (round-trip)
-
-This ensures seamless, type-safe, and loss-minimized round-trip conversions between CoT XML, Ditto's CRDT/DQL world, and back.
-
-> **Functional Testing:**
-> End-to-end tests for these flows can be found in [`rust/tests/e2e_test.rs`](rust/tests/e2e_test.rs). These tests verify round-trip conversions, DQL queries, and the integration between CotEvent, CotDocument, and DittoDocument through Ditto's SDK. Check the test file for real usage and validation examples.
->
-### Handling Underscore-Prefixed Fields
-
-The library properly handles underscore-prefixed fields in JSON serialization/deserialization:
-
-```rust
-// Fields with underscore prefixes in JSON are properly mapped to Rust fields
-// For example, in JSON: "_id", "_c", "_v", "_r"
-// In Rust: "id", "d_c", "d_v", "d_r"
-
-let map_item = MapItem {
-    id: "my-unique-id".to_string(),
-    d_c: 1,                        // Maps to "_c" in JSON
-    d_v: 2,                        // Maps to "_v" in JSON
-    d_r: false,                    // Maps to "_r" in JSON
-    // ... other fields
-};
-
-// When serialized to JSON, the fields will have their underscore prefixes
-let json = serde_json::to_string(&map_item)?;
-// json contains: {"_id":"my-unique-id","_c":1,"_v":2,"_r":false,...}
-
-// When deserializing from JSON, the underscore-prefixed fields are correctly mapped back
-let deserialized: MapItem = serde_json::from_str(&json)?;
-assert_eq!(deserialized.id, "my-unique-id");
-assert_eq!(deserialized.d_c, 1);
-```
-
-### Working with CotDocument Types
-
-#### 1. Chat Documents
-
-```rust
-if let CotDocument::Chat(chat) = doc {
-    println!("Chat from {}: {}", chat.author_callsign, chat.message);
-    println!("Room: {} (ID: {})", chat.room, chat.room_id);
-    if let Some(loc) = chat.location {
-        println!("Location: {}", loc);
-    }
-}
-```
-
-#### 2. Location Documents
-
-```rust
-if let CotDocument::MapItem(map_item) = doc {
-    println!("Location update for {}", map_item.e); // e is callsign
-    if let (Some(lat), Some(lon)) = (map_item.h, map_item.i) {
-        println!("Position: {},{}", lat, lon);
-    }
-    if let Some(ce) = map_item.k {
-        println!("Accuracy: ±{}m", ce); // circular error
-    }
-}
-```
-
-#### 3. Emergency Documents
-
-```rust
-if let CotDocument::Api(emergency) = doc {
-    println!("Emergency from {}", emergency.e); // callsign
-    // Process emergency data
-}
-```
-
-#### 4. File Documents
-
-```rust
-if let CotDocument::File(file) = doc {
-    println!("File: {}", file.file.unwrap_or_default()); // filename
-    println!("MIME Type: {}", file.mime.unwrap_or_default()); // MIME type
-    println!("Size: {}", file.sz.unwrap_or_default()); // file size
-    println!("ID: {}", file.id); // unique identifier
-    
-    // File documents are created from CoT events with type "b-f-t-file"
-    // and extract metadata from the <fileshare> element in the detail section
-}
-```
-
-#### 5. Generic Documents
-
-```rust
-if let CotDocument::Generic(generic) = doc {
-    println!("Generic document with ID: {}", generic.id);
-    println!("Type: {}", generic.t); // CoT event type
-    
-    // Access point coordinates
-    if let (Some(lat), Some(lon)) = (generic.a, generic.b) {
-        println!("Position: {},{}", lat, lon);
-    }
-    
-    // Access detail fields from the detail_map
-    if let Some(detail_map) = &generic.detail_map {
-        if let Some(value) = detail_map.get("_ce") {
-            println!("Circular Error: {}", value);
-        }
-        // Access any other fields from the detail section
-    }
-    
-    // Generic documents are a fallback for CoT events that don't match other specific types
-    // They preserve all fields from the original CoT event for maximum flexibility
-}
-```
-
-## 🧪 Testing
-
-The library includes comprehensive tests for all functionality:
+## 🚀 Quick Start
 
 ```bash
-# Run all tests
-cargo test --all-targets
-
-# Run specific test
-cargo test test_underscore_key_handling
-```
-
-### Cross-Language Integration Testing
-
-The repository includes a comprehensive integration test system that validates compatibility between the Rust and Java implementations:
-
-```bash
-# Run individual language examples
-make example-rust  # Outputs JSON from Rust integration client
-make example-java   # Outputs JSON from Java integration client
-
-# Run cross-language integration test
-make test-integration  # Builds both examples and runs compatibility test
-```
-
-#### Integration Test Overview
-
-The integration test system (`rust/tests/integration_test.rs`) performs the following validations:
-
-1. **Process Spawning**: Launches both Rust binary and Java distribution executables
-2. **Same Input Processing**: Both clients process identical CoT XML input
-3. **Output Comparison**: Validates that both implementations produce equivalent JSON output
-4. **Document Structure Verification**: Compares Ditto document structures for consistency
-5. **Roundtrip Validation**: Ensures both can perform XML → Ditto → XML conversions
-
-#### Example Clients
-
-- **Rust**: `rust/examples/integration_client.rs` - Uses the ditto_cot API
-- **Java**: `java/example/src/main/java/com/ditto/cot/example/IntegrationClient.java` - Uses the CoTConverter API
-
-Both clients process the same CoT XML event and output structured JSON containing:
-```json
-{
-  "lang": "rust|java",
-  "original_xml": "...",
-  "ditto_document": {...},
-  "roundtrip_xml": "...",
-  "success": true
-}
-```
-
-### End-to-End (E2E) Testing
-
-The Rust implementation includes comprehensive end-to-end tests that verify full integration with Ditto:
-
-#### Single-Peer E2E Test: `rust/tests/e2e_test.rs`
-
-Basic E2E tests that perform complete workflows including:
-
-1. **Ditto Integration**: Real connection to Ditto with authentication
-2. **Document Storage**: Uses DQL to insert CoT documents into collections
-3. **Round-trip Verification**: CoT XML → CotEvent → CotDocument → Ditto → Query → XML
-4. **Multiple Document Types**: Tests all CotDocument variants (MapItem, Chat, File, Api, Generic)
-5. **Schema Validation**: Validates document structure and field mappings
-6. **XML Semantic Comparison**: Uses semantic XML equality for robust comparison
-
-#### Multi-Peer E2E Test: `rust/tests/e2e_multi_peer.rs`
-
-Advanced E2E test that simulates real-world distributed scenarios:
-
-**Test Scenario Overview:**
-1. **Peer Connection**: Two Rust clients establish peer-to-peer connection
-2. **Document Creation**: One peer creates a CoT MapItem document
-3. **Sync Verification**: Document automatically syncs to second peer
-4. **Offline Simulation**: Both peers go offline independently  
-5. **Conflict Creation**: Each peer makes conflicting modifications while offline
-6. **Reconnection**: Both peers come back online and sync
-7. **Conflict Resolution**: Validates last-write-wins merge behavior
-
-**Key Features Tested:**
-- **Peer Discovery**: Automatic peer detection and connection establishment
-- **Real-time Sync**: Document changes propagate between peers automatically
-- **Offline Resilience**: Peers can operate independently when disconnected
-- **Conflict Resolution**: CRDT merge semantics handle conflicting changes
-- **DQL Integration**: Uses Ditto Query Language for all operations
-- **Observers & Subscriptions**: Real-time change notifications between peers
-
-#### Running E2E Tests
-
-```bash
-# Set up Ditto environment variables
-export DITTO_APP_ID="your-app-id"
-export DITTO_PLAYGROUND_TOKEN="your-token"
-
-# Run single-peer E2E tests
-cargo test e2e_xml_roundtrip
-cargo test e2e_xml_examples_roundtrip
-
-# Run multi-peer E2E test
-cargo test e2e_multi_peer_mapitem_sync_test
-
-# Run with specific XML file
-E2E_XML_FILE="example.xml" cargo test e2e_xml_examples_roundtrip
-```
-
-#### E2E Test Features
-
-- **Real Ditto Connection**: Tests against actual Ditto playground/cloud
-- **Multiple XML Examples**: Processes all XML files in `schema/example_xml/`
-- **Collection Management**: Automatically handles different collection types based on document type
-- **DQL Integration**: Uses Ditto Query Language for document operations
-- **Semantic XML Comparison**: Handles XML formatting differences intelligently
-- **Peer-to-Peer Sync**: Validates document synchronization between multiple Ditto instances
-- **Conflict Resolution**: Tests CRDT merge behavior under realistic conditions
-- **Error Handling**: Comprehensive error reporting for debugging
-
-The E2E tests ensure that the library works correctly in production-like environments with real Ditto instances and provides confidence in the complete CoT → Ditto → CoT workflow, including distributed scenarios with multiple peers.
-
-## 🛠️ Build System
-
-### Makefile
-
-The repository includes a top-level `Makefile` that provides a unified build system for all language implementations:
-
-```bash
-# Build all language libraries
+# Build all libraries
 make all
 
-# Build specific language libraries
-make rust
-make java
-make csharp
+# Run all tests
+make test
 
-# Run tests
-make test        # Test all libraries
-make test-rust   # Test only Rust library
-make test-java   # Test only Java library
-make test-csharp # Test only C# library
-
-# Clean builds
-make clean        # Clean all libraries
-make clean-rust   # Clean only Rust library
-make clean-java   # Clean only Java library
-make clean-csharp # Clean only C# library
-
-# Show available commands
+# See all available commands
 make help
 ```
-
-### Language-Specific Build Systems
-
-#### Rust
-
-The Rust library uses a custom build script (`build.rs`) to generate Rust code from the JSON schema. This includes special handling for underscore-prefixed fields to ensure proper serialization/deserialization.
-
-#### Java
-
-The Java library uses Gradle as its build system. The Gradle wrapper (`gradlew`) is included in the repository, so you don't need to install Gradle separately.
-
-#### C #
-
-The C# library uses the .NET SDK build system.
 
 ## 🤝 Contributing
 
@@ -588,245 +129,6 @@ Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Ditto Integration
-
-```rust
-use ditto_cot::ditto_sync::{DittoContext, DittoError};
-
-async fn store_cot_event(ditto: &DittoContext, cot_xml: &str) -> Result<(), DittoError> {
-    // Parse CoT XML
-    let event = CotEvent::from_xml(cot_xml)?;
-    
-    // Convert to Ditto document
-    let doc = cot_to_document(&event, &ditto.peer_key);
-    
-    // Store in Ditto
-    ditto.store_document(doc).await?;
-    
-    Ok(())
-}
-
-async fn query_chat_messages(ditto: &DittoContext, room: &str) -> Result<Vec<ChatDocument>, DittoError> {
-    // Query using DQL to retrieve CotDocument instances of type ChatDocument
-    ditto.query_documents::<ChatDocument>(json!({ "room": room })).await
-}
-```
-
-### Round-trip Example
-
-```rust
-// Start with CoT XML
-let cot_xml = r#"
-    <event version="2.0" type="b-t-f"...>
-        <detail>
-            <chat room="All">
-                <chatgrp uid="user1" id="All" senderCallsign="User1">
-                    Hello, world!
-                </chatgrp>
-            </chat>
-        </detail>
-    </event>
-"#;
-
-// Parse to CotEvent
-let event = CotEvent::from_xml(cot_xml)?;
-
-// Convert to CoT document (CotDocument)
-let doc = cot_to_document(&event, "peer-123");
-
-// Convert CotDocument back to CotEvent
-let event_again = doc.to_cot_event()?;
-
-// Serialize back to XML
-let xml_again = event_again.to_xml()?;
-```
-
-## 📚 CotDocument Schema
-
-### Common Fields
-
-All CotDocument instances include these common fields (Note: DittoDocument is the Ditto-specific API document used with DQL):
-
-- `_id`: Unique document identifier
-- `_c`: Document counter (updates)
-- `_v`: Schema version
-- `_r`: Soft-delete flag
-- `a`: Ditto peer key
-- `b`: Timestamp (ms since epoch)
-- `d`: Author UID
-- `e`: Author callsign
-- `h`: Circular error (CE) in meters
-
-### CotDocument Types
-
-#### 1. Chat Document (`CotDocument::Chat`)
-
-```json
-{
-  "_t": "c",
-  "message": "Hello, world!",
-  "room": "All",
-  "room_id": "group-1",
-  "author_callsign": "User1",
-  "author_uid": "user1",
-  "author_type": "user",
-  "time": "2023-01-01T12:00:00Z",
-  "location": "34.0522,-118.2437,100"
-}
-```
-
-#### 2. Location Document (`CotDocument::Location`)
-
-```json
-{
-  "_t": "l",
-  "location_type": "a-f-G-U-C",
-  "location": {
-    "lat": 34.0522,
-    "lon": -118.2437,
-    "hae": 100.0,
-    "ce": 10.0,
-    "speed": 0.0,
-    "course": 0.0
-  }
-}
-```
-
-#### 3. Emergency Document (`CotDocument::Emergency`)
-
-```json
-{
-  "_t": "e",
-  "emergency_type": "911",
-  "status": "active",
-  "location": {
-    "lat": 34.0522,
-    "lon": -118.2437,
-    "hae": 100.0,
-    "ce": 10.0
-  },
-  "details": {
-    "message": "Medical emergency"
-  }
-}
-```
-
-```
-
-## 🔍 XML Validation
-
-The library provides basic XML well-formedness checking for CoT messages. Note that full XSD schema validation is not currently implemented.
-
-```rust
-use ditto_cot::schema_validator::validate_against_cot_schema;
-
-let cot_xml = r#"
-    <event version="2.0" 
-          uid="TEST-123" 
-          type="a-f-G-U-C" 
-          time="2021-02-27T20:32:24.913Z" 
-          start="2021-02-27T20:32:24.913Z" 
-          stale="2021-02-27T20:38:39.913Z" 
-          how="h-g-i-g-o">
-        <point lat="1.234567" lon="3.456789" hae="9999999.0" ce="9999999.0" le="9999999.0"/>
-        <detail>
-            <contact callsign="TEST-USER"/>
-            <__group name="Cyan" role="Team Member"/>
-        </detail>
-    </event>"#;
-
-match validate_against_cot_schema(cot_xml) {
-    Ok(_) => println!("Well-formed CoT XML"),
-    Err(e) => eprintln!("XML error: {}", e),
-}
-```
-
-### CRDT Implementation Details
-
-The Ditto CoT library implements advanced CRDT optimization through:
-
-#### **Stable Key Generation**
-- **Size-optimized keys**: `base64(hash(documentId + elementName))_index` format
-- **Cross-language compatibility**: Identical key generation across Java and Rust
-- **Bandwidth efficiency**: ~74% reduction in metadata size vs legacy formats
-
-#### **Duplicate Element Preservation**
-- **Two-pass algorithm**: First pass detects duplicates, second pass assigns stable keys
-- **Zero data loss**: All duplicate elements preserved (100% vs 46% in legacy systems)
-- **Deterministic ordering**: Consistent results across language implementations
-
-#### **P2P Optimization**
-- **Differential updates**: Only changed fields sync, not entire documents
-- **Conflict resolution**: CRDT semantics handle multi-node updates
-- **Real-time convergence**: Automatic synchronization across distributed peers
-
-### Note on XSD Validation
-
-While the library includes the CoT XSD schema file (`src/schema/cot_event.xsd`), full XSD validation is not currently implemented due to limitations in available Rust XML schema validation libraries. For production use, you might want to:
-
-1. Use an external tool like `xmllint` for schema validation
-2. Implement a custom validation layer for your specific CoT message requirements
-3. Use a different language with better XML schema support for validation
-
-The current implementation provides basic XML well-formedness checking which catches many common errors in XML structure.
-
-## 🧪 Tests
-
-Run all tests including schema validation:
-
-```
-cargo test
-```
-
-Run only unit tests (without schema validation):
-
-```
-cargo test --lib
-```
-
-Run only integration tests:
-
-```
-cargo test --test integration
-```
-
-## 📈 Benchmarks
-
-```
-cargo bench
-```
-
-## 📚 Schema Reference
-
-The CoT XML schema is based on the official Cursor on Target XSD schema. The schema file is located at `src/schema/cot_event.xsd`.
-
-### Validation Rules
-
-- All required CoT event attributes must be present
-- Attribute values must conform to their defined types
-- The XML structure must match the schema definition
-- Custom elements in the `<detail>` section must be properly namespaced
-
-## 🔬 Fuzz Testing
-
-Scaffolded under `fuzz/` using `cargo-fuzz`.
-
-To run:
-
-```
-cargo install cargo-fuzz
-cargo fuzz run fuzz_parse_cot
-```
-
-## 🧰 Future Plans
-
-- Expand `FlatCotEvent` with more typed `<detail>` variants (e.g., `takv`, `track`)
-- Schema-aware XSD validation or compile-time CoT models
-- Internal plugin registry for custom extensions
-
-MITRE CoT Reference: <https://apps.dtic.mil/sti/pdfs/ADA637348.pdf>  
-Ditto SDK Rust Docs: <https://software.ditto.live/rust/Ditto>
-
 ---
 
-MIT Licensed.
+**Next Steps**: Check out our [Getting Started Guide](docs/development/getting-started.md) for detailed setup instructions, or browse the [Architecture](docs/technical/architecture.md) to understand the system design.
