@@ -3,8 +3,16 @@ target/
 # Generated Rust code from JSON schema
 rust/src/ditto/schema.rs
 
+# Swift build artifacts and dependencies
+swift/.build/
+swift/Package.resolved
+
+# Generated Swift code from JSON schema
+swift/Sources/DittoCoTCore/Generated/
+
 .env
 rust/.env
 java/.env
+swift/.env
 
 
