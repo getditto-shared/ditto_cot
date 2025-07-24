@@ -281,15 +281,27 @@ pub fn transform_location_event_flattened(event: &CotEvent, peer_key: &str) -> V
 pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
     // Parse chat message details from the detail XML using the proper XML parser
     let detail_map = crate::detail_parser::parse_detail_section(&event.detail);
-    
+
     // Extract chat details from parsed XML
     let chat_data = detail_map.get("chat")?;
     let chat_obj = chat_data.as_object()?;
-    
-    let message = chat_obj.get("msg").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let room = chat_obj.get("room").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let room_id = chat_obj.get("roomId").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let author_callsign = chat_obj.get("from").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+    let message = chat_obj
+        .get("msg")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let room = chat_obj
+        .get("room")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let room_id = chat_obj
+        .get("roomId")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let author_callsign = chat_obj
+        .get("from")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     let author_uid = Some(event.uid.clone());
     let author_type = Some("user".to_string());
