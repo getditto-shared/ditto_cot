@@ -7,7 +7,7 @@ use anyhow::Result;
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::ditto::{CotDocument, r_field_flattening::unflatten_document_r_field};
+use crate::ditto::{r_field_flattening::unflatten_document_r_field, CotDocument};
 
 /// Convert observer document JSON to a typed CotDocument
 ///
@@ -24,7 +24,7 @@ use crate::ditto::{CotDocument, r_field_flattening::unflatten_document_r_field};
 /// # Example
 /// ```no_run
 /// use ditto_cot::ditto::{observer_json_to_cot_document, CotDocument};
-/// 
+///
 /// // Example with JSON string from observer
 /// let json_str = r#"{"_id": "test", "w": "a-u-r-loc-g", "j": 37.7749, "l": -122.4194}"#;
 /// match observer_json_to_cot_document(json_str) {
@@ -50,7 +50,7 @@ pub fn observer_json_to_cot_document(observer_doc_json: &str) -> Result<CotDocum
 /// Convert observer document JSON to JSON with reconstructed r-fields
 ///
 /// This function takes the JSON string from an observer document and reconstructs
-/// the hierarchical r-field structure from flattened r_* fields. This gives you 
+/// the hierarchical r-field structure from flattened r_* fields. This gives you
 /// the full document structure as it would appear in the original CoT event.
 ///
 /// # Arguments
@@ -82,19 +82,19 @@ pub fn observer_json_to_json_with_r_fields(observer_doc_json: &str) -> Result<Va
     // Parse the JSON string
     let doc_value: Value = serde_json::from_str(observer_doc_json)
         .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
-    
+
     // Convert to a mutable map for unflattening
     if let Value::Object(obj) = &doc_value {
         let mut document_map: HashMap<String, Value> = obj.clone().into_iter().collect();
-        
+
         // Unflatten r_* fields back to nested r field
         let r_map = unflatten_document_r_field(&mut document_map);
-        
+
         // Add the reconstructed r field if it has content
         if !r_map.is_empty() {
             document_map.insert("r".to_string(), Value::Object(r_map.into_iter().collect()));
         }
-        
+
         Ok(Value::Object(document_map.into_iter().collect()))
     } else {
         // Return the document as-is if it's not an object
@@ -123,7 +123,7 @@ pub fn observer_json_to_json_with_r_fields(observer_doc_json: &str) -> Result<Va
 /// if let Some(id) = get_document_id_from_value(&doc_value) {
 ///     println!("Document ID: {}", id);
 /// }
-/// 
+///
 /// // From JSON string
 /// let json_str = r#"{"_id": "test-456", "w": "a-u-r-loc-g"}"#;
 /// if let Some(id) = get_document_id_from_json(json_str) {
@@ -195,12 +195,13 @@ mod tests {
             "_id": "test-doc-123",
             "w": "a-u-r-loc-g"
         });
-        
+
         // Test extracting ID from JSON Value directly (simulating DittoDocument.value())
-        let id = doc_value.get("_id")
+        let id = doc_value
+            .get("_id")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        
+
         assert_eq!(id, Some("test-doc-123".to_string()));
     }
 
@@ -210,11 +211,12 @@ mod tests {
             "_id": "test-doc-123",
             "w": "a-u-r-loc-g"
         });
-        
-        let doc_type = doc_value.get("w")
+
+        let doc_type = doc_value
+            .get("w")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        
+
         assert_eq!(doc_type, Some("a-u-r-loc-g".to_string()));
     }
 }

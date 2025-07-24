@@ -28,7 +28,6 @@ public class CoTFuzzTest {
     }
     
     @Property
-    @Report(Reporting.GENERATED)
     void fuzzValidCoTXmlShouldAlwaysParse(
             @ForAll @AlphaChars @StringLength(min = 1, max = 50) String uid,
             @ForAll @From("validCoTTypes") String type,
@@ -49,7 +48,6 @@ public class CoTFuzzTest {
     }
     
     @Property
-    @Report(Reporting.GENERATED)
     void fuzzCoordinateEdgeCases(
             @ForAll @AlphaChars @StringLength(min = 1, max = 20) String uid,
             @ForAll @DoubleRange(min = -1000.0, max = 1000.0) double lat,
@@ -82,7 +80,6 @@ public class CoTFuzzTest {
     }
     
     @Property
-    @Report(Reporting.GENERATED)
     void fuzzLargeStrings(
             @ForAll @StringLength(min = 1000, max = 10000) String largeString
     ) {

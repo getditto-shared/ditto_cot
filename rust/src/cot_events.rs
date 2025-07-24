@@ -508,7 +508,7 @@ impl CotEvent {
             how: "h-g-i-g-o".to_string(),
             point: Point::default(),
             detail: format!(
-                "<detail>chat from={} room={} roomId={} msg={}</detail>",
+                "<detail><chat from=\"{}\" room=\"{}\" roomId=\"{}\" msg=\"{}\"/></detail>",
                 sender_callsign, chatroom, chat_group_uid, message
             ),
         }
@@ -782,7 +782,7 @@ mod tests {
         assert_eq!(event.point.hae, 0.0);
         assert_eq!(
             event.detail,
-            "<detail>chat from=ALPHA-1 room=All Chat Rooms roomId=All Chat Rooms msg=Test message</detail>"
+            "<detail><chat from=\"ALPHA-1\" room=\"All Chat Rooms\" roomId=\"All Chat Rooms\" msg=\"Test message\"/></detail>"
         );
     }
 

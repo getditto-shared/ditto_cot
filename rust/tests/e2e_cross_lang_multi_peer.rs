@@ -97,13 +97,12 @@ async fn e2e_cross_lang_multi_peer_test() -> Result<()> {
         .sync()
         .register_subscription_v2("SELECT * FROM track")?;
 
-    let _observer_rust =
-        store_rust.register_observer_v2("SELECT * FROM track", move |result| {
-            println!(
-                "🔔 Rust client observer: received {} documents",
-                result.item_count()
-            );
-        })?;
+    let _observer_rust = store_rust.register_observer_v2("SELECT * FROM track", move |result| {
+        println!(
+            "🔔 Rust client observer: received {} documents",
+            result.item_count()
+        );
+    })?;
 
     println!("✅ Rust client initialized and syncing");
 

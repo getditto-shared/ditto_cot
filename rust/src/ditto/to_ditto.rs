@@ -54,7 +54,7 @@ fn extract_callsign(extras: &HashMap<String, Value>) -> Option<String> {
         }
         None
     }
-    
+
     // Search for callsign in the entire extras map
     for (key, value) in extras {
         // Check if the key itself is "callsign" or "from"
@@ -146,7 +146,7 @@ pub fn transform_location_event(event: &CotEvent, peer_key: &str) -> MapItem {
     // Parse detail section to extract callsign and other fields
     let detail_map = parse_detail_section(&event.detail);
     let callsign = extract_callsign(&detail_map).unwrap_or_default();
-    
+
     // Map CotEvent and peer_key to MapItem fields
     MapItem {
         id: event.uid.clone(),                          // Ditto document ID
@@ -279,42 +279,17 @@ pub fn transform_location_event_flattened(event: &CotEvent, peer_key: &str) -> V
 
 /// Transform a chat CoT event to a Ditto chat document
 pub fn transform_chat_event(event: &CotEvent, peer_key: &str) -> Option<Chat> {
-    // Parse chat message details from the detail XML
-    // Expected format: <detail>chat from=SENDER room=ROOM msg=MESSAGE</detail>
-
-    let mut message = None;
-    let mut room = None;
-    let mut room_id = None;
-    let mut author_callsign = None;
-
-    // Simple regex-like extraction for chat details
-    if let Some(msg_start) = event.detail.find("msg=") {
-        let msg_part = &event.detail[msg_start + 4..];
-        if let Some(msg_end) = msg_part.find("</detail>") {
-            message = Some(msg_part[..msg_end].trim().to_string());
-        }
-    }
-
-    if let Some(room_start) = event.detail.find("room=") {
-        let room_part = &event.detail[room_start + 5..];
-        if let Some(room_end) = room_part.find(" roomId=") {
-            room = Some(room_part[..room_end].trim().to_string());
-        }
-    }
-
-    if let Some(room_id_start) = event.detail.find("roomId=") {
-        let room_id_part = &event.detail[room_id_start + 7..];
-        if let Some(room_id_end) = room_id_part.find(" msg=") {
-            room_id = Some(room_id_part[..room_id_end].trim().to_string());
-        }
-    }
-
-    if let Some(from_start) = event.detail.find("from=") {
-        let from_part = &event.detail[from_start + 5..];
-        if let Some(from_end) = from_part.find(" ") {
-            author_callsign = Some(from_part[..from_end].trim().to_string());
-        }
-    }
+    // Parse chat message details from the detail XML using the proper XML parser
+    let detail_map = crate::detail_parser::parse_detail_section(&event.detail);
+    
+    // Extract chat details from parsed XML
+    let chat_data = detail_map.get("chat")?;
+    let chat_obj = chat_data.as_object()?;
+    
+    let message = chat_obj.get("msg").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let room = chat_obj.get("room").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let room_id = chat_obj.get("roomId").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let author_callsign = chat_obj.get("from").and_then(|v| v.as_str()).map(|s| s.to_string());
 
     let author_uid = Some(event.uid.clone());
     let author_type = Some("user".to_string());
@@ -1216,10 +1191,10 @@ impl CotDocument {
         // Track documents are characterized by:
         // 1. Having track data in the r field
         // 2. Being location/movement related types (PLI - Position Location Information)
-        
+
         // Check if document contains track data
         let has_track_data = map_item.r.contains_key("track");
-        
+
         // Check if the CoT type indicates this is a moving entity (track/PLI)
         let is_track_type = map_item.w.contains("a-f-S") ||  // Friendly surface units (like USVs)
                            map_item.w.contains("a-f-A") ||  // Friendly air units  
@@ -1232,7 +1207,7 @@ impl CotDocument {
                            map_item.w.contains("a-h-G") ||  // Hostile ground units
                            map_item.w.contains("a-n-") ||   // Neutral units
                            map_item.w.contains("a-u-r-loc"); // Location reports
-        
+
         // A document is a track if it has track data OR is a track-type entity
         has_track_data || is_track_type
     }
