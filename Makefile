@@ -6,7 +6,7 @@
 
 # Build all languages
 .PHONY: all
-all: rust java csharp
+all: rust java csharp swift
 
 # Rust targets
 .PHONY: rust
@@ -75,9 +75,32 @@ clean-csharp:
 		echo "C# build files not found. Skipping."; \
 	fi
 
+# Swift targets
+.PHONY: swift
+swift:
+	@echo "Generating Swift types from schema..."
+	@if [ -f "swift/Package.swift" ]; then \
+		cd swift && \
+		swift build --product ditto-cot-codegen && \
+		.build/debug/ditto-cot-codegen --schema-path ../schema --output-path Sources/DittoCoTCore/Generated; \
+		echo "Building Swift library..."; \
+		swift build; \
+	else \
+		echo "Swift Package.swift not found. Skipping."; \
+	fi
+
+.PHONY: clean-swift
+clean-swift:
+	@echo "Cleaning Swift library..."
+	@if [ -f "swift/Package.swift" ]; then \
+		cd swift && swift package clean && rm -rf Sources/DittoCoTCore/Generated/*.swift; \
+	else \
+		echo "Swift Package.swift not found. Skipping."; \
+	fi
+
 # Test targets
 .PHONY: test
-test: test-rust test-java test-csharp
+test: test-rust test-java test-csharp test-swift
 
 .PHONY: test-cross-lang
 test-cross-lang: java-test-client
@@ -107,9 +130,18 @@ test-csharp:
 		echo "C# build files not found. Skipping tests."; \
 	fi
 
+.PHONY: test-swift
+test-swift:
+	@echo "Testing Swift library..."
+	@if [ -f "swift/Package.swift" ]; then \
+		cd swift && swift test; \
+	else \
+		echo "Swift Package.swift not found. Skipping tests."; \
+	fi
+
 # Clean all
 .PHONY: clean
-clean: clean-rust clean-java clean-csharp
+clean: clean-rust clean-java clean-csharp clean-swift
 	@echo "All libraries cleaned."
 
 # Example targets
@@ -139,10 +171,12 @@ help:
 	@echo "  rust          - Build Rust library"
 	@echo "  java          - Build Java library"
 	@echo "  csharp        - Build C# library"
+	@echo "  swift         - Build Swift library"
 	@echo "  test          - Run tests for all libraries"
 	@echo "  test-rust     - Run tests for Rust library"
 	@echo "  test-java     - Run tests for Java library"
 	@echo "  test-csharp   - Run tests for C# library"
+	@echo "  test-swift    - Run tests for Swift library"
 	@echo "  test-cross-lang - Run cross-language multi-peer test"
 	@echo "  example-rust  - Run Rust example client"
 	@echo "  example-java  - Run Java example client"
@@ -151,5 +185,6 @@ help:
 	@echo "  clean-rust    - Clean Rust library"
 	@echo "  clean-java    - Clean Java library"
 	@echo "  clean-csharp  - Clean C# library"
+	@echo "  clean-swift   - Clean Swift library"
 	@echo "  java-test-client - Build Java test client for cross-language tests"
 	@echo "  help          - Show this help message"

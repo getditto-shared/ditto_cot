@@ -21,6 +21,11 @@ ditto_cot = { git = "https://github.com/getditto-shared/ditto_cot" }
 </dependency>
 ```
 
+**Swift**:
+```swift
+.package(url: "https://github.com/getditto-shared/ditto_cot", from: "1.0.0")
+```
+
 **C#** (planned):
 ```xml
 <PackageReference Include="Ditto.Cot" Version="1.0.0" />
@@ -54,6 +59,26 @@ CotEvent event = CotEvent.builder()
 DittoDocument doc = event.toDittoDocument();
 ```
 
+**Swift**:
+```swift
+import DittoCoT
+
+let event = ApiDocument(
+    _id: "USER-123",
+    _c: 1,
+    _r: false,
+    a: "peer-123",
+    b: Date().timeIntervalSince1970 * 1000,
+    d: "USER-123",
+    e: "ALPHA-1",
+    contentType: "application/json",
+    data: "sample-data",
+    // ... other required fields
+)
+
+let unionDoc = DittoCoTDocument.api(event)
+```
+
 ## 📁 Repository Structure
 
 ```
@@ -65,7 +90,8 @@ ditto_cot/
 │   └── reference/        # API reference, schemas
 ├── schema/               # Shared schema definitions
 ├── rust/                 # Rust implementation
-├── java/                 # Java implementation  
+├── java/                 # Java implementation
+├── swift/                # Swift implementation  
 └── csharp/              # C# implementation (planned)
 ```
 
@@ -73,7 +99,7 @@ ditto_cot/
 
 - **🔄 100% Data Preservation**: All duplicate CoT XML elements maintained vs 46% in legacy systems
 - **⚡ CRDT-Optimized**: 70% bandwidth savings through differential field sync  
-- **🌐 Cross-Language**: Identical behavior across Java, Rust, and C#
+- **🌐 Cross-Language**: Identical behavior across Rust, Java, Swift, and C#
 - **🛡️ Type-Safe**: Schema-driven development with strong typing
 - **📱 SDK Integration**: Observer document conversion with r-field reconstruction
 - **🔧 Builder Patterns**: Ergonomic APIs for creating CoT events
@@ -97,6 +123,7 @@ For detailed information, see our comprehensive documentation:
 - **[Ditto SDK Integration](docs/integration/ditto-sdk.md)** - Observer patterns and DQL
 - **[Rust Examples](docs/integration/examples/rust.md)** - Rust-specific patterns
 - **[Java Examples](docs/integration/examples/java.md)** - Java-specific patterns
+- **[Swift Examples](docs/integration/examples/swift.md)** - Swift/SwiftUI patterns
 - **[Migration Guide](docs/integration/migration.md)** - Version upgrades and legacy system migration
 
 ### 📖 Reference
@@ -107,6 +134,7 @@ For detailed information, see our comprehensive documentation:
 ### 🎯 Language-Specific READMEs
 - **[Rust Implementation](rust/README.md)** - Rust-specific APIs and patterns
 - **[Java Implementation](java/README.md)** - Java-specific APIs and patterns
+- **[Swift Implementation](swift/README.md)** - Swift/SwiftUI APIs and patterns
 
 ## 🚀 Quick Start
 

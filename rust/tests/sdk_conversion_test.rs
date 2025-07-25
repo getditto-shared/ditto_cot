@@ -1,6 +1,9 @@
 //! Tests for SDK document conversion utilities
 
-use ditto_cot::ditto::{CotDocument, observer_json_to_cot_document, observer_json_to_json_with_r_fields, get_document_id_from_json, get_document_type_from_json};
+use ditto_cot::ditto::{
+    get_document_id_from_json, get_document_type_from_json, observer_json_to_cot_document,
+    observer_json_to_json_with_r_fields, CotDocument,
+};
 use serde_json::json;
 
 #[test]
@@ -36,7 +39,7 @@ fn test_observer_json_to_cot_document() {
 
     let json_str = serde_json::to_string(&map_item_json).unwrap();
     let result = observer_json_to_cot_document(&json_str);
-    
+
     assert!(result.is_ok());
     if let Ok(CotDocument::MapItem(item)) = result {
         assert_eq!(item.id, "test-map-001");
@@ -77,22 +80,22 @@ fn test_observer_json_to_json_with_r_fields() {
 
     let json_str = serde_json::to_string(&json_with_flattened_r).unwrap();
     let result = observer_json_to_json_with_r_fields(&json_str);
-    
+
     assert!(result.is_ok());
     let reconstructed = result.unwrap();
-    
+
     // Verify r field was reconstructed
     let r_field = reconstructed.get("r").expect("r field should exist");
     assert!(r_field.is_object());
-    
+
     let r_obj = r_field.as_object().unwrap();
     assert!(r_obj.contains_key("contact"));
     assert!(r_obj.contains_key("track"));
-    
+
     // Verify nested structure
     let contact = r_obj.get("contact").unwrap().as_object().unwrap();
     assert_eq!(contact.get("callsign").unwrap().as_str(), Some("TestUnit"));
-    
+
     let track = r_obj.get("track").unwrap().as_object().unwrap();
     assert_eq!(track.get("speed").unwrap().as_str(), Some("15.0"));
     assert_eq!(track.get("course").unwrap().as_str(), Some("90.0"));

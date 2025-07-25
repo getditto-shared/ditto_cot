@@ -9,8 +9,8 @@ pub mod from_ditto_util;
 pub mod r_field_flattening;
 #[rustfmt::skip]
 pub mod schema;
-pub mod to_ditto;
 pub mod sdk_conversion;
+pub mod to_ditto;
 
 // Re-export the main types and functions from to_ditto
 pub use to_ditto::{
@@ -27,7 +27,7 @@ pub use schema::*;
 
 // Re-export observer document conversion utilities
 pub use sdk_conversion::{
-    observer_json_to_cot_document, observer_json_to_json_with_r_fields,
-    get_document_id_from_value, get_document_id_from_json,
-    get_document_type_from_value, get_document_type_from_json
+    get_document_id_from_json, get_document_id_from_value, get_document_type_from_json,
+    get_document_type_from_value, observer_json_to_cot_document,
+    observer_json_to_json_with_r_fields,
 };
