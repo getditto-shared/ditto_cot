@@ -19,6 +19,9 @@ let package = Package(
         .library(
             name: "DittoCoTCore",
             targets: ["DittoCoTCore"]),
+        .executable(
+            name: "CoTExampleApp",
+            targets: ["CoTExampleApp"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -56,5 +59,13 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             path: "Sources/CodeGen"),
+        .executableTarget(
+            name: "CoTExampleApp",
+            dependencies: [
+                "DittoCoT",
+                "DittoCoTCore",
+                .product(name: "DittoSwift", package: "DittoSwiftPackage"),
+            ],
+            path: "Examples/SwiftUI"),
     ]
 )
