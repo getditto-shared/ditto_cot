@@ -7,14 +7,14 @@ public struct CoTEventListView: View {
     @StateObject private var viewModel: CoTEventViewModel
     @State private var showingFilters = false
     @State private var selectedEvent: CoTEventModel?
+    @State private var showRawJSON = false
     
     public init(observable: CoTObservable) {
         self._viewModel = StateObject(wrappedValue: CoTEventViewModel(observable: observable))
     }
     
     public var body: some View {
-        NavigationView {
-            VStack {
+        VStack {
                 // Search bar
                 SearchBar(text: $viewModel.searchText)
                 
@@ -25,29 +25,68 @@ public struct CoTEventListView: View {
                 } else if viewModel.filteredEvents.isEmpty {
                     EmptyEventsView()
                 } else {
-                    List {
-                        ForEach(EventCategory.allCases, id: \.self) { category in
-                            if let events = viewModel.eventsByCategory[category], !events.isEmpty {
-                                Section(header: CategoryHeader(category: category)) {
-                                    ForEach(events) { event in
-                                        CoTEventRow(event: event)
-                                            .onTapGesture {
-                                                selectedEvent = event
-                                            }
-                                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                                Button("Delete", role: .destructive) {
-                                                    Task {
-                                                        try? await viewModel.deleteEvent(event)
-                                                    }
-                                                }
-                                            }
+                    if let selectedEvent = selectedEvent, showRawJSON {
+                        // Show split view with list on left and JSON on right
+                        HStack(spacing: 0) {
+                            // Event list
+                            List {
+                                ForEach(viewModel.filteredEvents) { event in
+                                    CoTEventRow(event: event)
+                                        .background(event.id == selectedEvent.id ? Color.accentColor.opacity(0.1) : Color.clear)
+                                        .onTapGesture {
+                                            self.selectedEvent = event
+                                        }
+                                }
+                            }
+                            .frame(minWidth: 300, maxWidth: 400)
+                            
+                            Divider()
+                            
+                            // JSON view
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack {
+                                    Text("Raw Document: \(selectedEvent.callsign) (\(selectedEvent.type))")
+                                        .font(.headline)
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 8)
+                                    Spacer()
+                                    Button("Close") {
+                                        showRawJSON = false
                                     }
+                                    .padding(.trailing)
+                                }
+                                .background(Color.gray.opacity(0.1))
+                                
+                                ScrollView {
+                                    Text(selectedEvent.formattedJSON)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .textSelection(.enabled)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding()
                                 }
                             }
                         }
-                    }
-                    .refreshable {
-                        viewModel.refreshEvents()
+                    } else {
+                        // Normal list view
+                        List {
+                            ForEach(viewModel.filteredEvents) { event in
+                                CoTEventRow(event: event)
+                                    .onTapGesture {
+                                        selectedEvent = event
+                                        showRawJSON = true
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button("Delete", role: .destructive) {
+                                            Task {
+                                                try? await viewModel.deleteEvent(event)
+                                            }
+                                        }
+                                    }
+                            }
+                        }
+                        .refreshable {
+                            viewModel.refreshEvents()
+                        }
                     }
                 }
             }
@@ -78,9 +117,6 @@ public struct CoTEventListView: View {
             .sheet(isPresented: $showingFilters) {
                 FilterView(viewModel: viewModel)
             }
-            .sheet(item: $selectedEvent) { event in
-                CoTEventDetailView(event: event)
-            }
             .alert("Error", isPresented: .constant(viewModel.error != nil)) {
                 Button("OK") {
                     // Error is automatically cleared
@@ -88,7 +124,6 @@ public struct CoTEventListView: View {
             } message: {
                 Text(viewModel.error?.localizedDescription ?? "Unknown error")
             }
-        }
     }
 }
 
@@ -174,7 +209,7 @@ struct CoTEventRow: View {
                         .cornerRadius(4)
                 }
                 
-                Text(event.timestamp, style: .time)
+                Text(event.timestamp.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -215,7 +250,7 @@ struct FilterView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Time Range") {
                     Picker("Time Range", selection: $viewModel.timeRangeFilter) {
@@ -287,7 +322,7 @@ struct CoTEventDetailView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // Header
@@ -343,6 +378,25 @@ struct CoTEventDetailView: View {
                             Text(remarks)
                                 .font(.body)
                         }
+                    }
+                    
+                    Divider()
+                    
+                    // Raw JSON Document
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Raw Document (JSON)")
+                            .font(.headline)
+                        
+                        ScrollView {
+                            Text(event.formattedJSON)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                                .background(Color.secondary.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        .frame(maxHeight: 300) // Limit height with scrolling
                     }
                 }
                 .padding()

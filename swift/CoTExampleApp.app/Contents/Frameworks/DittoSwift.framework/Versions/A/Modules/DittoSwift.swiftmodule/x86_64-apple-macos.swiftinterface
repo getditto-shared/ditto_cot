@@ -1,0 +1,1943 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
+// swift-module-flags: -target x86_64-apple-macos11.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-bare-slash-regex -module-name DittoSwift
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
+import Combine
+import DittoObjC.DittoFFI
+import DittoObjC
+@_exported import DittoSwift
+import Foundation
+import DittoObjC.Private
+import Swift
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+@_hasMissingDesignatedInitializers public class DiskUsage {
+  public var exec: DittoSwift.DiskUsageItem {
+    get
+  }
+  public func observe(eventHandler: @escaping (DittoSwift.DiskUsageItem) -> Swift.Void) -> DittoSwift.DiskUsage.DiskUsageObserverHandle
+  @_hasMissingDesignatedInitializers public class DiskUsageObserverHandle {
+    public func stop()
+    @objc deinit
+  }
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoAttachmentFetcher {
+  weak public var ditto: DittoSwift.Ditto? {
+    get
+  }
+  public func stop()
+  @objc deinit
+}
+extension DittoSwift.DittoAttachmentFetcher : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoAttachmentFetcher : Swift.Equatable {
+  public static func == (left: DittoSwift.DittoAttachmentFetcher, right: DittoSwift.DittoAttachmentFetcher) -> Swift.Bool
+}
+public enum DittoUpdateResult {
+  case set(docID: DittoSwift.DittoDocumentID, path: Swift.String, value: Any?)
+  case removed(docID: DittoSwift.DittoDocumentID, path: Swift.String)
+  case incremented(docID: DittoSwift.DittoDocumentID, path: Swift.String, amount: Swift.Double)
+}
+@_hasMissingDesignatedInitializers public class DittoSync {
+  public var subscriptions: Swift.Set<DittoSwift.DittoSyncSubscription> {
+    get
+  }
+  @discardableResult
+  public func registerSubscription(query: Swift.String, arguments: Swift.Dictionary<Swift.String, Any?>? = nil) throws -> DittoSwift.DittoSyncSubscription
+  @objc deinit
+}
+public struct DittoCollectionsEvent {
+  public let isInitial: Swift.Bool
+  public let collections: [DittoSwift.DittoCollection]
+  public let oldCollections: [DittoSwift.DittoCollection]
+  public let insertions: [Swift.Int]
+  public let deletions: [Swift.Int]
+  public let updates: [Swift.Int]
+  public let moves: [(from: Swift.Int, to: Swift.Int)]
+}
+extension DittoSwift.DittoCollectionsEvent : Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+  public var debugDescription: Swift.String {
+    get
+  }
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DittoAuthenticator {
+  public struct StatusPublisher : Combine.Publisher {
+    public typealias Output = DittoSwift.DittoAuthenticationStatus
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == DittoSwift.DittoAuthenticationStatus
+  }
+  public func statusPublisher() -> DittoSwift.DittoAuthenticator.StatusPublisher
+}
+public enum DittoAttachmentFetchEvent {
+  case completed(DittoSwift.DittoAttachment)
+  case progress(downloadedBytes: Swift.UInt64, totalBytes: Swift.UInt64)
+  case deleted
+}
+@_hasMissingDesignatedInitializers public class DittoTransportSnapshot {
+  final public let connectionType: Swift.String
+  final public let connecting: [Swift.Int64]
+  final public let connected: [Swift.Int64]
+  final public let disconnecting: [Swift.Int64]
+  final public let disconnected: [Swift.Int64]
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoDocument {
+  final public let id: DittoSwift.DittoDocumentID
+  public var value: [Swift.String : Any?] {
+    get
+  }
+  public subscript(key: Swift.String) -> DittoSwift.DittoDocumentPath {
+    get
+  }
+  @available(*, deprecated, message: "Codable APIs will be removed in the future")
+  public func typed<T>(as type: T.Type) throws -> DittoSwift.DittoTypedDocument<T> where T : Swift.Decodable, T : Swift.Encodable
+  @objc deinit
+}
+extension DittoSwift.DittoDocument : Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+  public var debugDescription: Swift.String {
+    get
+  }
+}
+extension DittoSwift.DittoDocument : Swift.Identifiable {
+  public typealias ID = DittoSwift.DittoDocumentID
+}
+public typealias DittoCollectionName = Swift.String
+extension Swift.String {
+  public static var history: Swift.String
+}
+@_hasMissingDesignatedInitializers public class DittoCollection {
+  public var name: Swift.String {
+    get
+  }
+  @discardableResult
+  public func upsert(_ content: [Swift.String : Any?], writeStrategy: DittoSwift.DittoWriteStrategy = .merge) throws -> DittoSwift.DittoDocumentID
+  @discardableResult
+  @available(*, deprecated, message: "Codable APIs will be removed in the future.")
+  public func upsert<T>(_ content: T, writeStrategy: DittoSwift.DittoWriteStrategy = .merge) throws -> DittoSwift.DittoDocumentID where T : Swift.Encodable
+  public func findByID(_ id: DittoSwift.DittoDocumentID) -> DittoSwift.DittoPendingIDSpecificOperation
+  public func findByID(_ id: Any) -> DittoSwift.DittoPendingIDSpecificOperation
+  public func find(_ query: Swift.String) -> DittoSwift.DittoPendingCursorOperation
+  public func find(_ query: Swift.String, args queryArgs: Swift.Dictionary<Swift.String, Any?>) -> DittoSwift.DittoPendingCursorOperation
+  public func findAll() -> DittoSwift.DittoPendingCursorOperation
+  @available(*, deprecated, message: "Replaced by `DittoStore.newAttachment()`.")
+  public func newAttachment(path: Swift.String, metadata: [Swift.String : Swift.String] = [:]) -> DittoSwift.DittoAttachment?
+  @available(*, deprecated, message: "Replaced by `DittoStore.fetchAttachment()`.")
+  public func fetchAttachment(token: DittoSwift.DittoAttachmentToken, deliverOn queue: Dispatch.DispatchQueue = .main, onFetchEvent: @escaping (DittoSwift.DittoAttachmentFetchEvent) -> Swift.Void) -> DittoSwift.DittoAttachmentFetcher?
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoPresence {
+  public var peerMetadata: [Swift.String : Any?] {
+    get
+  }
+  public func setPeerMetadata(_ peerMetadata: [Swift.String : Any?]) throws
+  public var peerMetadataJSONData: Foundation.Data {
+    get
+  }
+  public func setPeerMetadataJSONData(_ jsonData: Foundation.Data) throws
+  public var graph: DittoSwift.DittoPresenceGraph {
+    get
+  }
+  public func observe(didChangeHandler: @escaping (DittoSwift.DittoPresenceGraph) -> ()) -> DittoSwift.DittoObserver
+  public var connectionRequestHandler: DittoSwift.DittoConnectionRequestHandler? {
+    get
+    set
+  }
+  @objc deinit
+}
+public class DittoRegister {
+  public init(value: Any?)
+  @objc deinit
+}
+extension DittoSwift.DittoRegister {
+  public var value: Any? {
+    get
+  }
+  public var string: Swift.String? {
+    get
+  }
+  public var stringValue: Swift.String {
+    get
+  }
+  public var bool: Swift.Bool? {
+    get
+  }
+  public var boolValue: Swift.Bool {
+    get
+  }
+  public var int: Swift.Int? {
+    get
+  }
+  public var intValue: Swift.Int {
+    get
+  }
+  public var uint: Swift.UInt? {
+    get
+  }
+  public var uintValue: Swift.UInt {
+    get
+  }
+  public var float: Swift.Float? {
+    get
+  }
+  public var floatValue: Swift.Float {
+    get
+  }
+  public var double: Swift.Double? {
+    get
+  }
+  public var doubleValue: Swift.Double {
+    get
+  }
+  public var array: [Any?]? {
+    get
+  }
+  public var arrayValue: [Any?] {
+    get
+  }
+  public var dictionary: [Swift.String : Any?]? {
+    get
+  }
+  public var dictionaryValue: [Swift.String : Any?] {
+    get
+  }
+}
+public enum DittoConnectionType : Swift.String {
+  case bluetooth
+  case accessPoint
+  case p2pWiFi
+  case webSocket
+  public init?(rawValue: Swift.String)
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+extension DittoSwift.DittoConnectionType : Swift.CaseIterable {
+  public typealias AllCases = [DittoSwift.DittoConnectionType]
+  nonisolated public static var allCases: [DittoSwift.DittoConnectionType] {
+    get
+  }
+}
+extension DittoSwift.DittoConnectionType : Swift.Codable {
+}
+@_hasMissingDesignatedInitializers public class DittoObserver {
+  public func stop()
+  @objc deinit
+}
+public enum DittoWriteTransactionResult {
+  case inserted(id: DittoSwift.DittoDocumentID, collection: Swift.String)
+  case updated(id: DittoSwift.DittoDocumentID, collection: Swift.String)
+  case evicted(id: DittoSwift.DittoDocumentID, collection: Swift.String)
+  case removed(id: DittoSwift.DittoDocumentID, collection: Swift.String)
+}
+@_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers public class DittoMutableCounter : DittoSwift.DittoCounter {
+  public func increment(by amount: Swift.Double)
+  @objc deinit
+}
+public class DittoDiffer {
+  public init()
+  public func diff(_ items: [DittoSwift.DittoQueryResultItem]) -> DittoSwift.DittoDiff
+  @objc deinit
+}
+indirect public enum CBOR : Swift.Equatable, Swift.Hashable, Swift.ExpressibleByNilLiteral, Swift.ExpressibleByIntegerLiteral, Swift.ExpressibleByStringLiteral, Swift.ExpressibleByArrayLiteral, Swift.ExpressibleByDictionaryLiteral, Swift.ExpressibleByBooleanLiteral, Swift.ExpressibleByFloatLiteral {
+  case unsignedInt(Swift.UInt64)
+  case negativeInt(Swift.UInt64)
+  case byteString([Swift.UInt8])
+  case utf8String(Swift.String)
+  case array([DittoSwift.CBOR])
+  case map([DittoSwift.CBOR : DittoSwift.CBOR])
+  case tagged(DittoSwift.CBOR.Tag, DittoSwift.CBOR)
+  case simple(Swift.UInt8)
+  case boolean(Swift.Bool)
+  case null
+  case undefined
+  case half(Swift.Float32)
+  case float(Swift.Float32)
+  case double(Swift.Float64)
+  case `break`
+  case date(Foundation.Date)
+  public func hash(into hasher: inout Swift.Hasher)
+  public subscript(position: DittoSwift.CBOR) -> DittoSwift.CBOR? {
+    get
+    set(x)
+  }
+  public init(nilLiteral: ())
+  public init(integerLiteral value: Swift.Int)
+  public init(extendedGraphemeClusterLiteral value: Swift.String)
+  public init(unicodeScalarLiteral value: Swift.String)
+  public init(stringLiteral value: Swift.String)
+  public init(arrayLiteral elements: DittoSwift.CBOR...)
+  public init(dictionaryLiteral elements: (DittoSwift.CBOR, DittoSwift.CBOR)...)
+  public init(booleanLiteral value: Swift.Bool)
+  public init(floatLiteral value: Swift.Float32)
+  public static func == (lhs: DittoSwift.CBOR, rhs: DittoSwift.CBOR) -> Swift.Bool
+  public struct Tag : Swift.RawRepresentable, Swift.Equatable, Swift.Hashable {
+    public let rawValue: Swift.UInt64
+    public init(rawValue: Swift.UInt64)
+    public var hashValue: Swift.Int {
+      get
+    }
+    public typealias RawValue = Swift.UInt64
+  }
+  public typealias ArrayLiteralElement = DittoSwift.CBOR
+  public typealias BooleanLiteralType = Swift.Bool
+  public typealias ExtendedGraphemeClusterLiteralType = Swift.String
+  public typealias FloatLiteralType = Swift.Float32
+  public typealias IntegerLiteralType = Swift.Int
+  public typealias Key = DittoSwift.CBOR
+  public typealias StringLiteralType = Swift.String
+  public typealias UnicodeScalarLiteralType = Swift.String
+  public typealias Value = DittoSwift.CBOR
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.CBOR.Tag {
+  public static let standardDateTimeString: DittoSwift.CBOR.Tag
+  public static let epochBasedDateTime: DittoSwift.CBOR.Tag
+  public static let positiveBignum: DittoSwift.CBOR.Tag
+  public static let negativeBignum: DittoSwift.CBOR.Tag
+  public static let decimalFraction: DittoSwift.CBOR.Tag
+  public static let bigfloat: DittoSwift.CBOR.Tag
+  public static let expectedConversionToBase64URLEncoding: DittoSwift.CBOR.Tag
+  public static let expectedConversionToBase64Encoding: DittoSwift.CBOR.Tag
+  public static let expectedConversionToBase16Encoding: DittoSwift.CBOR.Tag
+  public static let encodedCBORDataItem: DittoSwift.CBOR.Tag
+  public static let uri: DittoSwift.CBOR.Tag
+  public static let base64Url: DittoSwift.CBOR.Tag
+  public static let base64: DittoSwift.CBOR.Tag
+  public static let regularExpression: DittoSwift.CBOR.Tag
+  public static let mimeMessage: DittoSwift.CBOR.Tag
+  public static let uuid: DittoSwift.CBOR.Tag
+  public static let selfDescribeCBOR: DittoSwift.CBOR.Tag
+}
+public struct DittoBluetoothLEConfig : Swift.Codable, Swift.Equatable {
+  public var isEnabled: Swift.Bool
+  public static func == (a: DittoSwift.DittoBluetoothLEConfig, b: DittoSwift.DittoBluetoothLEConfig) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoLANConfig : Swift.Codable, Swift.Equatable {
+  public var isEnabled: Swift.Bool
+  public var isMDNSEnabled: Swift.Bool
+  public var isMulticastEnabled: Swift.Bool
+  @available(*, deprecated, message: "Please use `isMDNSEnabled` instead.")
+  public var ismDNSEnabled: Swift.Bool {
+    get
+    set
+  }
+  public static func == (a: DittoSwift.DittoLANConfig, b: DittoSwift.DittoLANConfig) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoAWDLConfig : Swift.Codable, Swift.Equatable {
+  public var isEnabled: Swift.Bool
+  public static func == (a: DittoSwift.DittoAWDLConfig, b: DittoSwift.DittoAWDLConfig) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoPeerToPeer : Swift.Codable, Swift.Equatable {
+  public var bluetoothLE: DittoSwift.DittoBluetoothLEConfig
+  public var lan: DittoSwift.DittoLANConfig
+  public var awdl: DittoSwift.DittoAWDLConfig
+  @available(*, deprecated, message: "Please use `bluetoothLE` instead.")
+  public var bluetoothLe: DittoSwift.DittoBluetoothLEConfig {
+    get
+    set
+  }
+  public static func == (a: DittoSwift.DittoPeerToPeer, b: DittoSwift.DittoPeerToPeer) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoConnect : Swift.Equatable {
+  public var tcpServers: Swift.Set<Swift.String>
+  public var webSocketURLs: Swift.Set<Swift.String>
+  public var retryInterval: Swift.Double
+  @available(*, deprecated, message: "Please use `webSocketURLs` instead.")
+  public var websocketURLs: Swift.Set<Swift.String> {
+    get
+    set
+  }
+  public static func == (a: DittoSwift.DittoConnect, b: DittoSwift.DittoConnect) -> Swift.Bool
+}
+extension DittoSwift.DittoConnect : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoTCPListenConfig : Swift.Codable, Swift.Equatable {
+  public var isEnabled: Swift.Bool
+  public var interfaceIP: Swift.String
+  public var port: Swift.UInt16
+  @available(*, deprecated, message: "Please use `interfaceIP` instead.")
+  public var interfaceIp: Swift.String {
+    get
+    set
+  }
+  public static func == (a: DittoSwift.DittoTCPListenConfig, b: DittoSwift.DittoTCPListenConfig) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoHTTPListenConfig : Swift.Equatable {
+  public var isEnabled: Swift.Bool
+  public var interfaceIP: Swift.String
+  public var port: Swift.UInt16
+  public var staticContentPath: Swift.String?
+  public var webSocketSync: Swift.Bool
+  public var tlsKeyPath: Swift.String?
+  public var tlsCertificatePath: Swift.String?
+  public var isIdentityProvider: Swift.Bool
+  public var identityProviderSigningKey: Swift.String?
+  public var identityProviderVerifyingKeys: Swift.Array<Swift.String>?
+  public var caKey: Swift.String?
+  @available(*, deprecated, message: "Please use `interfaceIP` instead.")
+  public var interfaceIp: Swift.String {
+    get
+    set
+  }
+  @available(*, deprecated, message: "Please use `webSocketSync` instead.")
+  public var websocketSync: Swift.Bool {
+    get
+    set
+  }
+  public static func == (a: DittoSwift.DittoHTTPListenConfig, b: DittoSwift.DittoHTTPListenConfig) -> Swift.Bool
+}
+extension DittoSwift.DittoHTTPListenConfig : Swift.Codable {
+  public init(from decoder: any Swift.Decoder) throws
+  public func encode(to encoder: any Swift.Encoder) throws
+}
+public struct DittoListen : Swift.Codable, Swift.Equatable {
+  public var tcp: DittoSwift.DittoTCPListenConfig
+  public var http: DittoSwift.DittoHTTPListenConfig
+  public static func == (a: DittoSwift.DittoListen, b: DittoSwift.DittoListen) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoGlobalConfig : Swift.Codable, Swift.Equatable {
+  public var syncGroup: Swift.UInt32
+  public var routingHint: Swift.UInt32
+  public static func == (a: DittoSwift.DittoGlobalConfig, b: DittoSwift.DittoGlobalConfig) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public struct DittoTransportConfig : Swift.Codable, Swift.Equatable {
+  public var peerToPeer: DittoSwift.DittoPeerToPeer
+  public var connect: DittoSwift.DittoConnect
+  public var listen: DittoSwift.DittoListen
+  public var global: DittoSwift.DittoGlobalConfig
+  public mutating func enableAllPeerToPeer()
+  public mutating func setAllPeerToPeer(enabled: Swift.Bool)
+  public init()
+  public static func == (a: DittoSwift.DittoTransportConfig, b: DittoSwift.DittoTransportConfig) -> Swift.Bool
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+public enum LMDBError : Swift.Equatable {
+  case keyExists
+  case notFound
+  case pageNotFound
+  case corrupted
+  case panic
+  case versionMismatch
+  case invalid
+  case mapFull
+  case dbsFull
+  case readersFull
+  case tlsFull
+  case txnFull
+  case cursorFull
+  case pageFull
+  case mapResized
+  case incompatible
+  case badReaderSlot
+  case badTransaction
+  case badValueSize
+  case badDBI
+  case problem
+  case invalidParameter
+  case outOfDiskSpace
+  case outOfMemory
+  case ioError
+  case accessViolation
+  case other(returnCode: Swift.Int32)
+  public static func == (a: DittoSwift.LMDBError, b: DittoSwift.LMDBError) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers public class DittoLiveQuery {
+  public var query: Swift.String {
+    get
+  }
+  public var collectionName: DittoSwift.DittoCollectionName {
+    get
+  }
+  public func stop()
+  @objc deinit
+}
+public typealias DittoSignalNext = () -> Swift.Void
+@_hasMissingDesignatedInitializers public class DittoWriteTransactionPendingIDSpecificOperation {
+  @discardableResult
+  public func remove() -> Swift.Bool
+  @discardableResult
+  public func evict() -> Swift.Bool
+  public func exec() -> DittoSwift.DittoDocument?
+  @discardableResult
+  public func update(_ closure: @escaping (DittoSwift.DittoMutableDocument?) -> Swift.Void) -> [DittoSwift.DittoUpdateResult]
+  @available(*, deprecated, message: "Codable APIs will be removed in the future.")
+  public func update<T>(using newValue: T) throws where T : Swift.Decodable, T : Swift.Encodable
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoMutableRegister {
+  public var value: Any? {
+    get
+    set
+  }
+  @objc deinit
+}
+extension DittoSwift.DittoMutableRegister {
+  public var string: Swift.String? {
+    get
+  }
+  public var stringValue: Swift.String {
+    get
+  }
+  public var bool: Swift.Bool? {
+    get
+  }
+  public var boolValue: Swift.Bool {
+    get
+  }
+  public var int: Swift.Int? {
+    get
+  }
+  public var intValue: Swift.Int {
+    get
+  }
+  public var uint: Swift.UInt? {
+    get
+  }
+  public var uintValue: Swift.UInt {
+    get
+  }
+  public var float: Swift.Float? {
+    get
+  }
+  public var floatValue: Swift.Float {
+    get
+  }
+  public var double: Swift.Double? {
+    get
+  }
+  public var doubleValue: Swift.Double {
+    get
+  }
+  public var array: [Any?]? {
+    get
+  }
+  public var arrayValue: [Any?] {
+    get
+  }
+  public var dictionary: [Swift.String : Any?]? {
+    get
+  }
+  public var dictionaryValue: [Swift.String : Any?] {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers public class DittoPeerV2Parser {
+  public class func parseJson(json: Swift.String) -> [DittoSwift.DittoRemotePeerV2]?
+  @objc deinit
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DiskUsage {
+  public struct DiskUsagePublisher : Combine.Publisher {
+    public typealias Output = DittoSwift.DiskUsageItem
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == DittoSwift.DiskUsageItem
+  }
+  public func diskUsagePublisher() -> DittoSwift.DiskUsage.DiskUsagePublisher
+}
+@_hasMissingDesignatedInitializers public class DittoCounter {
+  public var value: Swift.Double {
+    get
+  }
+  convenience public init()
+  @objc deinit
+}
+extension DittoSwift.DittoCounter : Swift.Equatable {
+  public static func == (lhs: DittoSwift.DittoCounter, rhs: DittoSwift.DittoCounter) -> Swift.Bool
+}
+public enum DittoTransactionCompletionAction {
+  case commit
+  case rollback
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoTransactionCompletionAction : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoTransactionCompletionAction, b: DittoSwift.DittoTransactionCompletionAction) -> Swift.Bool
+}
+public enum DittoLogLevel : Swift.Int {
+  case error
+  case warning
+  case info
+  case debug
+  case verbose
+  public init?(rawValue: Swift.Int)
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
+}
+public enum DittoSmallPeerInfoSyncScope : Swift.UInt, Swift.CaseIterable {
+  case bigPeerOnly
+  case localPeerOnly
+  public init?(rawValue: Swift.UInt)
+  public typealias AllCases = [DittoSwift.DittoSmallPeerInfoSyncScope]
+  public typealias RawValue = Swift.UInt
+  nonisolated public static var allCases: [DittoSwift.DittoSmallPeerInfoSyncScope] {
+    get
+  }
+  public var rawValue: Swift.UInt {
+    get
+  }
+}
+extension DittoSwift.DittoSmallPeerInfoSyncScope : Swift.CustomStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+}
+public enum DittoConnectionPriority : Swift.Int {
+  case dontConnect
+  case normal
+  case high
+  public init?(rawValue: Swift.Int)
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
+}
+public enum DittoTransportCondition : Swift.UInt32, Swift.CustomStringConvertible {
+  case Unknown
+  case Ok
+  case GenericFailure
+  case AppInBackground
+  case MdnsFailure
+  case TcpListenFailure
+  case NoBleCentralPermission
+  case NoBlePeripheralPermission
+  case CannotEstablishConnection
+  case BleDisabled
+  case NoBleHardware
+  case WifiDisabled
+  case TemporarilyUnavailable
+  public var description: Swift.String {
+    get
+  }
+  public init?(rawValue: Swift.UInt32)
+  public typealias RawValue = Swift.UInt32
+  public var rawValue: Swift.UInt32 {
+    get
+  }
+}
+public enum DittoConditionSource : Swift.UInt32, Swift.CustomStringConvertible {
+  case Bluetooth
+  case Tcp
+  case Awdl
+  case Mdns
+  public var description: Swift.String {
+    get
+  }
+  public init?(rawValue: Swift.UInt32)
+  public typealias RawValue = Swift.UInt32
+  public var rawValue: Swift.UInt32 {
+    get
+  }
+}
+public typealias DittoStoreObservationHandler = (_ result: DittoSwift.DittoQueryResult) -> Swift.Void
+public typealias DittoStoreObservationHandlerWithSignalNext = (_ result: DittoSwift.DittoQueryResult, _ signalNext: @escaping DittoSwift.DittoSignalNext) -> Swift.Void
+@_hasMissingDesignatedInitializers public class DittoStoreObserver {
+  weak public var ditto: DittoSwift.Ditto? {
+    get
+  }
+  final public let queryString: Swift.String
+  final public let queryArguments: Swift.Dictionary<Swift.String, Any?>?
+  public var isCancelled: Swift.Bool {
+    get
+  }
+  public func cancel()
+  @objc deinit
+}
+extension DittoSwift.DittoStoreObserver : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoStoreObserver : Swift.Equatable {
+  public static func == (left: DittoSwift.DittoStoreObserver, right: DittoSwift.DittoStoreObserver) -> Swift.Bool
+}
+public struct DittoDocumentPath {
+  public subscript(key: Swift.String) -> DittoSwift.DittoDocumentPath {
+    get
+  }
+  public subscript(index: Swift.Int) -> DittoSwift.DittoDocumentPath {
+    get
+  }
+}
+extension DittoSwift.DittoDocumentPath {
+  public var value: Any? {
+    get
+  }
+  public var string: Swift.String? {
+    get
+  }
+  public var stringValue: Swift.String {
+    get
+  }
+  public var bool: Swift.Bool? {
+    get
+  }
+  public var boolValue: Swift.Bool {
+    get
+  }
+  public var int: Swift.Int? {
+    get
+  }
+  public var intValue: Swift.Int {
+    get
+  }
+  public var uint: Swift.UInt? {
+    get
+  }
+  public var uintValue: Swift.UInt {
+    get
+  }
+  public var float: Swift.Float? {
+    get
+  }
+  public var floatValue: Swift.Float {
+    get
+  }
+  public var double: Swift.Double? {
+    get
+  }
+  public var doubleValue: Swift.Double {
+    get
+  }
+  public var array: [Any?]? {
+    get
+  }
+  public var arrayValue: [Any?] {
+    get
+  }
+  public var dictionary: [Swift.String : Any?]? {
+    get
+  }
+  public var dictionaryValue: [Swift.String : Any?] {
+    get
+  }
+  public var attachmentToken: DittoSwift.DittoAttachmentToken? {
+    get
+  }
+  public var counter: DittoSwift.DittoCounter? {
+    get
+  }
+  public var register: DittoSwift.DittoRegister? {
+    get
+  }
+}
+public struct DittoDiff {
+  public let insertions: Foundation.IndexSet
+  public let deletions: Foundation.IndexSet
+  public let updates: Foundation.IndexSet
+  public let moves: [(from: Swift.Int, to: Swift.Int)]
+}
+extension DittoSwift.DittoDiff : Swift.Decodable {
+  public init(from decoder: any Swift.Decoder) throws
+}
+extension DittoSwift.DittoDiff : Swift.Equatable {
+  public static func == (lhs: DittoSwift.DittoDiff, rhs: DittoSwift.DittoDiff) -> Swift.Bool
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DittoCollection {
+  @available(*, deprecated, message: "Replaced by `DittoStore.FetchAttachmentPublisher`.")
+  public struct FetchAttachmentPublisher : Combine.Publisher {
+    public struct Progress {
+      public var percentage: Swift.Float
+      public var downloadedBytes: Swift.UInt64
+      public var totalBytes: Swift.UInt64
+    }
+    public typealias Output = DittoSwift.DittoAttachmentFetchEvent
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == DittoSwift.DittoAttachmentFetchEvent
+    public func progress() -> Combine.AnyPublisher<DittoSwift.DittoCollection.FetchAttachmentPublisher.Progress, Swift.Never>
+    public func completed() -> Combine.AnyPublisher<DittoSwift.DittoAttachment, Swift.Never>
+  }
+  @available(*, deprecated, message: "Replaced by `DittoStore.fetchAttachmentPublisher`.")
+  public func fetchAttachmentPublisher(attachmentToken: DittoSwift.DittoAttachmentToken) -> DittoSwift.DittoCollection.FetchAttachmentPublisher
+}
+@_hasMissingDesignatedInitializers public class DittoRemotePeerV2 : Swift.Identifiable, Swift.Equatable, Swift.Hashable {
+  public var id: Swift.UInt32 {
+    get
+  }
+  public var address: DittoSwift.DittoAddress {
+    get
+  }
+  public var networkID: Swift.UInt32 {
+    get
+  }
+  public var deviceName: Swift.String {
+    get
+  }
+  public var os: Swift.String {
+    get
+  }
+  @available(*, deprecated, message: "Query overlap groups have been phased out, this property always returns 0.")
+  public var queryOverlapGroup: Swift.UInt8 {
+    get
+  }
+  public static func == (lhs: DittoSwift.DittoRemotePeerV2, rhs: DittoSwift.DittoRemotePeerV2) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public typealias ID = Swift.UInt32
+  @objc deinit
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct DiskUsageItem {
+  public let type: DittoSwift.DittoFileSystemType
+  public let path: Swift.String
+  public let sizeInBytes: Swift.Int
+  public let childItems: [DittoSwift.DiskUsageItem]
+  public init(type: DittoSwift.DittoFileSystemType, path: Swift.String, sizeInBytes: Swift.Int, children: [DittoSwift.DiskUsageItem])
+}
+extension DittoSwift.DiskUsageItem : Swift.Equatable {
+  public static func == (a: DittoSwift.DiskUsageItem, b: DittoSwift.DiskUsageItem) -> Swift.Bool
+}
+extension DittoSwift.DiskUsageItem : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DiskUsageItem : Swift.CustomStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+}
+public enum DittoWriteStrategy {
+  case merge
+  case insertIfAbsent
+  case insertDefaultIfAbsent
+  case updateDifferentValues
+  public static func == (a: DittoSwift.DittoWriteStrategy, b: DittoSwift.DittoWriteStrategy) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public enum DittoLiveQueryEvent {
+  case initial
+  case update(DittoSwift.DittoLiveQueryUpdate)
+  public func hash(documents: [DittoSwift.DittoDocument]) -> Swift.UInt64
+  public func hashMnemonic(documents: [DittoSwift.DittoDocument]) -> Swift.String
+}
+public struct DittoLiveQueryUpdate {
+  public let oldDocuments: [DittoSwift.DittoDocument]
+  public let insertions: [Swift.Int]
+  public let deletions: [Swift.Int]
+  public let updates: [Swift.Int]
+  public let moves: [(from: Swift.Int, to: Swift.Int)]
+}
+extension DittoSwift.DittoLiveQueryEvent : Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+  public var debugDescription: Swift.String {
+    get
+  }
+}
+public struct DittoConnection {
+  public var id: Swift.String
+  public var type: DittoSwift.DittoConnectionType
+  @available(*, deprecated, message: "Use `peerKeyString1` instead.")
+  public var peer1: Foundation.Data {
+    get
+    set
+  }
+  @available(*, deprecated, message: "Use `peerKeyString2` instead.")
+  public var peer2: Foundation.Data {
+    get
+    set
+  }
+  public var peerKeyString1: Swift.String
+  public var peerKeyString2: Swift.String
+  public var approximateDistanceInMeters: Swift.Double?
+  @available(*, deprecated, message: "Use the variant taking peer key strings instead.")
+  public init(id: Swift.String, type: DittoSwift.DittoConnectionType, peer1: Foundation.Data, peer2: Foundation.Data, approximateDistanceInMeters: Swift.Double? = nil)
+  public init(id: Swift.String, type: DittoSwift.DittoConnectionType, peerKeyString1: Swift.String, peerKeyString2: Swift.String, approximateDistanceInMeters: Swift.Double? = nil)
+}
+extension DittoSwift.DittoConnection : Swift.Identifiable {
+  public typealias ID = Swift.String
+}
+extension DittoSwift.DittoConnection : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoConnection, b: DittoSwift.DittoConnection) -> Swift.Bool
+}
+extension DittoSwift.DittoConnection : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoConnection : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+@_hasMissingDesignatedInitializers public class Ditto {
+  public class var version: Swift.String {
+    get
+  }
+  public var delegate: (any DittoSwift.DittoDelegate)? {
+    get
+    set
+  }
+  public var deviceName: Swift.String {
+    get
+    set
+  }
+  public var siteID: Swift.UInt64 {
+    get
+  }
+  public var persistenceDirectory: Foundation.URL {
+    get
+  }
+  public var appID: Swift.String {
+    get
+  }
+  public var activated: Swift.Bool {
+    get
+  }
+  public var isSyncActive: Swift.Bool {
+    get
+  }
+  public var isEncrypted: Swift.Bool {
+    get
+  }
+  public var auth: DittoSwift.DittoAuthenticator? {
+    get
+  }
+  final public let diskUsage: DittoSwift.DiskUsage
+  final public let store: DittoSwift.DittoStore
+  final public let sync: DittoSwift.DittoSync
+  final public let presence: DittoSwift.DittoPresence
+  final public let smallPeerInfo: DittoSwift.DittoSmallPeerInfo
+  final public let experimental: DittoSwift.DittoExperimental
+  public var delegateEventQueue: Dispatch.DispatchQueue {
+    get
+    set
+  }
+  public var transportConfig: DittoSwift.DittoTransportConfig {
+    get
+    set
+  }
+  public func updateTransportConfig(block: (inout DittoSwift.DittoTransportConfig) -> Swift.Void)
+  public var isHistoryTrackingEnabled: Swift.Bool {
+    get
+  }
+  convenience public init(identity: DittoSwift.DittoIdentity = .offlinePlayground(), persistenceDirectory directory: Foundation.URL? = nil)
+  convenience public init(identity: DittoSwift.DittoIdentity = .offlinePlayground(), historyTrackingEnabled: Swift.Bool, persistenceDirectory: Foundation.URL? = nil)
+  public func setOfflineOnlyLicenseToken(_ licenseToken: Swift.String) throws
+  public func startSync() throws
+  public func stopSync()
+  public func transportDiagnostics() throws -> DittoSwift.DittoTransportDiagnostics
+  public var sdkVersion: Swift.String {
+    get
+  }
+  public func runGarbageCollection()
+  public func disableSyncWithV3() throws
+  @available(*, deprecated, message: "Use `self.presence.observe()` instead.")
+  public func observePeers(callback: @escaping (Swift.Array<DittoSwift.DittoRemotePeer>) -> ()) -> DittoSwift.DittoObserver
+  @available(*, deprecated, message: "Use `self.presence.observe()` instead.")
+  public func observePeersV2(callback: @escaping (Swift.String) -> ()) -> DittoSwift.DittoObserver
+  @objc deinit
+}
+public struct DittoDocumentID : Swift.Hashable {
+  public init(value: Any?)
+  public subscript(key: Swift.String) -> DittoSwift.DittoDocumentIDPath {
+    get
+  }
+  public subscript(index: Swift.Int) -> DittoSwift.DittoDocumentIDPath {
+    get
+  }
+  public func toString() -> Swift.String
+  public static func == (lhs: DittoSwift.DittoDocumentID, rhs: DittoSwift.DittoDocumentID) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoDocumentID {
+  public var value: Any? {
+    get
+  }
+  public var string: Swift.String? {
+    get
+  }
+  public var stringValue: Swift.String {
+    get
+  }
+  public var bool: Swift.Bool? {
+    get
+  }
+  public var boolValue: Swift.Bool {
+    get
+  }
+  public var int: Swift.Int? {
+    get
+  }
+  public var intValue: Swift.Int {
+    get
+  }
+  public var uint: Swift.UInt? {
+    get
+  }
+  public var uintValue: Swift.UInt {
+    get
+  }
+  public var float: Swift.Float? {
+    get
+  }
+  public var floatValue: Swift.Float {
+    get
+  }
+  public var double: Swift.Double? {
+    get
+  }
+  public var doubleValue: Swift.Double {
+    get
+  }
+  public var array: [Any?]? {
+    get
+  }
+  public var arrayValue: [Any?] {
+    get
+  }
+  public var dictionary: [Swift.String : Any?]? {
+    get
+  }
+  public var dictionaryValue: [Swift.String : Any?] {
+    get
+  }
+}
+extension DittoSwift.DittoDocumentID : Swift.CustomStringConvertible, Swift.CustomDebugStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+  public var debugDescription: Swift.String {
+    get
+  }
+}
+extension DittoSwift.DittoDocumentID : Swift.ExpressibleByStringLiteral {
+  public init(stringLiteral value: Swift.StringLiteralType)
+  public typealias ExtendedGraphemeClusterLiteralType = Swift.StringLiteralType
+  public typealias StringLiteralType = Swift.StringLiteralType
+  public typealias UnicodeScalarLiteralType = Swift.StringLiteralType
+}
+extension DittoSwift.DittoDocumentID : Swift.ExpressibleByBooleanLiteral {
+  public init(booleanLiteral value: Swift.BooleanLiteralType)
+  public typealias BooleanLiteralType = Swift.BooleanLiteralType
+}
+extension DittoSwift.DittoDocumentID : Swift.ExpressibleByIntegerLiteral {
+  public init(integerLiteral value: Swift.IntegerLiteralType)
+  public typealias IntegerLiteralType = Swift.IntegerLiteralType
+}
+extension DittoSwift.DittoDocumentID : Swift.ExpressibleByArrayLiteral {
+  public typealias ArrayLiteralElement = Any?
+  public init(arrayLiteral elements: Any?...)
+}
+extension DittoSwift.DittoDocumentID : Swift.ExpressibleByDictionaryLiteral {
+  public typealias Key = Swift.String
+  public typealias Value = Any?
+  public init(dictionaryLiteral elements: (DittoSwift.DittoDocumentID.Key, DittoSwift.DittoDocumentID.Value)...)
+}
+public struct DittoSingleDocumentLiveQueryEvent {
+  public let isInitial: Swift.Bool
+  public let oldDocument: DittoSwift.DittoDocument?
+  public func hash(document: DittoSwift.DittoDocument?) -> Swift.UInt64
+  public func hashMnemonic(document: DittoSwift.DittoDocument?) -> Swift.String
+}
+@_hasMissingDesignatedInitializers public class DittoExperimental {
+  public class func open(identity: DittoSwift.DittoIdentity = .offlinePlayground(), historyTrackingEnabled: Swift.Bool = false, persistenceDirectory: Foundation.URL? = nil, passphrase: Swift.String? = nil) throws -> DittoSwift.Ditto
+  public class func jsonByTranscoding(cbor: Foundation.Data) throws -> Foundation.Data
+  public class func triggerTestPanic()
+  @objc deinit
+}
+public protocol DittoAuthenticationDelegate : AnyObject {
+  func authenticationRequired(authenticator: DittoSwift.DittoAuthenticator)
+  func authenticationExpiringSoon(authenticator: DittoSwift.DittoAuthenticator, secondsRemaining: Swift.Int64)
+  func authenticationStatusDidChange(authenticator: DittoSwift.DittoAuthenticator)
+}
+extension DittoSwift.DittoAuthenticationDelegate {
+  public func authenticationStatusDidChange(authenticator: DittoSwift.DittoAuthenticator)
+}
+@_hasMissingDesignatedInitializers public class DittoSyncSubscription {
+  weak public var ditto: DittoSwift.Ditto? {
+    get
+  }
+  final public let queryString: Swift.String
+  final public let queryArguments: [Swift.String : Any?]?
+  public var isCancelled: Swift.Bool {
+    get
+  }
+  public func cancel()
+  @objc deinit
+}
+extension DittoSwift.DittoSyncSubscription : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoSyncSubscription : Swift.Equatable {
+  public static func == (left: DittoSwift.DittoSyncSubscription, right: DittoSwift.DittoSyncSubscription) -> Swift.Bool
+}
+public struct DittoDocumentIDPath {
+  public subscript(key: Swift.String) -> DittoSwift.DittoDocumentIDPath {
+    get
+  }
+  public subscript(index: Swift.Int) -> DittoSwift.DittoDocumentIDPath {
+    get
+  }
+}
+extension DittoSwift.DittoDocumentIDPath {
+  public var value: Any? {
+    get
+  }
+  public var string: Swift.String? {
+    get
+  }
+  public var stringValue: Swift.String {
+    get
+  }
+  public var bool: Swift.Bool? {
+    get
+  }
+  public var boolValue: Swift.Bool {
+    get
+  }
+  public var int: Swift.Int? {
+    get
+  }
+  public var intValue: Swift.Int {
+    get
+  }
+  public var uint: Swift.UInt? {
+    get
+  }
+  public var uintValue: Swift.UInt {
+    get
+  }
+  public var float: Swift.Float? {
+    get
+  }
+  public var floatValue: Swift.Float {
+    get
+  }
+  public var double: Swift.Double? {
+    get
+  }
+  public var doubleValue: Swift.Double {
+    get
+  }
+  public var array: [Any?]? {
+    get
+  }
+  public var arrayValue: [Any?] {
+    get
+  }
+  public var dictionary: [Swift.String : Any?]? {
+    get
+  }
+  public var dictionaryValue: [Swift.String : Any?] {
+    get
+  }
+}
+public typealias DittoAuthenticationRequest = DittoObjC.DITAuthenticationRequest
+public typealias DittoAuthenticationSuccess = DittoObjC.DITAuthenticationSuccess
+public protocol DittoDelegate : AnyObject {
+  func dittoTransportConditionDidChange(ditto: DittoSwift.Ditto, condition: DittoSwift.DittoTransportCondition, subsystem: DittoSwift.DittoConditionSource)
+  func dittoIdentityProviderAuthenticationRequest(ditto: DittoSwift.Ditto, request: DittoSwift.DittoAuthenticationRequest)
+}
+extension DittoSwift.DittoDelegate {
+  public func dittoTransportConditionDidChange(ditto: DittoSwift.Ditto, condition: DittoSwift.DittoTransportCondition, subsystem: DittoSwift.DittoConditionSource)
+  public func dittoIdentityProviderAuthenticationRequest(ditto: DittoSwift.Ditto, request: DittoSwift.DittoAuthenticationRequest)
+  public func dittoIdentityProviderRefreshRequest(ditto: DittoSwift.Ditto, request: Foundation.Data)
+}
+@available(*, deprecated, message: "Replaced by `DittoPeer`.")
+public struct DittoRemotePeer : Swift.Codable {
+  public let networkId: Swift.String
+  public let deviceName: Swift.String
+  public let connections: [Swift.String]
+  public let rssi: Swift.Float?
+  public var approximateDistanceInMeters: Swift.Float?
+  public init(networkId: Swift.String, deviceName: Swift.String, connections: [Swift.String], rssi: Swift.Float? = nil, approximateDistanceInMeters: Swift.Float? = nil)
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+@available(*, deprecated, message: "Replaced by `DittoPeer`.")
+extension DittoSwift.DittoRemotePeer : Swift.Identifiable {
+  public var id: Swift.String {
+    get
+  }
+  @available(*, deprecated, message: "Replaced by `DittoPeer`.")
+  public typealias ID = Swift.String
+}
+@_hasMissingDesignatedInitializers public class DittoAttachment : Swift.Hashable {
+  public var id: Swift.String {
+    get
+  }
+  public var len: Swift.Int {
+    get
+  }
+  public var metadata: [Swift.String : Swift.String] {
+    get
+  }
+  public static func == (lhs: DittoSwift.DittoAttachment, rhs: DittoSwift.DittoAttachment) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  @available(*, deprecated, message: "Replaced by `DittoAttachment.data()`.")
+  public func getData() throws -> Foundation.Data
+  public func data() throws -> Foundation.Data
+  public func copy(toPath path: Swift.String) throws
+  @objc deinit
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers public class DittoAttachmentToken {
+  public var id: Swift.String {
+    get
+  }
+  public var len: Swift.Int {
+    get
+  }
+  public var metadata: [Swift.String : Swift.String] {
+    get
+  }
+  @objc deinit
+}
+extension DittoSwift.DittoAttachmentToken : Swift.Equatable {
+  public static func == (lhs: DittoSwift.DittoAttachmentToken, rhs: DittoSwift.DittoAttachmentToken) -> Swift.Bool
+}
+extension DittoSwift.DittoAttachmentToken : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DittoPendingCursorOperation {
+  public typealias Snapshot = (documents: [DittoSwift.DittoDocument], event: DittoSwift.DittoLiveQueryEvent)
+  public struct LiveQueryPublisher : Combine.Publisher {
+    public typealias Output = DittoSwift.DittoPendingCursorOperation.Snapshot
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == (documents: [DittoSwift.DittoDocument], event: DittoSwift.DittoLiveQueryEvent)
+  }
+  public func liveQueryPublisher() -> DittoSwift.DittoPendingCursorOperation.LiveQueryPublisher
+}
+public struct DittoTransactionInfo {
+}
+extension DittoSwift.DittoTransactionInfo : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoTransactionInfo : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoTransactionInfo, b: DittoSwift.DittoTransactionInfo) -> Swift.Bool
+}
+extension DittoSwift.DittoTransactionInfo : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+@_hasMissingDesignatedInitializers public class DittoTransportDiagnostics {
+  final public let transports: [DittoSwift.DittoTransportSnapshot]
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoSmallPeerInfo {
+  public var isEnabled: Swift.Bool {
+    get
+    set
+  }
+  public var syncScope: DittoSwift.DittoSmallPeerInfoSyncScope {
+    get
+    set
+  }
+  public var metadata: [Swift.String : Any] {
+    get
+  }
+  public func setMetadata(_ metadata: [Swift.String : Any]) throws
+  public var metadataJSONString: Swift.String {
+    get
+  }
+  public func setMetadataJSONString(_ jsonString: Swift.String) throws
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoPendingIDSpecificOperation {
+  public func subscribe() -> DittoSwift.DittoSubscription
+  @discardableResult
+  public func remove() -> Swift.Bool
+  @discardableResult
+  public func evict() -> Swift.Bool
+  public func exec() -> DittoSwift.DittoDocument?
+  public func observeLocal(deliverOn queue: Dispatch.DispatchQueue = .main, eventHandler: @escaping (DittoSwift.DittoDocument?, DittoSwift.DittoSingleDocumentLiveQueryEvent) -> Swift.Void) -> DittoSwift.DittoLiveQuery
+  public func observeLocalWithNextSignal(deliverOn queue: Dispatch.DispatchQueue = .main, eventHandler: @escaping (DittoSwift.DittoDocument?, DittoSwift.DittoSingleDocumentLiveQueryEvent, @escaping DittoSwift.DittoSignalNext) -> Swift.Void) -> DittoSwift.DittoLiveQuery
+  @discardableResult
+  public func update(_ closure: @escaping (DittoSwift.DittoMutableDocument?) -> Swift.Void) -> [DittoSwift.DittoUpdateResult]
+  @available(*, deprecated, message: "Codable APIs will be removed in the future.")
+  public func update<T>(using newValue: T) throws where T : Swift.Decodable, T : Swift.Encodable
+  @objc deinit
+}
+public enum DittoObjCInterop {
+  public static func initDittoWith(ditDitto: DittoObjC.DITDitto) -> DittoSwift.Ditto
+  public static func ditDittoFor(ditto: DittoSwift.Ditto) -> DittoObjC.DITDitto
+}
+@_hasMissingDesignatedInitializers public class DittoWriteTransactionPendingCursorOperation {
+  public func limit(_ limit: Swift.Int32) -> Self
+  public func sort(_ query: Swift.String, direction: DittoSwift.DittoSortDirection) -> Self
+  public func offset(_ offset: Swift.UInt32) -> Self
+  public func exec() -> [DittoSwift.DittoDocument]
+  @discardableResult
+  public func remove() -> [DittoSwift.DittoDocumentID]
+  @discardableResult
+  public func evict() -> [DittoSwift.DittoDocumentID]
+  @discardableResult
+  public func update(_ closure: @escaping ([DittoSwift.DittoMutableDocument]) -> Swift.Void) -> [DittoSwift.DittoDocumentID : [DittoSwift.DittoUpdateResult]]
+  @objc deinit
+}
+public struct DittoPeer {
+  public var address: DittoSwift.DittoAddress
+  @available(*, deprecated, message: "Use `peerKeyString` instead.")
+  public var peerKey: Foundation.Data {
+    get
+    set
+  }
+  public var peerKeyString: Swift.String
+  public var connections: [DittoSwift.DittoConnection]
+  public var deviceName: Swift.String
+  public var isConnectedToDittoCloud: Swift.Bool
+  @available(*, deprecated, message: "Query overlap groups have been phased out, this property always returns 0.")
+  public var queryOverlapGroup: Swift.UInt8 {
+    get
+    set
+  }
+  public var os: Swift.String?
+  public var dittoSDKVersion: Swift.String?
+  public var isCompatible: Swift.Bool?
+  public var peerMetadata: [Swift.String : Any?] {
+    get
+  }
+  public var identityServiceMetadata: [Swift.String : Any?] {
+    get
+  }
+  @available(*, deprecated, message: "Use `peerKeyString` variant instead.")
+  public init(address: DittoSwift.DittoAddress, peerKey: Foundation.Data, connections: [DittoSwift.DittoConnection], deviceName: Swift.String, isConnectedToDittoCloud: Swift.Bool, queryOverlapGroup: Swift.UInt8, os: Swift.String? = nil, dittoSDKVersion: Swift.String? = nil, isCompatible: Swift.Bool? = nil, peerMetadata: [Swift.String : Swift.AnyHashable?] = [:], identityServiceMetadata: [Swift.String : Swift.AnyHashable?] = [:])
+  @available(*, deprecated, message: "Use the version without `queryOverlapGroup` instead.")
+  public init(address: DittoSwift.DittoAddress, peerKeyString: Swift.String, connections: [DittoSwift.DittoConnection], deviceName: Swift.String, isConnectedToDittoCloud: Swift.Bool, queryOverlapGroup: Swift.UInt8, os: Swift.String? = nil, dittoSDKVersion: Swift.String? = nil, isCompatible: Swift.Bool? = nil, peerMetadata: [Swift.String : Any?] = [:], identityServiceMetadata: [Swift.String : Any?] = [:])
+  public init(address: DittoSwift.DittoAddress, peerKeyString: Swift.String, connections: [DittoSwift.DittoConnection], deviceName: Swift.String, isConnectedToDittoCloud: Swift.Bool, os: Swift.String? = nil, dittoSDKVersion: Swift.String? = nil, isCompatible: Swift.Bool? = nil, peerMetadata: [Swift.String : Any?] = [:], identityServiceMetadata: [Swift.String : Any?] = [:])
+}
+extension DittoSwift.DittoPeer : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoPeer, b: DittoSwift.DittoPeer) -> Swift.Bool
+}
+extension DittoSwift.DittoPeer : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoPeer : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+@_hasMissingDesignatedInitializers public class DittoQueryResult {
+  final public let items: [DittoSwift.DittoQueryResultItem]
+  public func mutatedDocumentIDs() -> [DittoSwift.DittoDocumentID]
+  @objc deinit
+}
+extension Foundation.NSNotification.Name {
+  public static let dittoAuthenticationStatusDidChange: Foundation.NSNotification.Name
+}
+@_hasMissingDesignatedInitializers public class DittoAuthenticator {
+  public var status: DittoSwift.DittoAuthenticationStatus {
+    get
+  }
+  public func login(token: Swift.String, provider: Swift.String, completion: @escaping (Swift.String?, DittoSwift.DittoSwiftError?) -> Swift.Void)
+  @available(*, deprecated, message: "Use `login` that provides access to the clientInfo JSON string in the completion closure instead.")
+  public func loginWithToken(_ token: Swift.String, provider: Swift.String, completion: @escaping (DittoSwift.DittoSwiftError?) -> Swift.Void)
+  public func loginWithCredentials(username: Swift.String, password: Swift.String, provider: Swift.String, completion: @escaping (DittoSwift.DittoSwiftError?) -> Swift.Void)
+  public func logout(cleanup: ((DittoSwift.Ditto) -> Swift.Void)? = nil)
+  public func observeStatus(_ block: @escaping (DittoSwift.DittoAuthenticationStatus) -> Swift.Void) -> DittoSwift.DittoObserver
+  @objc deinit
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.Ditto {
+  @available(*, deprecated, message: "Replaced by `DittoPresence.GraphPublisher`.")
+  public struct RemotePeersPublisher : Combine.Publisher {
+    public typealias Output = [DittoSwift.DittoRemotePeer]
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == [DittoSwift.DittoRemotePeer]
+  }
+  @available(*, deprecated, message: "Replaced by `self.presence.graphPublisher()`.")
+  public func remotePeersPublisher() -> DittoSwift.Ditto.RemotePeersPublisher
+}
+public enum DittoSwiftError : Swift.Error {
+  public enum ActivationErrorReason {
+    case licenseTokenExpired(message: Swift.String)
+    case licenseTokenUnsupportedFutureVersion(message: Swift.String)
+    case licenseTokenVerificationFailed(message: Swift.String)
+    case notActivatedError(message: Swift.String)
+  }
+  public enum AuthenticationErrorReason {
+    case failedToAuthenticate
+    public static func == (a: DittoSwift.DittoSwiftError.AuthenticationErrorReason, b: DittoSwift.DittoSwiftError.AuthenticationErrorReason) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public enum EncryptionErrorReason {
+    case extraneousPassphraseGiven
+    case passphraseInvalid
+    case passphraseNotGiven
+    public static func == (a: DittoSwift.DittoSwiftError.EncryptionErrorReason, b: DittoSwift.DittoSwiftError.EncryptionErrorReason) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public enum MigrationErrorReason {
+    case disableSyncWithV3Failed
+    public static func == (a: DittoSwift.DittoSwiftError.MigrationErrorReason, b: DittoSwift.DittoSwiftError.MigrationErrorReason) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public enum StoreErrorReason {
+    case attachmentDataRetrievalError(error: any Swift.Error)
+    case attachmentFileCopyError(error: any Swift.Error)
+    case attachmentFileNotFound(message: Swift.String)
+    case attachmentFilePermissionDenied(message: Swift.String)
+    case attachmentNotFound(message: Swift.String)
+    case attachmentTokenInvalid(message: Swift.String)
+    case failedToCreateAttachment(message: Swift.String)
+    case failedToFetchAttachment(message: Swift.String)
+    case backendError(message: Swift.String)
+    case crdtError(message: Swift.String)
+    case documentContentEncodingFailed(error: (any Swift.Error)?)
+    case documentNotFound
+    case failedToDecodeData(error: (any Swift.Error)?, data: [Swift.UInt8])
+    case failedToDecodeDocument(error: any Swift.Error)
+    case failedToGetDocumentData(path: Swift.String)
+    case failedToGetDocumentIDData(path: Swift.String)
+    case invalidCRDTType(message: Swift.String)
+    case invalidDocumentStructure(cbor: DittoSwift.CBOR)
+    case invalidValueForCRDT(message: Swift.String)
+    case nonStringKeyInDocument(key: DittoSwift.CBOR)
+    case queryArgumentsInvalid
+    case queryError(message: Swift.String)
+    case queryInvalid(message: Swift.String)
+    case queryNotSupported(message: Swift.String)
+    case transactionReadOnly(message: Swift.String)
+  }
+  public enum TransportErrorReason {
+    case diagnosticsUnavailable
+    case failedToDecodeTransportDiagnostics
+    public static func == (a: DittoSwift.DittoSwiftError.TransportErrorReason, b: DittoSwift.DittoSwiftError.TransportErrorReason) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public enum ValidationErrorReason {
+    case depthLimitExceeded(message: Swift.String)
+    case notADictionary(message: Swift.String)
+    case notJSONCompatible(message: Swift.String)
+    case invalidJSON(message: Swift.String)
+    case invalidCBOR(message: Swift.String)
+    case sizeLimitExceeded(message: Swift.String)
+  }
+  public enum IOErrorReason {
+    case alreadyExists(message: Swift.String)
+    case notFound(message: Swift.String)
+    case permissionDenied(message: Swift.String)
+    case operationFailed(message: Swift.String)
+  }
+  case activationError(reason: DittoSwift.DittoSwiftError.ActivationErrorReason)
+  case authenticationError(reason: DittoSwift.DittoSwiftError.AuthenticationErrorReason)
+  case encryptionError(reason: DittoSwift.DittoSwiftError.EncryptionErrorReason)
+  case migrationError(reason: DittoSwift.DittoSwiftError.MigrationErrorReason)
+  case storeError(reason: DittoSwift.DittoSwiftError.StoreErrorReason)
+  case transportError(reason: DittoSwift.DittoSwiftError.TransportErrorReason)
+  case validationError(reason: DittoSwift.DittoSwiftError.ValidationErrorReason)
+  case ioError(reason: DittoSwift.DittoSwiftError.IOErrorReason)
+  case unsupportedError(message: Swift.String)
+  case unknownError(message: Swift.String)
+}
+extension DittoSwift.DittoSwiftError : Foundation.LocalizedError {
+  public var errorDescription: Swift.String? {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers public class DittoWriteTransaction {
+  public func scoped(toCollectionNamed collectionName: DittoSwift.DittoCollectionName) -> DittoSwift.DittoScopedWriteTransaction
+  public subscript(collectionName: DittoSwift.DittoCollectionName) -> DittoSwift.DittoScopedWriteTransaction {
+    get
+  }
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoLogger {
+  public static var enabled: Swift.Bool {
+    get
+    set
+  }
+  public static var minimumLogLevel: DittoSwift.DittoLogLevel {
+    get
+    set
+  }
+  public static var emojiLogLevelHeadingsEnabled: Swift.Bool {
+    get
+    set
+  }
+  public static func setLogFile(_ logFile: Swift.String?)
+  public static func setLogFileURL(_ logFile: Foundation.URL?)
+  public static func setCustomLogCallback(_ logCb: ((DittoSwift.DittoLogLevel, Swift.String) -> ())?)
+  @discardableResult
+  public static func export(to fileURL: Foundation.URL) async throws -> Swift.UInt64
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoSubscription {
+  public var query: Swift.String {
+    get
+  }
+  public var collectionName: DittoSwift.DittoCollectionName {
+    get
+  }
+  public func cancel()
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoScopedWriteTransaction {
+  public var collectionName: DittoSwift.DittoCollectionName {
+    get
+  }
+  @discardableResult
+  public func upsert(_ content: [Swift.String : Any?], writeStrategy: DittoSwift.DittoWriteStrategy = .merge) throws -> DittoSwift.DittoDocumentID
+  @discardableResult
+  @available(*, deprecated, message: "Codable APIs will be removed in the future.")
+  public func upsert<T>(_ content: T, writeStrategy: DittoSwift.DittoWriteStrategy = .merge) throws -> DittoSwift.DittoDocumentID where T : Swift.Decodable, T : Swift.Encodable
+  public func findByID(_ id: DittoSwift.DittoDocumentID) -> DittoSwift.DittoWriteTransactionPendingIDSpecificOperation
+  public func findByID(_ id: Any) -> DittoSwift.DittoWriteTransactionPendingIDSpecificOperation
+  public func find(_ query: Swift.String) -> DittoSwift.DittoWriteTransactionPendingCursorOperation
+  public func find(_ query: Swift.String, args queryArgs: Swift.Dictionary<Swift.String, Any?>) -> DittoSwift.DittoWriteTransactionPendingCursorOperation
+  public func findAll() -> DittoSwift.DittoWriteTransactionPendingCursorOperation
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoMutableDocumentPath : Swift.ExpressibleByStringLiteral, Swift.ExpressibleByIntegerLiteral, Swift.ExpressibleByBooleanLiteral, Swift.ExpressibleByFloatLiteral, Swift.ExpressibleByDictionaryLiteral, Swift.ExpressibleByArrayLiteral, Swift.ExpressibleByNilLiteral {
+  public subscript(key: Swift.String) -> DittoSwift.DittoMutableDocumentPath {
+    get
+    set
+  }
+  public subscript(index: Swift.Int) -> DittoSwift.DittoMutableDocumentPath {
+    get
+    set
+  }
+  public func set(_ value: Any?, isDefault: Swift.Bool = false)
+  public func remove()
+  required public init(stringLiteral value: Swift.StringLiteralType)
+  required public init(extendedGraphemeClusterLiteral value: Swift.StringLiteralType)
+  required public init(unicodeScalarLiteral value: Swift.StringLiteralType)
+  required public init(integerLiteral value: Swift.IntegerLiteralType)
+  required public init(booleanLiteral value: Swift.BooleanLiteralType)
+  required public init(floatLiteral value: Swift.FloatLiteralType)
+  required public init(dictionaryLiteral elements: (Swift.String, Any)...)
+  required public init(arrayLiteral elements: Any...)
+  required public init(nilLiteral: ())
+  public typealias ArrayLiteralElement = Any
+  public typealias BooleanLiteralType = Swift.BooleanLiteralType
+  public typealias ExtendedGraphemeClusterLiteralType = Swift.StringLiteralType
+  public typealias FloatLiteralType = Swift.FloatLiteralType
+  public typealias IntegerLiteralType = Swift.IntegerLiteralType
+  public typealias Key = Swift.String
+  public typealias StringLiteralType = Swift.StringLiteralType
+  public typealias UnicodeScalarLiteralType = Swift.StringLiteralType
+  public typealias Value = Any
+  @objc deinit
+}
+extension DittoSwift.DittoMutableDocumentPath {
+  public var value: Any? {
+    get
+  }
+  public var string: Swift.String? {
+    get
+  }
+  public var stringValue: Swift.String {
+    get
+  }
+  public var bool: Swift.Bool? {
+    get
+  }
+  public var boolValue: Swift.Bool {
+    get
+  }
+  public var int: Swift.Int? {
+    get
+  }
+  public var intValue: Swift.Int {
+    get
+  }
+  public var uint: Swift.UInt? {
+    get
+  }
+  public var uintValue: Swift.UInt {
+    get
+  }
+  public var float: Swift.Float? {
+    get
+  }
+  public var floatValue: Swift.Float {
+    get
+  }
+  public var double: Swift.Double? {
+    get
+  }
+  public var doubleValue: Swift.Double {
+    get
+  }
+  public var array: [Any?]? {
+    get
+  }
+  public var arrayValue: [Any?] {
+    get
+  }
+  public var dictionary: [Swift.String : Any?]? {
+    get
+  }
+  public var dictionaryValue: [Swift.String : Any?] {
+    get
+  }
+  public var attachmentToken: DittoSwift.DittoAttachmentToken? {
+    get
+  }
+  public var counter: DittoSwift.DittoMutableCounter? {
+    get
+  }
+  public var register: DittoSwift.DittoMutableRegister? {
+    get
+  }
+}
+public struct DittoAuthenticationStatus : Swift.Equatable {
+  public var isAuthenticated: Swift.Bool
+  public var userID: Swift.String?
+  public static func == (a: DittoSwift.DittoAuthenticationStatus, b: DittoSwift.DittoAuthenticationStatus) -> Swift.Bool
+}
+public struct DittoPresenceGraph {
+  public var localPeer: DittoSwift.DittoPeer
+  public var remotePeers: [DittoSwift.DittoPeer]
+  public init(localPeer: DittoSwift.DittoPeer, remotePeers: [DittoSwift.DittoPeer])
+  public func allConnectionsByID() -> Swift.Dictionary<Swift.String, DittoSwift.DittoConnection>
+}
+extension DittoSwift.DittoPresenceGraph : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoPresenceGraph, b: DittoSwift.DittoPresenceGraph) -> Swift.Bool
+}
+extension DittoSwift.DittoPresenceGraph : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoPresenceGraph : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
+extension Swift.Int32 : Swift.Error {
+}
+@_hasMissingDesignatedInitializers @available(*, deprecated, message: "Codable APIs will be removed in the future")
+public class DittoTypedDocument<T> where T : Swift.Decodable {
+  final public let id: DittoSwift.DittoDocumentID
+  final public let value: T
+  @objc deinit
+}
+public enum DittoSortDirection {
+  case ascending
+  case descending
+  public static func == (a: DittoSwift.DittoSortDirection, b: DittoSwift.DittoSortDirection) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers public class DittoQueryResultItem {
+  public var value: Swift.Dictionary<Swift.String, Any?> {
+    get
+  }
+  public var isMaterialized: Swift.Bool {
+    get
+  }
+  public func materialize()
+  public func dematerialize()
+  public func cborData() -> Foundation.Data
+  public func jsonData() -> Foundation.Data
+  public func jsonString() -> Swift.String
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoTransaction {
+  public var info: DittoSwift.DittoTransactionInfo {
+    get
+  }
+  final public let store: DittoSwift.DittoStore
+  @objc deinit
+}
+extension DittoSwift.DittoTransaction : DittoSwift.DittoQueryExecuting {
+  @discardableResult
+  public func execute(query: Swift.String, arguments: Swift.Dictionary<Swift.String, Any?>) async throws -> DittoSwift.DittoQueryResult
+}
+@_hasMissingDesignatedInitializers public class DittoPendingCollectionsOperation {
+  public func limit(_ limit: Swift.Int32) -> Self
+  public func sort(_ query: Swift.String, direction: DittoSwift.DittoSortDirection) -> Self
+  public func offset(_ offset: Swift.UInt32) -> Self
+  public func subscribe() -> DittoSwift.DittoSubscription
+  public func exec() -> [DittoSwift.DittoCollection]
+  public func observeLocal(deliverOn queue: Dispatch.DispatchQueue = .main, eventHandler: @escaping (DittoSwift.DittoCollectionsEvent) -> Swift.Void) -> DittoSwift.DittoLiveQuery
+  public func observeLocalWithNextSignal(deliverOn queue: Dispatch.DispatchQueue = .main, eventHandler: @escaping (DittoSwift.DittoCollectionsEvent, @escaping DittoSwift.DittoSignalNext) -> Swift.Void) -> DittoSwift.DittoLiveQuery
+  @objc deinit
+}
+public typealias DittoConnectionRequestHandler = (_ connectionRequest: DittoSwift.DittoConnectionRequest) async -> DittoSwift.DittoConnectionRequestAuthorization
+@_hasMissingDesignatedInitializers public class DittoConnectionRequest {
+  public var peerKeyString: Swift.String {
+    get
+  }
+  public var peerMetadata: [Swift.String : Any?] {
+    get
+  }
+  public var peerMetadataJSONData: Foundation.Data {
+    get
+  }
+  public var identityServiceMetadata: [Swift.String : Any?] {
+    get
+  }
+  public var identityServiceMetadataJSONData: Foundation.Data {
+    get
+  }
+  public var connectionType: DittoSwift.DittoConnectionType {
+    get
+  }
+  @objc deinit
+}
+extension DittoSwift.DittoConnectionRequest : Swift.CustomStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DittoPresence {
+  public struct GraphPublisher : Combine.Publisher {
+    public typealias Output = DittoSwift.DittoPresenceGraph
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == DittoSwift.DittoPresenceGraph
+  }
+  public func graphPublisher() -> DittoSwift.DittoPresence.GraphPublisher
+}
+public struct DittoAddress {
+}
+extension DittoSwift.DittoAddress : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoAddress, b: DittoSwift.DittoAddress) -> Swift.Bool
+}
+extension DittoSwift.DittoAddress : Swift.Hashable {
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoAddress : Swift.Codable {
+  public init(from decoder: any Swift.Decoder) throws
+  public func encode(to encoder: any Swift.Encoder) throws
+}
+@_hasMissingDesignatedInitializers public class DittoPendingCursorOperation {
+  public func limit(_ limit: Swift.Int32) -> Self
+  public func sort(_ query: Swift.String, direction: DittoSwift.DittoSortDirection) -> Self
+  public func offset(_ offset: Swift.UInt32) -> Self
+  public func subscribe() -> DittoSwift.DittoSubscription
+  @discardableResult
+  public func remove() -> [DittoSwift.DittoDocumentID]
+  @discardableResult
+  public func evict() -> [DittoSwift.DittoDocumentID]
+  public func exec() -> [DittoSwift.DittoDocument]
+  public func observeLocal(deliverOn queue: Dispatch.DispatchQueue = .main, eventHandler: @escaping ([DittoSwift.DittoDocument], DittoSwift.DittoLiveQueryEvent) -> Swift.Void) -> DittoSwift.DittoLiveQuery
+  public func observeLocalWithNextSignal(deliverOn queue: Dispatch.DispatchQueue = .main, eventHandler: @escaping ([DittoSwift.DittoDocument], DittoSwift.DittoLiveQueryEvent, @escaping DittoSwift.DittoSignalNext) -> Swift.Void) -> DittoSwift.DittoLiveQuery
+  @discardableResult
+  public func update(_ closure: @escaping ([DittoSwift.DittoMutableDocument]) -> Swift.Void) -> [DittoSwift.DittoDocumentID : [DittoSwift.DittoUpdateResult]]
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class DittoMutableDocument {
+  public var id: DittoSwift.DittoDocumentID {
+    get
+  }
+  public var value: [Swift.String : Any?] {
+    get
+  }
+  @available(*, deprecated, message: "Codable APIs will be removed in the future")
+  public func typed<T>(_ type: T.Type) throws -> DittoSwift.DittoTypedDocument<T> where T : Swift.Decodable, T : Swift.Encodable
+  public subscript(key: Swift.String) -> DittoSwift.DittoMutableDocumentPath {
+    get
+    set
+  }
+  @objc deinit
+}
+public enum DittoConnectionRequestAuthorization {
+  case allow
+  case deny
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoConnectionRequestAuthorization : Swift.Equatable {
+  public static func == (a: DittoSwift.DittoConnectionRequestAuthorization, b: DittoSwift.DittoConnectionRequestAuthorization) -> Swift.Bool
+}
+public enum DittoIdentity {
+  case offlinePlayground(appID: Swift.String? = nil, siteID: Swift.UInt64? = nil)
+  case onlineWithAuthentication(appID: Swift.String, authenticationDelegate: any DittoSwift.DittoAuthenticationDelegate, enableDittoCloudSync: Swift.Bool = true, customAuthURL: Foundation.URL? = nil)
+  case onlinePlayground(appID: Swift.String, token: Swift.String, enableDittoCloudSync: Swift.Bool = true, customAuthURL: Foundation.URL? = nil)
+  case sharedKey(appID: Swift.String, sharedKey: Swift.String, siteID: Swift.UInt64? = nil)
+  case manual(certificateConfig: Swift.String)
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DittoStore {
+  public struct FetchAttachmentPublisher : Combine.Publisher {
+    public struct Progress {
+      public var percentage: Swift.Float
+      public var downloadedBytes: Swift.UInt64
+      public var totalBytes: Swift.UInt64
+    }
+    public typealias Output = DittoSwift.DittoAttachmentFetchEvent
+    public typealias Failure = DittoSwift.DittoSwiftError
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == DittoSwift.DittoSwiftError, S.Input == DittoSwift.DittoAttachmentFetchEvent
+    public func progress() -> Combine.AnyPublisher<DittoSwift.DittoStore.FetchAttachmentPublisher.Progress, DittoSwift.DittoSwiftError>
+    public func completed() -> Combine.AnyPublisher<DittoSwift.DittoAttachment, DittoSwift.DittoSwiftError>
+  }
+  public func fetchAttachmentPublisher(attachmentToken: DittoSwift.DittoAttachmentToken) -> DittoSwift.DittoStore.FetchAttachmentPublisher
+  public func fetchAttachmentPublisher(attachmentToken: [Swift.String : Any]) -> DittoSwift.DittoStore.FetchAttachmentPublisher
+}
+public protocol DittoQueryExecuting {
+  @discardableResult
+  func execute(query: Swift.String, arguments: Swift.Dictionary<Swift.String, Any?>) async throws -> DittoSwift.DittoQueryResult
+}
+extension DittoSwift.DittoQueryExecuting {
+  @discardableResult
+  public func execute(query: Swift.String) async throws -> DittoSwift.DittoQueryResult
+}
+@_hasMissingDesignatedInitializers public class DittoStore {
+  public subscript(collectionName: DittoSwift.DittoCollectionName) -> DittoSwift.DittoCollection {
+    get
+  }
+  public func collection(_ name: DittoSwift.DittoCollectionName) -> DittoSwift.DittoCollection
+  public func collectionNames() -> [DittoSwift.DittoCollectionName]
+  public func collections() -> DittoSwift.DittoPendingCollectionsOperation
+  public func queriesHash(queries: [DittoSwift.DittoLiveQuery]) -> Swift.UInt
+  public func queriesHashMnemonic(queries: [DittoSwift.DittoLiveQuery]) -> Swift.String
+  @discardableResult
+  public func write(_ block: @escaping (DittoSwift.DittoWriteTransaction) -> Swift.Void) -> [DittoSwift.DittoWriteTransactionResult]
+  public var observers: Swift.Set<DittoSwift.DittoStoreObserver> {
+    get
+  }
+  @discardableResult
+  public func registerObserver(query: Swift.String, arguments: Swift.Dictionary<Swift.String, Any?>? = nil, deliverOn queue: Dispatch.DispatchQueue = .main, handler: @escaping DittoSwift.DittoStoreObservationHandler) throws -> DittoSwift.DittoStoreObserver
+  @discardableResult
+  public func registerObserver(query: Swift.String, arguments: Swift.Dictionary<Swift.String, Any?>? = nil, deliverOn queue: Dispatch.DispatchQueue = .main, handlerWithSignalNext: @escaping DittoSwift.DittoStoreObservationHandlerWithSignalNext) throws -> DittoSwift.DittoStoreObserver
+  @discardableResult
+  public func transaction(hint: Swift.String? = nil, isReadOnly: Swift.Bool = false, with scope: ((_ transaction: DittoSwift.DittoTransaction) async throws -> DittoSwift.DittoTransactionCompletionAction)) async throws -> DittoSwift.DittoTransactionCompletionAction
+  public func transaction<T>(hint: Swift.String? = nil, isReadOnly: Swift.Bool = false, with scope: ((_ transaction: DittoSwift.DittoTransaction) async throws -> T)) async throws -> T
+  public func newAttachment(path: Swift.String, metadata: [Swift.String : Swift.String] = [:]) async throws -> DittoSwift.DittoAttachment
+  public var attachmentFetchers: Swift.Set<DittoSwift.DittoAttachmentFetcher> {
+    get
+  }
+  @discardableResult
+  public func fetchAttachment(token: DittoSwift.DittoAttachmentToken, deliverOn deliveryQueue: Dispatch.DispatchQueue = .main, onFetchEvent: @escaping (DittoSwift.DittoAttachmentFetchEvent) -> Swift.Void) throws -> DittoSwift.DittoAttachmentFetcher
+  @discardableResult
+  public func fetchAttachment(token: [Swift.String : Any], deliverOn queue: Dispatch.DispatchQueue = .main, onFetchEvent: @escaping (DittoSwift.DittoAttachmentFetchEvent) -> Swift.Void) throws -> DittoSwift.DittoAttachmentFetcher
+  @objc deinit
+}
+extension DittoSwift.DittoStore : DittoSwift.DittoQueryExecuting {
+  @discardableResult
+  public func execute(query: Swift.String, arguments: Swift.Dictionary<Swift.String, Any?>) async throws -> DittoSwift.DittoQueryResult
+}
+@available(iOS 13, macOS 10.15, macCatalyst 13, tvOS 13, watchOS 6, *)
+extension DittoSwift.DittoPendingIDSpecificOperation {
+  public typealias Snapshot = (document: DittoSwift.DittoDocument?, event: DittoSwift.DittoSingleDocumentLiveQueryEvent)
+  public struct SingleDocumentLiveQueryPublisher : Combine.Publisher {
+    public typealias Output = DittoSwift.DittoPendingIDSpecificOperation.Snapshot
+    public typealias Failure = Swift.Never
+    public func receive<S>(subscriber: S) where S : Combine.Subscriber, S.Failure == Swift.Never, S.Input == (document: DittoSwift.DittoDocument?, event: DittoSwift.DittoSingleDocumentLiveQueryEvent)
+  }
+  public func singleDocumentLiveQueryPublisher() -> DittoSwift.DittoPendingIDSpecificOperation.SingleDocumentLiveQueryPublisher
+}
+public enum DittoFileSystemType {
+  case directory
+  case file
+  case symlink
+  public static func == (a: DittoSwift.DittoFileSystemType, b: DittoSwift.DittoFileSystemType) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+extension DittoSwift.DittoFileSystemType : Swift.CustomStringConvertible {
+  public var description: Swift.String {
+    get
+  }
+}
+extension DittoSwift.DittoConnectionType : Swift.Equatable {}
+extension DittoSwift.DittoConnectionType : Swift.Hashable {}
+extension DittoSwift.DittoConnectionType : Swift.RawRepresentable {}
+extension DittoSwift.DittoTransactionCompletionAction : Swift.Hashable {}
+extension DittoSwift.DittoLogLevel : Swift.Equatable {}
+extension DittoSwift.DittoLogLevel : Swift.Hashable {}
+extension DittoSwift.DittoLogLevel : Swift.RawRepresentable {}
+extension DittoSwift.DittoSmallPeerInfoSyncScope : Swift.Equatable {}
+extension DittoSwift.DittoSmallPeerInfoSyncScope : Swift.Hashable {}
+extension DittoSwift.DittoSmallPeerInfoSyncScope : Swift.RawRepresentable {}
+extension DittoSwift.DittoConnectionPriority : Swift.Equatable {}
+extension DittoSwift.DittoConnectionPriority : Swift.Hashable {}
+extension DittoSwift.DittoConnectionPriority : Swift.RawRepresentable {}
+extension DittoSwift.DittoTransportCondition : Swift.Equatable {}
+extension DittoSwift.DittoTransportCondition : Swift.Hashable {}
+extension DittoSwift.DittoTransportCondition : Swift.RawRepresentable {}
+extension DittoSwift.DittoConditionSource : Swift.Equatable {}
+extension DittoSwift.DittoConditionSource : Swift.Hashable {}
+extension DittoSwift.DittoConditionSource : Swift.RawRepresentable {}
+extension DittoSwift.DittoWriteStrategy : Swift.Equatable {}
+extension DittoSwift.DittoWriteStrategy : Swift.Hashable {}
+extension DittoSwift.DittoSwiftError.AuthenticationErrorReason : Swift.Equatable {}
+extension DittoSwift.DittoSwiftError.AuthenticationErrorReason : Swift.Hashable {}
+extension DittoSwift.DittoSwiftError.EncryptionErrorReason : Swift.Equatable {}
+extension DittoSwift.DittoSwiftError.EncryptionErrorReason : Swift.Hashable {}
+extension DittoSwift.DittoSwiftError.MigrationErrorReason : Swift.Equatable {}
+extension DittoSwift.DittoSwiftError.MigrationErrorReason : Swift.Hashable {}
+extension DittoSwift.DittoSwiftError.TransportErrorReason : Swift.Equatable {}
+extension DittoSwift.DittoSwiftError.TransportErrorReason : Swift.Hashable {}
+extension DittoSwift.DittoSortDirection : Swift.Equatable {}
+extension DittoSwift.DittoSortDirection : Swift.Hashable {}
+extension DittoSwift.DittoConnectionRequestAuthorization : Swift.Hashable {}
+extension DittoSwift.DittoFileSystemType : Swift.Equatable {}
+extension DittoSwift.DittoFileSystemType : Swift.Hashable {}

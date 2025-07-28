@@ -62,6 +62,10 @@ public struct CoTChatView: View {
         #endif
         .onAppear {
             viewModel.refreshEvents()
+            // Focus the message field when the view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isMessageFieldFocused = true
+            }
         }
     }
     
@@ -161,9 +165,13 @@ struct ChatMessageBubble: View {
                     )
                     .cornerRadius(16)
                 
-                Text(message.timestamp, style: .time)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 2) {
+                    Text(message.timestamp, style: .time)
+                    Text("·")
+                    Text(message.timestamp, style: .relative)
+                }
+                .font(.caption2)
+                .foregroundColor(.secondary)
             }
             .frame(maxWidth: 250, alignment: isFromCurrentUser ? .trailing : .leading)
             
@@ -190,32 +198,15 @@ struct MessageInputView: View {
     
     var body: some View {
         HStack(spacing: 8) {
-            #if os(macOS)
-            if #available(macOS 13.0, *) {
-                TextField("Type a message...", text: $messageText, axis: .vertical)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused(isMessageFieldFocused)
-                    .lineLimit(1...4)
-                    .onSubmit {
-                        onSend()
-                    }
-            } else {
-                TextField("Type a message...", text: $messageText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused(isMessageFieldFocused)
-                    .onSubmit {
-                        onSend()
-                    }
-            }
-            #else
-            TextField("Type a message...", text: $messageText, axis: .vertical)
+            TextField("Type a message...", text: $messageText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused(isMessageFieldFocused)
-                .lineLimit(1...4)
                 .onSubmit {
                     onSend()
                 }
-            #endif
+                #if os(macOS)
+                .frame(minHeight: 24)
+                #endif
             
             Button(action: onSend) {
                 Image(systemName: "arrow.up.circle.fill")
@@ -250,7 +241,7 @@ struct ChatSettingsView: View {
     ]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("User Settings") {
                     HStack {

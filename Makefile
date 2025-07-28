@@ -155,6 +155,35 @@ example-java:
 	@echo "Running Java example..."
 	@cd java && ./gradlew :example:runIntegrationClient
 
+.PHONY: example-swift
+example-swift:
+	@echo "Running Swift GUI example..."
+	@if [ -f "swift/Package.swift" ]; then \
+		cd swift && swift run CoTExampleApp & \
+		echo "App started in background. GUI should appear shortly."; \
+		echo "To stop: pkill -f CoTExampleApp"; \
+	else \
+		echo "Swift Package.swift not found. Skipping."; \
+	fi
+
+.PHONY: build-macos-app
+build-macos-app:
+	@echo "Building macOS CoTExampleApp.app bundle..."
+	@if [ -f "swift/Package.swift" ]; then \
+		cd swift && ./build_macos_app.sh; \
+	else \
+		echo "Swift Package.swift not found. Skipping."; \
+	fi
+
+.PHONY: launch-macos-app
+launch-macos-app:
+	@echo "Building and launching macOS CoTExampleApp.app..."
+	@if [ -f "swift/Package.swift" ]; then \
+		cd swift && ./build_macos_app.sh --launch; \
+	else \
+		echo "Swift Package.swift not found. Skipping."; \
+	fi
+
 # Integration test target
 .PHONY: test-integration
 test-integration: example-rust example-java
@@ -178,8 +207,11 @@ help:
 	@echo "  test-csharp   - Run tests for C# library"
 	@echo "  test-swift    - Run tests for Swift library"
 	@echo "  test-cross-lang - Run cross-language multi-peer test"
-	@echo "  example-rust  - Run Rust example client"
-	@echo "  example-java  - Run Java example client"
+	@echo "  example-rust     - Run Rust example client"
+	@echo "  example-java     - Run Java example client"
+	@echo "  example-swift    - Run Swift GUI example app (terminal)"
+	@echo "  build-macos-app  - Build proper macOS app bundle"
+	@echo "  launch-macos-app - Build and launch macOS app bundle"
 	@echo "  test-integration - Run cross-language integration test"
 	@echo "  clean         - Clean all libraries"
 	@echo "  clean-rust    - Clean Rust library"

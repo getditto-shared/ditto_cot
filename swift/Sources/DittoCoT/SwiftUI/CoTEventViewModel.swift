@@ -92,8 +92,11 @@ public class CoTEventViewModel: ObservableObject {
     // MARK: - Initialization
     
     public init(observable: CoTObservable) {
+        print("🎯 CoTEventViewModel: Initializing with observable")
         self.observable = observable
+        print("🎯 CoTEventViewModel: Setting up observables...")
         setupObservables()
+        print("🎯 CoTEventViewModel: Initialization complete")
     }
     
     // MARK: - Public Methods
@@ -113,8 +116,10 @@ public class CoTEventViewModel: ObservableObject {
         room: String = "All Chat Rooms",
         callsign: String
     ) async throws {
+        print("💬 Sending chat message: '\(message)' from: \(callsign) in room: \(room)")
+        
         let chatEvent = try CoTEventBuilder()
-            .uid(UUID().uuidString)
+            .uid("chat-\(UUID().uuidString)")
             .type("b-t-f")
             .how("h-e")
             .point(CoTPoint(lat: 0, lon: 0)) // Chat doesn't require real location
@@ -123,11 +128,20 @@ public class CoTEventViewModel: ObservableObject {
                     "from": callsign,
                     "room": room,
                     "msg": message
+                ],
+                "contact": [
+                    "callsign": callsign
                 ]
             ]))
             .build()
         
-        _ = try await observable.insert(chatEvent)
+        print("💬 Built chat event with UID: \(chatEvent.uid)")
+        let result = try await observable.insert(chatEvent)
+        print("💬 Insert result: \(result)")
+        
+        // Force a refresh to see the new message immediately
+        observable.refreshAll()
+        print("💬 Forced refresh after chat insert")
     }
     
     /// Send a location update
@@ -233,12 +247,128 @@ public class CoTEventViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Events updates
+        // Events updates - Show ALL documents as raw events
         observable.$events
             .receive(on: DispatchQueue.main)
             .map { docs in
-                docs.compactMap { CoTEventModel(from: $0) }
-                    .sorted { $0.timestamp > $1.timestamp } // Most recent first
+                print("📊 CoTEventViewModel: Received \(docs.count) documents from observable")
+                print("   Document IDs: \(docs.map { $0.id })")
+                let models = docs.compactMap { doc -> CoTEventModel? in
+                    // Create a raw event model for ALL documents
+                    guard let uid = doc.value["_id"] as? String else {
+                        print("❌ Document missing _id: \(doc.id)")
+                        return nil
+                    }
+                    
+                    // Extract basic fields that all documents should have
+                    let type = doc.value["w"] as? String ?? "unknown"
+                    let callsign = doc.value["e"] as? String ?? doc.value["authorCallsign"] as? String ?? uid
+                    
+                    // Debug: Show what timestamp fields exist
+                    print("🔍 Document \(uid) timestamp fields:")
+                    if let b = doc.value["b"] { print("   b: \(b) (type: \(Swift.type(of: b)))") }
+                    if let n = doc.value["n"] { print("   n: \(n) (type: \(Swift.type(of: n)))") }
+                    if let time = doc.value["time"] { print("   time: \(time) (type: \(Swift.type(of: time)))") }
+                    
+                    // Get timestamp - try multiple fields
+                    let timestamp: Date
+                    if let timeString = doc.value["time"] as? String {
+                        let formatter = ISO8601DateFormatter()
+                        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        timestamp = formatter.date(from: timeString) ?? Date()
+                    } else if let bValue = doc.value["b"] {
+                        // 'b' field could be Int64, Int, or Double
+                        let bMillis: Double
+                        if let intValue = bValue as? Int64 {
+                            bMillis = Double(intValue)
+                        } else if let intValue = bValue as? Int {
+                            bMillis = Double(intValue)
+                        } else if let doubleValue = bValue as? Double {
+                            bMillis = doubleValue
+                        } else {
+                            print("⚠️ Could not convert 'b' field to number: \(bValue)")
+                            bMillis = 0
+                        }
+                        
+                        if bMillis > 0 {
+                            timestamp = Date(timeIntervalSince1970: bMillis / 1000.0)
+                            print("📊 Using 'b' field timestamp: \(bMillis) ms -> \(timestamp)")
+                        } else {
+                            timestamp = Date()
+                        }
+                    } else if let nValue = doc.value["n"] {
+                        // 'n' field could be Int64, Int, or Double
+                        let nNumeric: Double
+                        if let intValue = nValue as? Int64 {
+                            nNumeric = Double(intValue)
+                        } else if let intValue = nValue as? Int {
+                            nNumeric = Double(intValue)
+                        } else if let doubleValue = nValue as? Double {
+                            nNumeric = doubleValue
+                        } else {
+                            nNumeric = 0
+                        }
+                        
+                        if nNumeric > 0 {
+                            // Check magnitude to determine units
+                            if nNumeric > 1_000_000_000_000 { // Likely microseconds
+                                timestamp = Date(timeIntervalSince1970: nNumeric / 1_000_000.0)
+                            } else { // Likely milliseconds
+                                timestamp = Date(timeIntervalSince1970: nNumeric / 1000.0)
+                            }
+                        } else {
+                            timestamp = Date()
+                        }
+                    } else {
+                        print("⚠️ Document \(uid) has NO valid timestamp fields! Using current time as fallback")
+                        timestamp = Date()
+                    }
+                    
+                    // Get location or use default
+                    let lat = doc.value["j"] as? Double ?? 0.0
+                    let lon = doc.value["l"] as? Double ?? 0.0
+                    let location = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                    
+                    // Get stale time
+                    let staleTime: Date
+                    if let oValue = doc.value["o"] as? Double, oValue > 0 {
+                        // Check magnitude to determine units
+                        if oValue > 1_000_000_000_000 { // Likely microseconds
+                            staleTime = Date(timeIntervalSince1970: oValue / 1_000_000.0)
+                        } else { // Likely milliseconds
+                            staleTime = Date(timeIntervalSince1970: oValue / 1000.0)
+                        }
+                    } else {
+                        staleTime = timestamp.addingTimeInterval(300) // 5 minutes default
+                    }
+                    
+                    // Extract any remarks or message
+                    let remarks = doc.value["message"] as? String ?? 
+                                 doc.value["msg"] as? String ?? 
+                                 doc.value["remarks"] as? String
+                    
+                    // Create raw event model with document data
+                    let model = CoTEventModel(
+                        uid: uid,
+                        type: type,
+                        callsign: callsign,
+                        timestamp: timestamp,
+                        location: location,
+                        altitude: doc.value["i"] as? Double,
+                        accuracy: doc.value["h"] as? Double,
+                        staleTime: staleTime,
+                        how: doc.value["p"] as? String ?? "h-g-i-g-o",
+                        remarks: remarks,
+                        rawDocumentData: doc.value as [String: Any]
+                    )
+                    
+                    print("✅ Created raw event model for \(type) document: \(uid)")
+                    print("   Timestamp: \(timestamp) (\(timestamp.timeIntervalSince1970))")
+                    print("   Type: \(type), Callsign: \(callsign)")
+                    return model
+                }
+                print("✅ Successfully converted \(models.count) documents to raw event models")
+                return models.sorted { $0.timestamp > $1.timestamp } // Most recent first
             }
             .assign(to: \.events, on: self)
             .store(in: &cancellables)
@@ -247,8 +377,23 @@ public class CoTEventViewModel: ObservableObject {
         observable.chatMessagesPublisher
             .receive(on: DispatchQueue.main)
             .map { docs in
-                docs.compactMap { ChatMessageModel(from: $0) }
-                    .sorted { $0.timestamp < $1.timestamp } // Chronological order
+                print("💬 CoTEventViewModel: Processing \(docs.count) potential chat documents...")
+                let chatModels = docs.compactMap { doc -> ChatMessageModel? in
+                    if let model = ChatMessageModel(from: doc) {
+                        print("   ✅ Converted chat document: \(doc.id) -> \(model.from): \(model.message)")
+                        print("   ✅ Chat message timestamp: \(model.timestamp)")
+                        return model
+                    } else {
+                        print("   ❌ Failed to convert chat document: \(doc.id)")
+                        print("      FULL CHAT DOCUMENT FIELDS:")
+                        for (key, value) in doc.value.sorted(by: { $0.key < $1.key }) {
+                            print("        \(key): \(type(of: value)) = \(value)")
+                        }
+                        return nil
+                    }
+                }
+                print("💬 Successfully converted \(chatModels.count) chat messages")
+                return chatModels.sorted { $0.timestamp < $1.timestamp } // Chronological order
             }
             .assign(to: \.chatMessages, on: self)
             .store(in: &cancellables)

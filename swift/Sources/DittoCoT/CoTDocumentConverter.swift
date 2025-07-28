@@ -39,16 +39,16 @@ public class CoTDocumentConverter {
         // Extract common fields
         let uid = event.uid
         
-        let timeMillis = event.time.timeIntervalSince1970 * 1000
+        // Time is now computed directly when needed using .microseconds extension
         let callsign = extractCallsign(from: event) ?? uid
         
         // Determine document type and convert
         if event.type.hasPrefix("b-t-f") {
-            return convertToChatDocument(event, uid: uid, timeMillis: timeMillis, callsign: callsign)
+            return convertToChatDocument(event, uid: uid, callsign: callsign)
         } else if isMapItemEvent(event) {
-            return convertToMapItemDocument(event, uid: uid, timeMillis: timeMillis, callsign: callsign)
+            return convertToMapItemDocument(event, uid: uid, callsign: callsign)
         } else {
-            return convertToGenericDocument(event, uid: uid, timeMillis: timeMillis, callsign: callsign)
+            return convertToGenericDocument(event, uid: uid, callsign: callsign)
         }
     }
     
@@ -57,7 +57,6 @@ public class CoTDocumentConverter {
     private func convertToChatDocument(
         _ event: CoTEvent,
         uid: String,
-        timeMillis: Double,
         callsign: String
     ) -> Result<DittoDocumentProtocol, ConversionError> {
         // Extract chat-specific fields from detail
@@ -81,7 +80,7 @@ public class CoTDocumentConverter {
         let chatDoc = ChatDocument(
             _id: uid,
             a: peerKey,
-            b: timeMillis,
+            b: event.time.timeIntervalSince1970.microseconds,
             d: uid,
             _c: 0,
             _r: false,
@@ -98,8 +97,8 @@ public class CoTDocumentConverter {
             l: event.point.lon,
             location: formatLocation(event.point),
             message: message,
-            n: event.start.timeIntervalSince1970.milliseconds,
-            o: event.stale.timeIntervalSince1970.milliseconds,
+            n: event.start.timeIntervalSince1970.microseconds,
+            o: event.stale.timeIntervalSince1970.microseconds,
             p: event.how,
             parent: roomId,
             q: event.access ?? defaultAccess,
@@ -121,13 +120,12 @@ public class CoTDocumentConverter {
     private func convertToMapItemDocument(
         _ event: CoTEvent,
         uid: String,
-        timeMillis: Double,
         callsign: String
     ) -> Result<DittoDocumentProtocol, ConversionError> {
         let mapDoc = MapItemDocument(
             _id: uid,
             a: peerKey,
-            b: timeMillis,
+            b: event.time.timeIntervalSince1970.microseconds,
             d: uid,
             _c: 0,
             _r: false,
@@ -141,8 +139,8 @@ public class CoTDocumentConverter {
             j: event.point.lat,
             k: event.point.le,
             l: event.point.lon,
-            n: event.start.timeIntervalSince1970.milliseconds,
-            o: event.stale.timeIntervalSince1970.milliseconds,
+            n: event.start.timeIntervalSince1970.microseconds,
+            o: event.stale.timeIntervalSince1970.microseconds,
             p: event.how,
             q: event.access ?? defaultAccess,
             r: convertDetailToRField(event.detail),
@@ -160,13 +158,12 @@ public class CoTDocumentConverter {
     private func convertToGenericDocument(
         _ event: CoTEvent,
         uid: String,
-        timeMillis: Double,
         callsign: String
     ) -> Result<DittoDocumentProtocol, ConversionError> {
         let genericDoc = GenericDocument(
             _id: uid,
             a: peerKey,
-            b: timeMillis,
+            b: event.time.timeIntervalSince1970.microseconds,
             d: uid,
             _c: 0,
             _r: false,
@@ -178,8 +175,8 @@ public class CoTDocumentConverter {
             j: event.point.lat,
             k: event.point.le,
             l: event.point.lon,
-            n: event.start.timeIntervalSince1970.milliseconds,
-            o: event.stale.timeIntervalSince1970.milliseconds,
+            n: event.start.timeIntervalSince1970.microseconds,
+            o: event.stale.timeIntervalSince1970.microseconds,
             p: event.how,
             q: event.access ?? defaultAccess,
             r: convertDetailToRField(event.detail),
@@ -289,8 +286,8 @@ public enum ConversionError: Error, LocalizedError {
 // MARK: - Extensions
 
 private extension TimeInterval {
-    var milliseconds: Double {
-        return self * 1000
+    var microseconds: Double {
+        return self * 1_000_000
     }
 }
 

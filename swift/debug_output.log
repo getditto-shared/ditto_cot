@@ -1,0 +1,245 @@
+2025-07-27T07:43:25.843421+10:00  INFO init_logging:init_tracing{config.service_name="ditto" tracing_format="json" rust_log="trace"}: tracing_config: initializing tracing opentelemetry_enabled=false loki_enabled=false
+2025-07-27T07:43:25.843502+10:00  INFO post_init_logging: ditto_logging: successfully initialized logging
+2025-07-27T07:43:25.843508+10:00  INFO post_init_logging: ditto_logging: installed tracing-log compatibility layer originator=tracing-config
+2025-07-27T07:43:25.855712+10:00  INFO ditto_init: ditto_auth: initializing auth client identity=SharedKey { app_id: "ccc19f27-2357-4a3b-a571-d09644aa7132" }
+2025-07-27T07:43:25.858889+10:00  INFO ditto_init: ditto_core: starting Ditto... app_id=ccc19f27-2357-4a3b-a571-d09644aa7132 local.peer_id=pkAocCgkMCJXL6CqX-suvARB1nCPRcDhk8c4v_pcETXE80qECxaSc sdk.platform=macOS sdk.language=Swift sdk.version=4.11.1 sdk.commit=c8da640ff8 persistence_directory="/Users/kitplummer/Documents/DittoCoTExample_1753566205"
+2025-07-27T07:43:25.875107+10:00  INFO dittoffi: Successfully activated Ditto.
+2025-07-27T07:43:25.879855+10:00  INFO dittoffi: Starting BLE transport
+2025-07-27T07:43:25.880783+10:00  INFO dittoffi: Starting AWDL transport
+2025-07-27T07:43:25.887872+10:00  INFO dittoffi: Starting mDNS discovery
+2025-07-27T07:43:25.894405+10:00  INFO dittoffi: Starting multicast discovery
+2025-07-27T07:43:25.894476+10:00  INFO dittoffi: Starting TCP server bind="[::]:0"
+2025-07-27T07:43:36.718193+10:00  INFO ditto_multiplexer: physical connection started remote=pkAocCgkMDfvFFbAYiV7xkB14wLMBQi3aEjSUcw_xTa3XNpVmN11s role=Server transport_type=Bluetooth
+2025-07-27T07:43:37.060142+10:00  INFO ditto_multiplexer: Attempting to perform blocking upgrade for app "ccc19f27-2357-4a3b-a571-d09644aa7132" after encountering remote with protocol flags of [NoV3, NoV2]
+2025-07-27T07:43:37.063076+10:00  INFO ditto_multiplexer: Successfully performed blocking upgrade for app app_name="ccc19f27-2357-4a3b-a571-d09644aa7132"
+2025-07-27T07:43:37.063198+10:00  INFO ditto_multiplexer: physical connection ended remote=pkAocCgkMDfvFFbAYiV7xkB14wLMBQi3aEjSUcw_xTa3XNpVmN11s role=Server transport_type=Bluetooth
+2025-07-27T07:43:43.076837+10:00 ERROR ditto_mesh_topology: failed to connect to peer error=Connect failed to complete before a timeout deadline was reached remote_peer=BleClientRemotePeer { id: ConnectionId(7), transport_id: TransportId(1), local_announce: Announce { outer_protocol_version: Some('2'), os: Some(MacOS), network_id: Some(2151289801), device_name: Some("DTO-A158") }, remote_announce: None }
+2025-07-27T07:43:45.101187+10:00  INFO ditto_multiplexer: physical connection started remote=pkAocCgkMDfvFFbAYiV7xkB14wLMBQi3aEjSUcw_xTa3XNpVmN11s role=Server transport_type=Bluetooth
+2025-07-27T07:43:45.397796+10:00  INFO ditto_multiplexer: switching active transport remote=pkAocCgkMDfvFFbAYiV7xkB14wLMBQi3aEjSUcw_xTa3XNpVmN11s old_conn_type=None new_conn_type=Some(Bluetooth)
+2025-07-27T07:43:45.687091+10:00  INFO channel{service=replication local.peer_id=pk.+qECxaSc remote.peer_id=pk.+pVmN11s}:session{operation=receive_message}:outbound_cycle{update_index=13841451259651235697 trigger=BeginSync}:create_sending_update: ditto_sync_docs: clearing scan marker for outbound updates reason=local_subscription_change
+2025-07-27T07:43:46.277510+10:00  INFO channel{service=replication local.peer_id=pk.+qECxaSc remote.peer_id=pk.+pVmN11s}:session{operation=receive_message}:inbound_cycle:integrate_received_update:integrate_update_without_handling_result: ditto_sync_docs: clearing scan marker for outbound updates reason=remote_subscription_change sub_change=true id_sub_change=false
+2025-07-27T07:43:59.006337+10:00 ERROR ditto_mesh_topology: failed to connect to peer error=Connect failed to complete before a timeout deadline was reached remote_peer=BleClientRemotePeer { id: ConnectionId(8), transport_id: TransportId(1), local_announce: Announce { outer_protocol_version: Some('2'), os: Some(MacOS), network_id: Some(2151289801), device_name: Some("DTO-A158") }, remote_announce: Some(Announce { outer_protocol_version: Some('2'), os: Some(Android), network_id: Some(3944083714), device_name: Some("Te2d3d91") }) }
+🔧 Initializing Ditto with App ID: ccc19f27-2357-4a3b-a571-d09644aa7132
+🔧 Using persistence directory: /Users/kitplummer/Documents/DittoCoTExample_1753566205
+✅ Ditto instance created successfully
+🔧 Setting license token...
+✅ License token set successfully
+Ditto initialized with App ID: ccc19f27-2357-4a3b-a571-d09644aa7132
+Ditto activated with license token
+🔍 [2025-07-26 21:43:25 +0000] Setting up live queries for collection: cot_events
+🗂️ Checking all collections in Ditto store...
+📡 Creating subscription:
+   Collection: 'cot_events'
+   DQL Query: '_r != true'
+📡 Primary subscription created - this will sync remote changes into local database
+📡 Creating additional subscriptions to alternative collections...
+   ✅ Subscribed to 'chat'
+   ✅ Live query observer added for 'chat'
+   ✅ Subscribed to 'mapitem'
+   ✅ Live query observer added for 'mapitem'
+   ✅ Subscribed to 'track'
+   ✅ Live query observer added for 'track'
+   ✅ Subscribed to 'api'
+   ✅ Live query observer added for 'api'
+   ✅ Subscribed to 'file'
+   ✅ Live query observer added for 'file'
+✅ Primary subscription is active and syncing
+🔧 Setting up live query observer...
+🔧 Live query observer setup complete
+🗂️ Current documents in collection: 0
+🗂️ Active documents after filtering: 0
+👥 Setting up presence observer
+Ditto sync started successfully
+👥 Setting up presence observer
+CoT event observation started
+🔄 Manual refresh found 0 events from main collection
+Initial data refresh completed
+🔥 LIVE QUERY TRIGGERED for 'chat'!
+   📥 Received 0 documents
+   📋 Event type: DittoLiveQueryEvent - initial
+🔥 LIVE QUERY TRIGGERED for 'mapitem'!
+   📥 Received 0 documents
+   📋 Event type: DittoLiveQueryEvent - initial
+🔥 LIVE QUERY TRIGGERED for 'track'!
+   📥 Received 0 documents
+   📋 Event type: DittoLiveQueryEvent - initial
+🔥 LIVE QUERY TRIGGERED for 'api'!
+   📥 Received 0 documents
+   📋 Event type: DittoLiveQueryEvent - initial
+🔥 LIVE QUERY TRIGGERED for 'file'!
+   📥 Received 0 documents
+   📋 Event type: DittoLiveQueryEvent - initial
+🔥 LIVE QUERY CALLBACK TRIGGERED!
+📥 Live query received update: 0 documents
+📋 Event type: DittoLiveQueryEvent - initial
+   This includes both local changes AND remote changes synced by subscription
+✅ Filtered to 0 active events (from 0 total)
+📊 CoTEventViewModel: Converting 0 documents to models...
+✅ Successfully converted 0 documents to models
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+📊 CoTEventViewModel: Converting 0 documents to models...
+✅ Successfully converted 0 documents to models
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+✅ Updated events array with 0 active events
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+📊 CoTEventViewModel: Converting 0 documents to models...
+✅ Successfully converted 0 documents to models
+📊 CoTEventViewModel: Converting 0 documents to models...
+✅ Successfully converted 0 documents to models
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+📊 CoTEventViewModel: Converting 0 documents to models...
+✅ Successfully converted 0 documents to models
+📊 CoTEventViewModel: Converting 0 documents to models...
+✅ Successfully converted 0 documents to models
+👥 Presence updated: 1 remote peer(s)
+   • Te2d3d91 via bluetooth
+🔥 LIVE QUERY TRIGGERED for 'track'!
+   📥 Received 1 documents
+   📋 Event type: DittoLiveQueryEvent - update: oldDocs count 0
+   ✅ 1 active events in 'track'
+🔥 LIVE QUERY TRIGGERED for 'chat'!
+   📥 Received 6 documents
+   📋 Event type: DittoLiveQueryEvent - update: oldDocs count 0
+   ✅ 6 active events in 'chat'
+🔥 LIVE QUERY TRIGGERED for 'mapitem'!
+   📥 Received 1 documents
+   📋 Event type: DittoLiveQueryEvent - update: oldDocs count 0
+   ✅ 1 active events in 'mapitem'
+   ➕ Added 1 new events from 'track'
+   ➕ Added 6 new events from 'chat'
+   ➕ Added 1 new events from 'mapitem'
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+💬 CoTEventViewModel: Processing 0 potential chat documents...
+💬 Successfully converted 0 chat messages
+📊 CoTEventViewModel: Converting 1 documents to models...
+✅ Successfully converted 1 documents to models
+📊 CoTEventViewModel: Converting 1 documents to models...
+✅ Successfully converted 1 documents to models
+💬 CoTEventViewModel: Processing 6 potential chat documents...
+📱 Converting chat document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c directly: helo landing zone
+⚠️ No timestamp found in document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "0dea71de-3e65-4ad5-a91a-5cdd6daa429c" -> Liquid: helo landing zone
+📱 Converting chat document 18ee5287-a2b8-41bf-bb33-02a634af45a5 directly: in position
+⚠️ No timestamp found in document 18ee5287-a2b8-41bf-bb33-02a634af45a5, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "18ee5287-a2b8-41bf-bb33-02a634af45a5" -> Liquid: in position
+📱 Converting chat document 7156c134-8336-463b-8cde-0af154611191 directly: Area Clear
+⚠️ No timestamp found in document 7156c134-8336-463b-8cde-0af154611191, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "7156c134-8336-463b-8cde-0af154611191" -> Liquid: Area Clear
+📱 Converting chat document 76b1f805-77e8-4695-bd4a-29da69c0c44a directly: in position
+⚠️ No timestamp found in document 76b1f805-77e8-4695-bd4a-29da69c0c44a, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "76b1f805-77e8-4695-bd4a-29da69c0c44a" -> Liquid: in position
+📱 Converting chat document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84 directly: dropzone
+⚠️ No timestamp found in document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "8a3a09db-9c1c-452b-a136-ca2a5ea45e84" -> Liquid: dropzone
+📱 Converting chat document 9e6e4897-0d0b-448e-8409-b07358b4ba9c directly: helo landing zone
+⚠️ No timestamp found in document 9e6e4897-0d0b-448e-8409-b07358b4ba9c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "9e6e4897-0d0b-448e-8409-b07358b4ba9c" -> Liquid: helo landing zone
+💬 Successfully converted 6 chat messages
+💬 CoTEventViewModel: Processing 6 potential chat documents...
+📱 Converting chat document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c directly: helo landing zone
+⚠️ No timestamp found in document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "0dea71de-3e65-4ad5-a91a-5cdd6daa429c" -> Liquid: helo landing zone
+📱 Converting chat document 18ee5287-a2b8-41bf-bb33-02a634af45a5 directly: in position
+⚠️ No timestamp found in document 18ee5287-a2b8-41bf-bb33-02a634af45a5, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "18ee5287-a2b8-41bf-bb33-02a634af45a5" -> Liquid: in position
+📱 Converting chat document 7156c134-8336-463b-8cde-0af154611191 directly: Area Clear
+⚠️ No timestamp found in document 7156c134-8336-463b-8cde-0af154611191, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "7156c134-8336-463b-8cde-0af154611191" -> Liquid: Area Clear
+📱 Converting chat document 76b1f805-77e8-4695-bd4a-29da69c0c44a directly: in position
+⚠️ No timestamp found in document 76b1f805-77e8-4695-bd4a-29da69c0c44a, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "76b1f805-77e8-4695-bd4a-29da69c0c44a" -> Liquid: in position
+📱 Converting chat document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84 directly: dropzone
+⚠️ No timestamp found in document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "8a3a09db-9c1c-452b-a136-ca2a5ea45e84" -> Liquid: dropzone
+📱 Converting chat document 9e6e4897-0d0b-448e-8409-b07358b4ba9c directly: helo landing zone
+⚠️ No timestamp found in document 9e6e4897-0d0b-448e-8409-b07358b4ba9c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "9e6e4897-0d0b-448e-8409-b07358b4ba9c" -> Liquid: helo landing zone
+💬 Successfully converted 6 chat messages
+📊 CoTEventViewModel: Converting 7 documents to models...
+✅ Successfully converted 7 documents to models
+📊 CoTEventViewModel: Converting 7 documents to models...
+✅ Successfully converted 7 documents to models
+💬 CoTEventViewModel: Processing 6 potential chat documents...
+📱 Converting chat document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c directly: helo landing zone
+⚠️ No timestamp found in document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "0dea71de-3e65-4ad5-a91a-5cdd6daa429c" -> Liquid: helo landing zone
+📱 Converting chat document 18ee5287-a2b8-41bf-bb33-02a634af45a5 directly: in position
+⚠️ No timestamp found in document 18ee5287-a2b8-41bf-bb33-02a634af45a5, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "18ee5287-a2b8-41bf-bb33-02a634af45a5" -> Liquid: in position
+📱 Converting chat document 7156c134-8336-463b-8cde-0af154611191 directly: Area Clear
+⚠️ No timestamp found in document 7156c134-8336-463b-8cde-0af154611191, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "7156c134-8336-463b-8cde-0af154611191" -> Liquid: Area Clear
+📱 Converting chat document 76b1f805-77e8-4695-bd4a-29da69c0c44a directly: in position
+⚠️ No timestamp found in document 76b1f805-77e8-4695-bd4a-29da69c0c44a, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "76b1f805-77e8-4695-bd4a-29da69c0c44a" -> Liquid: in position
+📱 Converting chat document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84 directly: dropzone
+⚠️ No timestamp found in document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "8a3a09db-9c1c-452b-a136-ca2a5ea45e84" -> Liquid: dropzone
+📱 Converting chat document 9e6e4897-0d0b-448e-8409-b07358b4ba9c directly: helo landing zone
+⚠️ No timestamp found in document 9e6e4897-0d0b-448e-8409-b07358b4ba9c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "9e6e4897-0d0b-448e-8409-b07358b4ba9c" -> Liquid: helo landing zone
+💬 Successfully converted 6 chat messages
+💬 CoTEventViewModel: Processing 6 potential chat documents...
+📱 Converting chat document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c directly: helo landing zone
+⚠️ No timestamp found in document 0dea71de-3e65-4ad5-a91a-5cdd6daa429c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "0dea71de-3e65-4ad5-a91a-5cdd6daa429c" -> Liquid: helo landing zone
+📱 Converting chat document 18ee5287-a2b8-41bf-bb33-02a634af45a5 directly: in position
+⚠️ No timestamp found in document 18ee5287-a2b8-41bf-bb33-02a634af45a5, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "18ee5287-a2b8-41bf-bb33-02a634af45a5" -> Liquid: in position
+📱 Converting chat document 7156c134-8336-463b-8cde-0af154611191 directly: Area Clear
+⚠️ No timestamp found in document 7156c134-8336-463b-8cde-0af154611191, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "7156c134-8336-463b-8cde-0af154611191" -> Liquid: Area Clear
+📱 Converting chat document 76b1f805-77e8-4695-bd4a-29da69c0c44a directly: in position
+⚠️ No timestamp found in document 76b1f805-77e8-4695-bd4a-29da69c0c44a, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "76b1f805-77e8-4695-bd4a-29da69c0c44a" -> Liquid: in position
+📱 Converting chat document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84 directly: dropzone
+⚠️ No timestamp found in document 8a3a09db-9c1c-452b-a136-ca2a5ea45e84, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "8a3a09db-9c1c-452b-a136-ca2a5ea45e84" -> Liquid: dropzone
+📱 Converting chat document 9e6e4897-0d0b-448e-8409-b07358b4ba9c directly: helo landing zone
+⚠️ No timestamp found in document 9e6e4897-0d0b-448e-8409-b07358b4ba9c, using current time: 2025-07-26 21:43:49 +0000
+📋 Document fields: ["_c", "_id", "_r", "_v", "a", "authorLoc", "authorType", "b", "d", "e", "msg", "parent", "room", "roomId"]
+   ✅ Converted chat document: "9e6e4897-0d0b-448e-8409-b07358b4ba9c" -> Liquid: helo landing zone
+💬 Successfully converted 6 chat messages
+📊 CoTEventViewModel: Converting 8 documents to models...
+✅ Successfully converted 8 documents to models
+📊 CoTEventViewModel: Converting 8 documents to models...
+✅ Successfully converted 8 documents to models
+🔥 LIVE QUERY TRIGGERED for 'track'!
+   📥 Received 1 documents
+   📋 Event type: DittoLiveQueryEvent - update: oldDocs count 1
+   ✅ 1 2025-07-27T07:48:25.878831+10:00  INFO diagnostics_logger: ditto_periodic_log: outbound_diff_count_per_update mean=0.9090909090909091 count=11 delta_from_previous=None
+2025-07-27T07:48:25.879474+10:00  INFO diagnostics_logger: ditto_periodic_log: outbound_create_update_delay mean=1.138359ms count=11 delta_from_previous=None
+2025-07-27T07:48:25.879533+10:00  INFO diagnostics_logger: ditto_periodic_log: outbound_cycle_duration mean=466.252356ms count=11 delta_from_previous=None
+2025-07-27T07:50:03.882786+10:00  INFO tombstone_reaper: ditto_small_peer_store: Found expired tombstones in 0 collections

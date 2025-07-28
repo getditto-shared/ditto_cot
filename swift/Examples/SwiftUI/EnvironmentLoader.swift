@@ -4,10 +4,23 @@ import Foundation
 struct EnvironmentLoader {
     
     /// Load environment variables from a .env file in the specified directory
-    /// - Parameter directory: The directory containing the .env file (defaults to current working directory)
+    /// - Parameter directory: The directory containing the .env file (defaults to app bundle or current working directory)
     /// - Returns: Dictionary of environment variables
     static func loadEnvironment(from directory: String? = nil) -> [String: String] {
-        let workingDirectory = directory ?? FileManager.default.currentDirectoryPath
+        let workingDirectory: String
+        
+        if let directory = directory {
+            workingDirectory = directory
+        } else {
+            // For bundled apps, try to find .env in the app bundle's Resources directory first
+            if let bundleResourcePath = Bundle.main.resourcePath {
+                workingDirectory = bundleResourcePath
+            } else {
+                // Fallback to current working directory (for development)
+                workingDirectory = FileManager.default.currentDirectoryPath
+            }
+        }
+        
         let envPath = URL(fileURLWithPath: workingDirectory).appendingPathComponent(".env").path
         
         var environment: [String: String] = [:]

@@ -27,6 +27,39 @@ public struct CoTDetail: Codable, Equatable {
         storage
     }
     
+    /// Convert to dictionary representation
+    public func toDict() -> [String: Any]? {
+        guard case .object(let dict) = storage else {
+            return nil
+        }
+        return jsonValueToAny(dict)
+    }
+    
+    private func jsonValueToAny(_ dict: [String: JSONValue]) -> [String: Any] {
+        var result: [String: Any] = [:]
+        for (key, value) in dict {
+            result[key] = convertJSONValue(value)
+        }
+        return result
+    }
+    
+    private func convertJSONValue(_ value: JSONValue) -> Any {
+        switch value {
+        case .null:
+            return NSNull()
+        case .bool(let b):
+            return b
+        case .number(let n):
+            return n
+        case .string(let s):
+            return s
+        case .array(let a):
+            return a.map { convertJSONValue($0) }
+        case .object(let o):
+            return jsonValueToAny(o)
+        }
+    }
+    
     /// Get a value at a specific key path
     /// - Parameter keyPath: Dot-separated key path (e.g., "contact.callsign")
     /// - Returns: The value at the key path, or nil if not found
@@ -192,11 +225,4 @@ extension CoTDetail: CustomStringConvertible {
 }
 
 // MARK: - JSONValue Helpers
-private extension JSONValue {
-    var stringValue: String? {
-        if case .string(let value) = self {
-            return value
-        }
-        return nil
-    }
-}
+// Note: JSONValue helpers are now defined in JSONValue.swift

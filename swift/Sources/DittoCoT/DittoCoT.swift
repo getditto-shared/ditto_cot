@@ -123,19 +123,19 @@ public class DittoCoT {
     /// Find CoT events by type
     public func findByType(_ type: String) -> [DittoSwift.DittoDocument] {
         let collection = ditto.store.collection(collectionName)
-        return collection.find("w == $0 && _r == false", args: ["w": type]).exec()
+        return collection.find("w == $0 && _r != true", args: ["w": type]).exec()
     }
     
     /// Find CoT events by callsign
     public func findByCallsign(_ callsign: String) -> [DittoSwift.DittoDocument] {
         let collection = ditto.store.collection(collectionName)
-        return collection.find("e == $0 && _r == false", args: ["e": callsign]).exec()
+        return collection.find("e == $0 && _r != true", args: ["e": callsign]).exec()
     }
     
     /// Find all active CoT events
     public func findAll() -> [DittoSwift.DittoDocument] {
         let collection = ditto.store.collection(collectionName)
-        return collection.find("_r == false", args: [:]).exec()
+        return collection.find("_r != true", args: [:]).exec()
     }
     
     /// Find CoT events within a time range
@@ -144,7 +144,7 @@ public class DittoCoT {
         let toMillis = to.timeIntervalSince1970 * 1000
         
         let collection = ditto.store.collection(collectionName)
-        return collection.find("b >= $0 && b <= $1 && _r == false", 
+        return collection.find("b >= $0 && b <= $1 && _r != true", 
                                 args: ["fromMillis": fromMillis, "toMillis": toMillis]).exec()
     }
 }

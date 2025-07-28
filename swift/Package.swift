@@ -7,7 +7,7 @@ let package = Package(
     name: "DittoCoT",
     platforms: [
         .iOS(.v15),
-        .macOS(.v12),
+        .macOS(.v14),
         .watchOS(.v8),
         .tvOS(.v15)
     ],

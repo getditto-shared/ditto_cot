@@ -38,21 +38,35 @@ class AppEnvironment: ObservableObject {
             let sharedKey = try EnvironmentLoader.requireEnvironmentVariable("DITTO_SHARED_KEY", from: environment)
             let licenseToken = try EnvironmentLoader.requireEnvironmentVariable("DITTO_LICENSE_TOKEN", from: environment)
             
-            // Create unique persistence directory for example app
+            // Create unique persistence directory for example app with timestamp to avoid conflicts
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let exampleAppPersistenceDir = documentsPath.appendingPathComponent("DittoCoTExample")
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let exampleAppPersistenceDir = documentsPath.appendingPathComponent("DittoCoTExample_\(timestamp)")
             
-            let ditto = Ditto(
-                identity: .sharedKey(
-                    appID: appId,
-                    sharedKey: sharedKey,
-                    siteID: UInt64.random(in: 1...UInt64.max) // Generate random site ID for this instance
-                ),
-                persistenceDirectory: exampleAppPersistenceDir
-            )
-            
-            // Activate Ditto with license token
-            try ditto.setOfflineOnlyLicenseToken(licenseToken)
+            let ditto: Ditto
+            do {
+                print("🔧 Initializing Ditto with App ID: \(appId)")
+                print("🔧 Using persistence directory: \(exampleAppPersistenceDir.path)")
+                
+                ditto = Ditto(
+                    identity: .sharedKey(
+                        appID: appId,
+                        sharedKey: sharedKey,
+                        siteID: UInt64.random(in: 1...UInt64.max) // Generate random site ID for this instance
+                    ),
+                    persistenceDirectory: exampleAppPersistenceDir
+                )
+                print("✅ Ditto instance created successfully")
+                
+                // Activate Ditto with license token
+                print("🔧 Setting license token...")
+                try ditto.setOfflineOnlyLicenseToken(licenseToken)
+                print("✅ License token set successfully")
+            } catch {
+                print("❌ Failed to initialize Ditto: \(error)")
+                print("❌ Error details: \(error.localizedDescription)")
+                throw error
+            }
             
             self.ditto = ditto
             print("Ditto initialized with App ID: \(appId)")
@@ -100,58 +114,48 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             // Events tab
-            NavigationView {
-                CoTEventListView(observable: appEnvironment.observable)
-            }
-            .tabItem {
-                Image(systemName: "list.bullet")
-                Text("Events")
-            }
-            .badge(cotBinding?.eventCount ?? 0)
-            .tag(0)
+            CoTEventListView(observable: appEnvironment.observable)
+                .tabItem {
+                    Image(systemName: "list.bullet")
+                    Text("Events")
+                }
+                .badge(cotBinding?.eventCount ?? 0)
+                .tag(0)
             
             // Map tab
-            NavigationView {
-                CoTMapView(observable: appEnvironment.observable)
-            }
-            .tabItem {
-                Image(systemName: "map")
-                Text("Map")
-            }
-            .tag(1)
+            CoTMapView(observable: appEnvironment.observable)
+                .tabItem {
+                    Image(systemName: "map")
+                    Text("Map")
+                }
+                .tag(1)
             
             // Chat tab
-            NavigationView {
-                CoTChatView(observable: appEnvironment.observable)
-            }
-            .tabItem {
-                Image(systemName: "message")
-                Text("Chat")
-            }
-            .badge(cotBinding?.chatMessageCount ?? 0)
-            .tag(2)
+            CoTChatView(observable: appEnvironment.observable)
+                .tabItem {
+                    Image(systemName: "message")
+                    Text("Chat")
+                }
+                .badge(cotBinding?.chatMessageCount ?? 0)
+                .tag(2)
             
             // Dashboard tab
-            NavigationView {
-                DashboardView()
-            }
-            .tabItem {
-                Image(systemName: "chart.bar")
-                Text("Dashboard")
-            }
-            .tag(3)
+            DashboardView()
+                .tabItem {
+                    Image(systemName: "chart.bar")
+                    Text("Dashboard")
+                }
+                .tag(3)
             
             // Debug/Presence tab
-            NavigationView {
-                PresenceDebugView(observable: appEnvironment.observable)
-                    .navigationTitle("Debug")
-            }
-            .tabItem {
-                Image(systemName: "network")
-                Text("Presence")
-            }
-            .badge(appEnvironment.observable.connectedPeers.count)
-            .tag(4)
+            PresenceDebugView(observable: appEnvironment.observable)
+                .navigationTitle("Debug")
+                .tabItem {
+                    Image(systemName: "network")
+                    Text("Presence")
+                }
+                .badge(appEnvironment.observable.connectedPeers.count)
+                .tag(4)
         }
         .overlay(alignment: .top) {
             // Emergency alert banner
@@ -381,6 +385,7 @@ struct QuickActionsCard: View {
                 .buttonStyle(.bordered)
                 
                 Button("Refresh All Events") {
+                    print("🔄 REFRESH BUTTON CLICKED!")
                     appEnvironment.observable.refreshAll()
                 }
                 .buttonStyle(.bordered)
@@ -398,48 +403,56 @@ struct QuickActionsCard: View {
     }
     
     private func sendTestLocation() {
+        print("🚀 TEST LOCATION BUTTON CLICKED!")
         Task {
             do {
-                _ = try await appEnvironment.observable.insert(
-                    CoTEventBuilder()
-                        .uid("test-\(UUID().uuidString)")
-                        .type("a-f-G-U-C")
-                        .how("m-g")
-                        .point(CoTPoint(
-                            lat: 37.7749 + Double.random(in: -0.01...0.01),
-                            lon: -122.4194 + Double.random(in: -0.01...0.01)
-                        ))
-                        .detail(CoTDetail([
-                            "contact": ["callsign": "TEST-USER"]
-                        ]))
-                        .build()
-                )
+                print("📍 Building test location event...")
+                let event = try CoTEventBuilder()
+                    .uid("test-\(UUID().uuidString)")
+                    .type("a-f-G-U-C")
+                    .how("m-g")
+                    .point(CoTPoint(
+                        lat: 37.7749 + Double.random(in: -0.01...0.01),
+                        lon: -122.4194 + Double.random(in: -0.01...0.01)
+                    ))
+                    .detail(CoTDetail([
+                        "contact": ["callsign": "TEST-USER"]
+                    ]))
+                    .build()
+                
+                print("📍 Inserting test location event: \(event.uid)")
+                _ = try await appEnvironment.observable.insert(event)
+                print("📍 Test location sent successfully!")
             } catch {
-                print("Failed to send test location: \(error)")
+                print("❌ Failed to send test location: \(error)")
             }
         }
     }
     
     private func sendTestChatMessage() {
+        print("💬 TEST CHAT BUTTON CLICKED!")
         Task {
             do {
-                _ = try await appEnvironment.observable.insert(
-                    CoTEventBuilder()
-                        .uid("chat-\(UUID().uuidString)")
-                        .type("b-t-f")
-                        .how("h-e")
-                        .point(CoTPoint(lat: 0, lon: 0))
-                        .detail(CoTDetail([
-                            "chat": [
-                                "from": "TEST-USER",
-                                "room": "All Chat Rooms",
-                                "msg": "Hello from the example app!"
-                            ]
-                        ]))
-                        .build()
-                )
+                print("💬 Building test chat event...")
+                let event = try CoTEventBuilder()
+                    .uid("chat-\(UUID().uuidString)")
+                    .type("b-t-f")
+                    .how("h-e")
+                    .point(CoTPoint(lat: 0, lon: 0))
+                    .detail(CoTDetail([
+                        "chat": [
+                            "from": "TEST-USER",
+                            "room": "All Chat Rooms",
+                            "msg": "Hello from the example app!"
+                        ]
+                    ]))
+                    .build()
+                
+                print("💬 Inserting test chat event: \(event.uid)")
+                _ = try await appEnvironment.observable.insert(event)
+                print("💬 Test chat sent successfully!")
             } catch {
-                print("Failed to send test chat: \(error)")
+                print("❌ Failed to send test chat: \(error)")
             }
         }
     }

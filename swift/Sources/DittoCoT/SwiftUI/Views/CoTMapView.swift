@@ -13,6 +13,7 @@ public struct CoTMapView: View {
     )
     @State private var selectedEvent: CoTEventModel?
     @State private var showingLocationSheet = false
+    @State private var isFullScreen = false // Start normal, allow full screen toggle
     
     public init(observable: CoTObservable) {
         self._viewModel = StateObject(wrappedValue: CoTEventViewModel(observable: observable))
@@ -20,7 +21,7 @@ public struct CoTMapView: View {
     
     public var body: some View {
         ZStack {
-            // Map
+            // Map - full screen
             Map(coordinateRegion: $region, annotationItems: viewModel.filteredEvents) { event in
                 MapAnnotation(coordinate: event.location) {
                     EventAnnotation(event: event) {
@@ -28,20 +29,49 @@ public struct CoTMapView: View {
                     }
                 }
             }
-            .ignoresSafeArea(edges: .top)
+            .ignoresSafeArea(.container, edges: isFullScreen ? .all : .bottom) // Respect tab bar unless full screen
             
             // Overlay controls
             VStack {
+                // Top controls
                 HStack {
+                    // Full screen toggle (top left)
+                    Button(action: { isFullScreen.toggle() }) {
+                        Image(systemName: isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(8)
+                    }
+                    
                     Spacer()
                     
+                    // Right side controls
                     VStack(spacing: 12) {
+                        // Zoom in
+                        Button(action: zoomIn) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.black.opacity(0.7))
+                                .cornerRadius(8)
+                        }
+                        
+                        // Zoom out
+                        Button(action: zoomOut) {
+                            Image(systemName: "minus")
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.black.opacity(0.7))
+                                .cornerRadius(8)
+                        }
+                        
                         // Center on user location
                         Button(action: centerOnUserLocation) {
                             Image(systemName: "location.fill")
                                 .foregroundColor(.white)
                                 .frame(width: 44, height: 44)
-                                .background(Color.blue)
+                                .background(Color.blue.opacity(0.8))
                                 .cornerRadius(8)
                         }
                         
@@ -50,7 +80,7 @@ public struct CoTMapView: View {
                             Image(systemName: "plus.circle.fill")
                                 .foregroundColor(.white)
                                 .frame(width: 44, height: 44)
-                                .background(Color.green)
+                                .background(Color.green.opacity(0.8))
                                 .cornerRadius(8)
                         }
                         
@@ -59,16 +89,17 @@ public struct CoTMapView: View {
                             Image(systemName: "arrow.clockwise")
                                 .foregroundColor(.white)
                                 .frame(width: 44, height: 44)
-                                .background(Color.orange)
+                                .background(Color.orange.opacity(0.8))
                                 .cornerRadius(8)
                         }
                     }
                 }
-                .padding(.trailing)
+                .padding(.top, isFullScreen ? 50 : 20)
+                .padding(.horizontal)
                 
                 Spacer()
                 
-                // Event count and connection status
+                // Bottom status bar
                 HStack {
                     Text("\(viewModel.filteredEvents.count) events")
                         .padding(8)
@@ -83,12 +114,17 @@ public struct CoTMapView: View {
                         .background(Color.black.opacity(0.7))
                         .cornerRadius(8)
                 }
-                .padding()
+                .padding(.bottom, isFullScreen ? 20 : 40)
+                .padding(.horizontal)
             }
         }
-        .navigationTitle("CoT Map")
+        .navigationTitle(isFullScreen ? "" : "CoT Map")
         #if os(iOS)
+        .navigationBarHidden(isFullScreen)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
+        #if os(macOS)
+        .modifier(MacOSToolbarModifier(isFullScreen: isFullScreen))
         #endif
         .onAppear {
             viewModel.refreshEvents()
@@ -96,7 +132,12 @@ public struct CoTMapView: View {
         }
         .onChange(of: locationManager.location) { location in
             if let location = location {
-                region.center = location.coordinate
+                // Automatically center on user location when first received
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    region.center = location.coordinate
+                    // Also adjust zoom level to a good default for local area
+                    region.span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                }
             }
         }
         .sheet(item: $selectedEvent) { event in
@@ -117,6 +158,26 @@ public struct CoTMapView: View {
             }
         } else {
             locationManager.requestLocationPermission()
+        }
+    }
+    
+    private func zoomIn() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            let currentSpan = region.span
+            region.span = MKCoordinateSpan(
+                latitudeDelta: max(currentSpan.latitudeDelta * 0.5, 0.001), // Min zoom limit
+                longitudeDelta: max(currentSpan.longitudeDelta * 0.5, 0.001)
+            )
+        }
+    }
+    
+    private func zoomOut() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            let currentSpan = region.span
+            region.span = MKCoordinateSpan(
+                latitudeDelta: min(currentSpan.latitudeDelta * 2.0, 180.0), // Max zoom limit
+                longitudeDelta: min(currentSpan.longitudeDelta * 2.0, 180.0)
+            )
         }
     }
 }
@@ -178,7 +239,7 @@ struct SendLocationSheet: View {
     @State private var isLoading = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Callsign")) {
                     TextField("Enter callsign", text: $callsign)
@@ -357,3 +418,20 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("Location error: \(error)")
     }
 }
+
+// MARK: - macOS Compatibility
+
+#if os(macOS)
+@available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
+struct MacOSToolbarModifier: ViewModifier {
+    let isFullScreen: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 13.0, *) {
+            content.toolbar(isFullScreen ? .hidden : .visible)
+        } else {
+            content
+        }
+    }
+}
+#endif
