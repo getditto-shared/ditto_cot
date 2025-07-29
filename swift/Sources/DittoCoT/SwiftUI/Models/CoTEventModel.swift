@@ -299,7 +299,7 @@ extension ChatMessageModel {
             return nil
         }
         
-        let cotRoom = chatDict["room"] as? String ?? "All Chat Rooms"
+        let cotRoom = chatDict["room"] as? String ?? "Ditto"
         
         self.init(
             id: cotEvent.uid,

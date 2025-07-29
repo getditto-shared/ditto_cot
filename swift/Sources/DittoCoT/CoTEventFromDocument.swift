@@ -102,7 +102,7 @@ extension CoTEvent {
             if let message = rField["message"] as? String, !message.isEmpty {
                 detailDict["chat"] = [
                     "from": callsign,
-                    "room": rField["room"] as? String ?? "All Chat Rooms",
+                    "room": rField["room"] as? String ?? "Ditto",
                     "msg": message
                 ]
             }
@@ -147,7 +147,7 @@ extension CoTEvent {
     /// Convert a chat document to CoT event (following Java implementation pattern)
     private static func fromChatDocument(_ document: DittoSwift.DittoDocument, uid: String, message: String) -> CoTEvent? {
         // Extract fields using the actual chat document schema
-        let room = document.value["room"] as? String ?? "All Chat Rooms"
+        let room = document.value["room"] as? String ?? "Ditto"
         let callsign = document.value["e"] as? String ?? uid // Fallback to uid if no callsign
         
         // Use 'n' field (start time) first, then 'b' field as fallback

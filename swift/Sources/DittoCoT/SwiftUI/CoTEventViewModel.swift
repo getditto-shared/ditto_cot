@@ -113,6 +113,8 @@ public class CoTEventViewModel: ObservableObject {
         room: String = "Ditto",
         callsign: String
     ) async throws {
+        print("🚀🚀🚀 NEW SENDCHATMESSAGE CALLED! Message: '\(message)' Room: '\(room)' Callsign: '\(callsign)'")
+        print("🚀🚀🚀 This is the FIXED version that should use simple ATAK format!")
         let chatDocumentId = "chat-\(UUID().uuidString)"
         let chatDocument: [String: Any] = [
             "_id": chatDocumentId,

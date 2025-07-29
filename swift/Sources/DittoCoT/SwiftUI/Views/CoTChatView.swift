@@ -232,7 +232,7 @@ struct ChatSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     private let commonRooms = [
-        "All Chat Rooms",
+        "Ditto",
         "Operations",
         "Command",
         "Logistics",
