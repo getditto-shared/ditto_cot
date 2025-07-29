@@ -27,6 +27,7 @@ class AppEnvironment: ObservableObject {
     let dittoCoT: DittoCoT
     let observable: CoTObservable
     let cotBinding: CoTBinding
+    @Published var userCallsign: String = "USER-1"
     
     init() {
         // Load environment variables
@@ -131,7 +132,7 @@ struct ContentView: View {
                 .tag(1)
             
             // Chat tab
-            CoTChatView(observable: appEnvironment.observable)
+            CoTChatView(observable: appEnvironment.observable, callsign: $appEnvironment.userCallsign)
                 .tabItem {
                     Image(systemName: "message")
                     Text("Chat")
@@ -214,6 +215,9 @@ struct DashboardView: View {
                     health: cotBinding?.connectionHealth ?? .unknown,
                     lastUpdate: cotBinding?.lastEventTime
                 )
+                
+                // Callsign input
+                CallsignCard(callsign: $appEnvironment.userCallsign)
                 
                 // Active callsigns list
                 if let cotBinding = cotBinding, !cotBinding.activeCallsigns.isEmpty {
@@ -327,6 +331,77 @@ struct ConnectionStatusCard: View {
 }
 
 @available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
+struct CallsignCard: View {
+    @Binding var callsign: String
+    @State private var editingCallsign: String = ""
+    @State private var isEditing: Bool = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Your Callsign")
+                    .font(.headline)
+                
+                Spacer()
+                
+                if !isEditing {
+                    Button("Edit") {
+                        editingCallsign = callsign
+                        isEditing = true
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            
+            if isEditing {
+                HStack {
+                    TextField("Enter callsign", text: $editingCallsign)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            saveCallsign()
+                        }
+                    
+                    Button("Cancel") {
+                        isEditing = false
+                        editingCallsign = ""
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button("Save") {
+                        saveCallsign()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(editingCallsign.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } else {
+                Text(callsign)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.accentColor)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        #if os(iOS)
+        .background(Color(.systemBackground))
+        #else
+        .background(Color(NSColor.windowBackgroundColor))
+        #endif
+        .cornerRadius(12)
+        .shadow(radius: 2)
+    }
+    
+    private func saveCallsign() {
+        let trimmed = editingCallsign.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty {
+            callsign = trimmed
+            isEditing = false
+            editingCallsign = ""
+        }
+    }
+}
+
+@available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
 struct ActiveCallsignsCard: View {
     let callsigns: [String]
     
@@ -416,7 +491,7 @@ struct QuickActionsCard: View {
                         lon: -122.4194 + Double.random(in: -0.01...0.01)
                     ))
                     .detail(CoTDetail([
-                        "contact": ["callsign": "TEST-USER"]
+                        "contact": ["callsign": appEnvironment.userCallsign]
                     ]))
                     .build()
                 
@@ -438,7 +513,7 @@ struct QuickActionsCard: View {
                 try await viewModel.sendChatMessage(
                     message: "Hello from the example app!",
                     room: "Ditto",
-                    callsign: "TEST-USER"
+                    callsign: appEnvironment.userCallsign
                 )
                 print("💬 Test chat sent successfully!")
             } catch {

@@ -8,12 +8,19 @@ import AppKit
 public struct CoTChatView: View {
     @StateObject private var viewModel: CoTEventViewModel
     @State private var messageText = ""
-    @State private var currentCallsign = "USER-1"
+    @Binding var currentCallsign: String
     @State private var selectedRoom = "Ditto"
     @FocusState private var isMessageFieldFocused: Bool
     
+    public init(observable: CoTObservable, callsign: Binding<String>) {
+        self._viewModel = StateObject(wrappedValue: CoTEventViewModel(observable: observable))
+        self._currentCallsign = callsign
+    }
+    
+    // Legacy init for backward compatibility
     public init(observable: CoTObservable) {
         self._viewModel = StateObject(wrappedValue: CoTEventViewModel(observable: observable))
+        self._currentCallsign = .constant("USER-1")
     }
     
     public var body: some View {
