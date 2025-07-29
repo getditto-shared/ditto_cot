@@ -92,11 +92,8 @@ public class CoTEventViewModel: ObservableObject {
     // MARK: - Initialization
     
     public init(observable: CoTObservable) {
-        print("🎯 CoTEventViewModel: Initializing with observable")
         self.observable = observable
-        print("🎯 CoTEventViewModel: Setting up observables...")
         setupObservables()
-        print("🎯 CoTEventViewModel: Initialization complete")
     }
     
     // MARK: - Public Methods
@@ -113,35 +110,31 @@ public class CoTEventViewModel: ObservableObject {
     /// Send a chat message
     public func sendChatMessage(
         message: String,
-        room: String = "All Chat Rooms",
+        room: String = "Ditto",
         callsign: String
     ) async throws {
-        print("💬 Sending chat message: '\(message)' from: \(callsign) in room: \(room)")
+        let chatDocumentId = "chat-\(UUID().uuidString)"
+        let chatDocument: [String: Any] = [
+            "_id": chatDocumentId,
+            "_c": 0,
+            "_r": false,
+            "_v": 2,
+            "a": observable.dittoCoT.ditto.siteID.description,
+            "msg": message,
+            "room": room,
+            "roomId": "ChatContact-\(room)",
+            "parent": "RootContactGroup",
+            "e": callsign,
+            "d": chatDocumentId,
+            "b": Int64(Date().timeIntervalSince1970 * 1000)
+        ]
         
-        let chatEvent = try CoTEventBuilder()
-            .uid("chat-\(UUID().uuidString)")
-            .type("b-t-f")
-            .how("h-e")
-            .point(CoTPoint(lat: 0, lon: 0)) // Chat doesn't require real location
-            .detail(CoTDetail([
-                "chat": [
-                    "from": callsign,
-                    "room": room,
-                    "msg": message
-                ],
-                "contact": [
-                    "callsign": callsign
-                ]
-            ]))
-            .build()
+        let chatCollection = observable.dittoCoT.ditto.store.collection("chat")
+        let docId = try chatCollection.upsert(chatDocument)
+        print("🟢 CHAT SENT: \(message) -> \(docId)")
         
-        print("💬 Built chat event with UID: \(chatEvent.uid)")
-        let result = try await observable.insert(chatEvent)
-        print("💬 Insert result: \(result)")
-        
-        // Force a refresh to see the new message immediately
+        // Force refresh to see the message immediately
         observable.refreshAll()
-        print("💬 Forced refresh after chat insert")
     }
     
     /// Send a location update
@@ -311,7 +304,7 @@ public class CoTEventViewModel: ObservableObject {
                         
                         if nNumeric > 0 {
                             // Check magnitude to determine units
-                            if nNumeric > 1_000_000_000_000 { // Likely microseconds
+                            if nNumeric > 1_000_000_000_000 { // Very large number, treat as microseconds for backward compatibility
                                 timestamp = Date(timeIntervalSince1970: nNumeric / 1_000_000.0)
                             } else { // Likely milliseconds
                                 timestamp = Date(timeIntervalSince1970: nNumeric / 1000.0)
@@ -333,7 +326,7 @@ public class CoTEventViewModel: ObservableObject {
                     let staleTime: Date
                     if let oValue = doc.value["o"] as? Double, oValue > 0 {
                         // Check magnitude to determine units
-                        if oValue > 1_000_000_000_000 { // Likely microseconds
+                        if oValue > 1_000_000_000_000 { // Very large number, treat as microseconds for backward compatibility
                             staleTime = Date(timeIntervalSince1970: oValue / 1_000_000.0)
                         } else { // Likely milliseconds
                             staleTime = Date(timeIntervalSince1970: oValue / 1000.0)

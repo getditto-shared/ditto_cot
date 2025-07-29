@@ -433,23 +433,13 @@ struct QuickActionsCard: View {
         print("💬 TEST CHAT BUTTON CLICKED!")
         Task {
             do {
-                print("💬 Building test chat event...")
-                let event = try CoTEventBuilder()
-                    .uid("chat-\(UUID().uuidString)")
-                    .type("b-t-f")
-                    .how("h-e")
-                    .point(CoTPoint(lat: 0, lon: 0))
-                    .detail(CoTDetail([
-                        "chat": [
-                            "from": "TEST-USER",
-                            "room": "All Chat Rooms",
-                            "msg": "Hello from the example app!"
-                        ]
-                    ]))
-                    .build()
-                
-                print("💬 Inserting test chat event: \(event.uid)")
-                _ = try await appEnvironment.observable.insert(event)
+                print("💬 Sending simple ATAK-style test chat...")
+                let viewModel = CoTEventViewModel(observable: appEnvironment.observable)
+                try await viewModel.sendChatMessage(
+                    message: "Hello from the example app!",
+                    room: "Ditto",
+                    callsign: "TEST-USER"
+                )
                 print("💬 Test chat sent successfully!")
             } catch {
                 print("❌ Failed to send test chat: \(error)")

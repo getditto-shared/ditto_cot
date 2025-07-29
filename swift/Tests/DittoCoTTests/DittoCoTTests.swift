@@ -8,7 +8,7 @@ final class DittoCoTTests: XCTestCase {
             _c: 1,
             _r: false,
             a: "peer-key",
-            b: 12345.0,
+            b: 12345,
             d: "test-uid",
             e: "test-callsign",
             contentType: "application/json",

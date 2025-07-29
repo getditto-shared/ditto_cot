@@ -74,24 +74,18 @@ public class DittoCoT {
             let collection = ditto.store.collection(collectionName)
             let dittoDoc = document.toDittoDocument()
             
-            return try await withCheckedThrowingContinuation { continuation in
-                do {
-                    // Update document counter for existing documents
-                    let query = collection.find("_id == $0", args: ["_id": uid])
-                    let existingDocs = query.exec()
-                    
-                    var updatedDoc = dittoDoc
-                    if let existing = existingDocs.first,
-                       let counter = existing.value["_c"] as? Int64 {
-                        updatedDoc["_c"] = counter + 1
-                    }
-                    
-                    let docID = try collection.upsert(updatedDoc)
-                    continuation.resume(returning: docID.description)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+            // Update document counter for existing documents using DQL
+            let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(collectionName) WHERE _id == '\(uid)'")
+            let existingDocs = queryResult.items
+            
+            var updatedDoc = dittoDoc
+            if let existing = existingDocs.first,
+               let counter = existing.value["_c"] as? Int64 {
+                updatedDoc["_c"] = counter + 1
             }
+            
+            let docID = try collection.upsert(updatedDoc)
+            return docID.description
             
         case .failure(let error):
             throw error
@@ -121,30 +115,53 @@ public class DittoCoT {
     // MARK: - Query Operations
     
     /// Find CoT events by type
-    public func findByType(_ type: String) -> [DittoSwift.DittoDocument] {
+    public func findByType(_ type: String) async throws -> [DittoSwift.DittoDocument] {
+        let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(collectionName) WHERE w == '\(type)' AND _r != true")
         let collection = ditto.store.collection(collectionName)
-        return collection.find("w == $0 && _r != true", args: ["w": type]).exec()
+        return queryResult.items.compactMap { item in
+            if let id = item.value["_id"] as? String {
+                return collection.findByID(DittoDocumentID(value: id)).exec()
+            }
+            return nil
+        }
     }
     
     /// Find CoT events by callsign
-    public func findByCallsign(_ callsign: String) -> [DittoSwift.DittoDocument] {
+    public func findByCallsign(_ callsign: String) async throws -> [DittoSwift.DittoDocument] {
+        let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(collectionName) WHERE e == '\(callsign)' AND _r != true")
         let collection = ditto.store.collection(collectionName)
-        return collection.find("e == $0 && _r != true", args: ["e": callsign]).exec()
+        return queryResult.items.compactMap { item in
+            if let id = item.value["_id"] as? String {
+                return collection.findByID(DittoDocumentID(value: id)).exec()
+            }
+            return nil
+        }
     }
     
     /// Find all active CoT events
-    public func findAll() -> [DittoSwift.DittoDocument] {
+    public func findAll() async throws -> [DittoSwift.DittoDocument] {
+        let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(collectionName) WHERE _r != true")
         let collection = ditto.store.collection(collectionName)
-        return collection.find("_r != true", args: [:]).exec()
+        return queryResult.items.compactMap { item in
+            if let id = item.value["_id"] as? String {
+                return collection.findByID(DittoDocumentID(value: id)).exec()
+            }
+            return nil
+        }
     }
     
     /// Find CoT events within a time range
-    public func findByTimeRange(from: Date, to: Date) -> [DittoSwift.DittoDocument] {
+    public func findByTimeRange(from: Date, to: Date) async throws -> [DittoSwift.DittoDocument] {
         let fromMillis = from.timeIntervalSince1970 * 1000
         let toMillis = to.timeIntervalSince1970 * 1000
         
+        let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(collectionName) WHERE b >= \(fromMillis) AND b <= \(toMillis) AND _r != true")
         let collection = ditto.store.collection(collectionName)
-        return collection.find("b >= $0 && b <= $1 && _r != true", 
-                                args: ["fromMillis": fromMillis, "toMillis": toMillis]).exec()
+        return queryResult.items.compactMap { item in
+            if let id = item.value["_id"] as? String {
+                return collection.findByID(DittoDocumentID(value: id)).exec()
+            }
+            return nil
+        }
     }
 }

@@ -18,7 +18,7 @@ public class CoTObservable: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let dittoCoT: DittoCoT
+    public let dittoCoT: DittoCoT
     private var cancellables = Set<AnyCancellable>()
     private var subscription: DittoSubscription?
     private var additionalSubscriptions: [DittoSubscription] = []
@@ -57,15 +57,10 @@ public class CoTObservable: ObservableObject {
     // MARK: - Initialization
     
     public init(dittoCoT: DittoCoT) {
-        print("🚀 CoTObservable: Initializing with dittoCoT")
         self.dittoCoT = dittoCoT
-        print("🚀 CoTObservable: Setting up live queries...")
         setupLiveQueries()
-        print("🚀 CoTObservable: Setting up presence observer...")
         setupPresenceObserver()
-        print("🚀 CoTObservable: Setting up connectivity monitoring...")
         setupConnectivityMonitoring()
-        print("🚀 CoTObservable: Initialization complete")
     }
     
     deinit {
@@ -75,27 +70,53 @@ public class CoTObservable: ObservableObject {
     // MARK: - Query Methods
     
     /// Refresh events by type
-    public func refreshByType(_ type: String) {
-        events = dittoCoT.findByType(type)
+    public func refreshByType(_ type: String) async {
+        do {
+            events = try await dittoCoT.findByType(type)
+        } catch {
+            await MainActor.run {
+                self.error = error
+            }
+        }
     }
     
     /// Refresh events by callsign
-    public func refreshByCallsign(_ callsign: String) {
-        events = dittoCoT.findByCallsign(callsign)
+    public func refreshByCallsign(_ callsign: String) async {
+        do {
+            events = try await dittoCoT.findByCallsign(callsign)
+        } catch {
+            await MainActor.run {
+                self.error = error
+            }
+        }
     }
     
     /// Refresh all active events
     public func refreshAll() {
-        let foundEvents = dittoCoT.findAll()
-        print("🔄 Manual refresh found \(foundEvents.count) events from main collection")
-        
-        // Don't overwrite - just trigger the live queries to refresh
-        // The live queries will handle updating the events array
+        Task {
+            do {
+                let foundEvents = try await dittoCoT.findAll()
+                print("🔄 Manual refresh found \(foundEvents.count) events from main collection")
+                
+                // Don't overwrite - just trigger the live queries to refresh
+                // The live queries will handle updating the events array
+            } catch {
+                await MainActor.run {
+                    self.error = error
+                }
+            }
+        }
     }
     
     /// Refresh events within a time range
-    public func refreshByTimeRange(from: Date, to: Date) {
-        events = dittoCoT.findByTimeRange(from: from, to: to)
+    public func refreshByTimeRange(from: Date, to: Date) async {
+        do {
+            events = try await dittoCoT.findByTimeRange(from: from, to: to)
+        } catch {
+            await MainActor.run {
+                self.error = error
+            }
+        }
     }
     
     // MARK: - Event Operations
@@ -171,12 +192,16 @@ extension CoTObservable {
         $events
             .map { docs in
                 docs.filter { doc in
-                    // Check for chat type OR chat document schema (msg + room fields)
+                    // Primary check: Simple ATAK chat documents with msg + room + e fields
+                    if doc.value["msg"] != nil && doc.value["room"] != nil && doc.value["e"] != nil {
+                        return true
+                    }
+                    // Secondary check: CoT chat type
                     if let type = doc.value["w"] as? String, type.hasPrefix("b-t-f") {
                         return true
                     }
-                    // Also check for chat document schema (documents with message/msg and room fields)
-                    if (doc.value["message"] != nil || doc.value["msg"] != nil) && doc.value["room"] != nil {
+                    // Tertiary check: Legacy documents with message field
+                    if doc.value["message"] != nil && doc.value["room"] != nil {
                         return true
                     }
                     return false
@@ -241,6 +266,7 @@ extension CoTObservable {
         print("📡 Primary subscription created - this will sync remote changes into local database")
         
         // Also subscribe to other common collection names that might be used by different clients
+        // Prioritize "chat" collection since that's where ATAK chat messages go
         let alternativeCollections = ["chat", "mapitem", "track", "api", "file"]
         print("📡 Creating additional subscriptions to alternative collections...")
         

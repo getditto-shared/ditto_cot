@@ -39,7 +39,7 @@ public class CoTDocumentConverter {
         // Extract common fields
         let uid = event.uid
         
-        // Time is now computed directly when needed using .microseconds extension
+        // Time is now computed directly when needed using .milliseconds extension
         let callsign = extractCallsign(from: event) ?? uid
         
         // Determine document type and convert
@@ -80,7 +80,7 @@ public class CoTDocumentConverter {
         let chatDoc = ChatDocument(
             _id: uid,
             a: peerKey,
-            b: event.time.timeIntervalSince1970.microseconds,
+            b: event.time.timeIntervalSince1970.milliseconds,
             d: uid,
             _c: 0,
             _r: false,
@@ -97,8 +97,8 @@ public class CoTDocumentConverter {
             l: event.point.lon,
             location: formatLocation(event.point),
             message: message,
-            n: event.start.timeIntervalSince1970.microseconds,
-            o: event.stale.timeIntervalSince1970.microseconds,
+            n: event.start.timeIntervalSince1970.milliseconds,
+            o: event.stale.timeIntervalSince1970.milliseconds,
             p: event.how,
             parent: roomId,
             q: event.access ?? defaultAccess,
@@ -125,7 +125,7 @@ public class CoTDocumentConverter {
         let mapDoc = MapItemDocument(
             _id: uid,
             a: peerKey,
-            b: event.time.timeIntervalSince1970.microseconds,
+            b: event.time.timeIntervalSince1970.milliseconds,
             d: uid,
             _c: 0,
             _r: false,
@@ -139,8 +139,8 @@ public class CoTDocumentConverter {
             j: event.point.lat,
             k: event.point.le,
             l: event.point.lon,
-            n: event.start.timeIntervalSince1970.microseconds,
-            o: event.stale.timeIntervalSince1970.microseconds,
+            n: event.start.timeIntervalSince1970.milliseconds,
+            o: event.stale.timeIntervalSince1970.milliseconds,
             p: event.how,
             q: event.access ?? defaultAccess,
             r: convertDetailToRField(event.detail),
@@ -163,7 +163,7 @@ public class CoTDocumentConverter {
         let genericDoc = GenericDocument(
             _id: uid,
             a: peerKey,
-            b: event.time.timeIntervalSince1970.microseconds,
+            b: event.time.timeIntervalSince1970.milliseconds,
             d: uid,
             _c: 0,
             _r: false,
@@ -175,8 +175,8 @@ public class CoTDocumentConverter {
             j: event.point.lat,
             k: event.point.le,
             l: event.point.lon,
-            n: event.start.timeIntervalSince1970.microseconds,
-            o: event.stale.timeIntervalSince1970.microseconds,
+            n: event.start.timeIntervalSince1970.milliseconds,
+            o: event.stale.timeIntervalSince1970.milliseconds,
             p: event.how,
             q: event.access ?? defaultAccess,
             r: convertDetailToRField(event.detail),
@@ -286,8 +286,8 @@ public enum ConversionError: Error, LocalizedError {
 // MARK: - Extensions
 
 private extension TimeInterval {
-    var microseconds: Double {
-        return self * 1_000_000
+    var milliseconds: Double {
+        return self * 1_000
     }
 }
 

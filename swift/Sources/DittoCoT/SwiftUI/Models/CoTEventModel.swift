@@ -212,45 +212,17 @@ extension ChatMessageModel {
             return nil
         }
         
-        // Try direct chat document conversion first (for documents like from "Liquid")
-        // Schema shows message field can be "message" OR "msg"
-        let message = document.value["message"] as? String ?? document.value["msg"] as? String
+        // Try direct chat document conversion (simple structure from ATAK/Liquid)
+        let message = document.value["msg"] as? String
         let room = document.value["room"] as? String
+        let from = document.value["e"] as? String
         
-        if let message = message, let room = room {
-            print("📱 Converting chat document \(uid) directly: \(message)")
-            print("📱 FULL CHAT DOCUMENT STRUCTURE:")
-            print("📱 Document ID: \(uid)")
-            print("📱 All fields: \(Array(document.value.keys).sorted())")
-            for (key, value) in document.value.sorted(by: { $0.key < $1.key }) {
-                print("📱   \(key): \(type(of: value)) = \(value)")
-            }
-            print("📱 END DOCUMENT STRUCTURE")
+        if let message = message, let room = room, let from = from {
+            print("💬 Converting simple chat document \(uid): '\(message)' from: \(from) in: \(room)")
             
-            let from = document.value["e"] as? String ?? "Unknown"
-            
-            // Use the 'time' field from chat document schema (ISO8601 string)
+            // Get timestamp from 'b' field (milliseconds)
             let timestamp: Date
-            if let timeString = document.value["time"] as? String {
-                let formatter = ISO8601DateFormatter()
-                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                
-                if let parsedDate = formatter.date(from: timeString) {
-                    timestamp = parsedDate
-                    print("📱 Chat \(uid) using 'time' field: \(timeString) -> \(timestamp)")
-                } else {
-                    // Try without fractional seconds
-                    formatter.formatOptions = [.withInternetDateTime]
-                    if let parsedDate = formatter.date(from: timeString) {
-                        timestamp = parsedDate
-                        print("📱 Chat \(uid) using 'time' field (no fractionals): \(timeString) -> \(timestamp)")
-                    } else {
-                        print("⚠️ Chat \(uid) couldn't parse 'time' field: \(timeString)")
-                        timestamp = Date()
-                    }
-                }
-            } else if let bValue = document.value["b"] {
-                // 'b' field could be Int64, Int, or Double - convert to milliseconds
+            if let bValue = document.value["b"] {
                 let bMillis: Double
                 if let intValue = bValue as? Int64 {
                     bMillis = Double(intValue)
@@ -264,46 +236,16 @@ extension ChatMessageModel {
                 }
                 
                 if bMillis > 0 {
-                    // 'b' field is in milliseconds based on actual documents
+                    // 'b' field is in milliseconds for ATAK chat documents
                     timestamp = Date(timeIntervalSince1970: bMillis / 1000.0)
-                    print("📱 Chat \(uid) using 'b' field: \(bMillis) ms -> \(timestamp)")
+                    print("💬 Chat \(uid) timestamp: \(bMillis) ms -> \(timestamp)")
                 } else {
                     timestamp = Date()
-                    print("📱 Chat \(uid) 'b' field is 0 or negative: \(bMillis)")
-                }
-            } else if let nValue = document.value["n"] {
-                // 'n' field could be Int64, Int, or Double
-                let nNumeric: Double
-                if let intValue = nValue as? Int64 {
-                    nNumeric = Double(intValue)
-                } else if let intValue = nValue as? Int {
-                    nNumeric = Double(intValue)
-                } else if let doubleValue = nValue as? Double {
-                    nNumeric = doubleValue
-                } else {
-                    print("⚠️ Chat \(uid) 'n' field has unexpected type: \(Swift.type(of: nValue))")
-                    nNumeric = 0
-                }
-                
-                if nNumeric > 0 {
-                    // Check magnitude to determine units
-                    if nNumeric > 1_000_000_000_000 { // Likely microseconds
-                        timestamp = Date(timeIntervalSince1970: nNumeric / 1_000_000.0)
-                        print("📱 Chat \(uid) using 'n' field as microseconds: \(nNumeric) -> \(timestamp)")
-                    } else { // Likely milliseconds
-                        timestamp = Date(timeIntervalSince1970: nNumeric / 1000.0)
-                        print("📱 Chat \(uid) using 'n' field as milliseconds: \(nNumeric) -> \(timestamp)")
-                    }
-                } else {
-                    timestamp = Date()
-                    print("📱 Chat \(uid) 'n' field is 0 or negative: \(nNumeric)")
+                    print("💬 Chat \(uid) using current time (b field was 0)")
                 }
             } else {
-                print("❌ Chat \(uid) has NO timestamp fields!")
-                print("   Available fields: \(Array(document.value.keys).sorted())")
-                print("   'b' field: \(String(describing: document.value["b"])) (type: \(Swift.type(of: document.value["b"])))")
-                print("   'n' field: \(String(describing: document.value["n"])) (type: \(Swift.type(of: document.value["n"])))")
                 timestamp = Date()
+                print("💬 Chat \(uid) using current time (no b field)")
             }
             
             self.init(
@@ -316,29 +258,54 @@ extension ChatMessageModel {
             return
         }
         
-        // Fallback: Try converting to CoT event first (for proper CoT documents)
+        // Fallback: Try legacy message/room field names
+        let legacyMessage = document.value["message"] as? String
+        let legacyRoom = document.value["room"] as? String
+        let legacyFrom = document.value["e"] as? String ?? "Unknown"
+        
+        if let legacyMessage = legacyMessage, let legacyRoom = legacyRoom {
+            print("💬 Converting legacy chat document \(uid): '\(legacyMessage)' from: \(legacyFrom) in: \(legacyRoom)")
+            
+            let timestamp: Date
+            if let bValue = document.value["b"] as? Double, bValue > 0 {
+                timestamp = Date(timeIntervalSince1970: bValue / 1000.0)
+            } else {
+                timestamp = Date()
+            }
+            
+            self.init(
+                id: uid,
+                from: legacyFrom,
+                message: legacyMessage,
+                room: legacyRoom,
+                timestamp: timestamp
+            )
+            return
+        }
+        
+        // Last resort: Try CoT event conversion
         guard let cotEvent = CoTEvent(from: document),
               cotEvent.type.hasPrefix("b-t-f") else {
-            print("❌ Failed to convert chat document \(uid): not a chat type")
+            print("❌ Failed to convert chat document \(uid): no valid chat fields found")
             return nil
         }
         
-        // Extract chat details from event
+        // Extract chat details from CoT event
         guard let detailDict = cotEvent.detail?.toDict(),
               let chatDict = detailDict["chat"] as? [String: Any],
-              let from = chatDict["from"] as? String,
-              let message = chatDict["msg"] as? String else {
-            print("❌ Failed to convert chat document \(uid): missing chat details")
+              let cotFrom = chatDict["from"] as? String,
+              let cotMessage = chatDict["msg"] as? String else {
+            print("❌ Failed to convert CoT chat document \(uid): missing chat details")
             return nil
         }
         
-        let roomName = chatDict["room"] as? String ?? "All Chat Rooms"
+        let cotRoom = chatDict["room"] as? String ?? "All Chat Rooms"
         
         self.init(
             id: cotEvent.uid,
-            from: from,
-            message: message,
-            room: roomName,
+            from: cotFrom,
+            message: cotMessage,
+            room: cotRoom,
             timestamp: cotEvent.time
         )
     }
@@ -387,17 +354,17 @@ extension LocationUpdateModel {
         }
         
         // Get timestamp - prefer 'n' field (start time), fallback to 'b'
-        let timestampMicros: Double
+        let timestampMillis: Double
         if let nValue = document.value["n"] as? Double, nValue > 0 {
-            timestampMicros = nValue
+            timestampMillis = nValue
         } else if let bValue = document.value["b"] as? Double, bValue > 0 {
-            timestampMicros = bValue
+            timestampMillis = bValue
         } else {
             return nil // Can't create location update without timestamp
         }
         
         let location = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        let timestamp = Date(timeIntervalSince1970: timestampMicros / 1_000_000.0) // Convert microseconds to seconds
+        let timestamp = Date(timeIntervalSince1970: timestampMillis / 1_000.0) // Convert milliseconds to seconds
         let altitude = document.value["i"] as? Double
         let accuracy = document.value["h"] as? Double
         
@@ -482,14 +449,14 @@ extension EmergencyEventModel {
               let callsign = document.value["e"] as? String,
               let lat = document.value["j"] as? Double,
               let lon = document.value["l"] as? Double,
-              let timestampMicros = document.value["b"] as? Double,
+              let timestampMillis = document.value["b"] as? Double,
               let type = document.value["w"] as? String,
               type.contains("emergency") || type.contains("911") else {
             return nil
         }
         
         let location = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        let timestamp = Date(timeIntervalSince1970: timestampMicros / 1_000_000.0) // Convert microseconds to seconds
+        let timestamp = Date(timeIntervalSince1970: timestampMillis / 1_000.0) // Convert milliseconds to seconds
         
         // Extract emergency type from r field
         var emergencyType = "general"

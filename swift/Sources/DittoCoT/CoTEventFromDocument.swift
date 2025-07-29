@@ -27,33 +27,33 @@ extension CoTEvent {
         let type = (document.value["w"] as? String)?.isEmpty == false 
             ? document.value["w"] as! String 
             : "a-f-G-U-C"  // Default to friendly unit type if missing
-        // Time field handling: 'n' field is the START timestamp in microseconds
-        let timestampMicros: Double
+        // Time field handling: 'n' field is the START timestamp in milliseconds
+        let timestampMillis: Double
         
         // Use 'n' field as the timestamp (start time)
         if let nValue = document.value["n"] as? Double, nValue > 0 {
-            timestampMicros = nValue
+            timestampMillis = nValue
             print("📍 Document \(uid) using start time 'n': \(nValue)")
         } else if let bValue = document.value["b"] {
             // 'b' field could be Int64, Int, or Double
             if let intValue = bValue as? Int64 {
-                timestampMicros = Double(intValue)
+                timestampMillis = Double(intValue)
             } else if let intValue = bValue as? Int {
-                timestampMicros = Double(intValue)
+                timestampMillis = Double(intValue)
             } else if let doubleValue = bValue as? Double {
-                timestampMicros = doubleValue
+                timestampMillis = doubleValue
             } else {
                 print("⚠️ Document \(uid) 'b' field has unexpected type: \(Swift.type(of: bValue))")
-                timestampMicros = 0
+                timestampMillis = 0
             }
-            print("⚠️ Document \(uid) missing 'n' field, using 'b': \(timestampMicros)")
+            print("⚠️ Document \(uid) missing 'n' field, using 'b': \(timestampMillis)")
         } else {
             print("❌ Document \(uid) has NO timestamp fields!")
             print("   Available fields: \(Array(document.value.keys).sorted())")
             print("   'b' field: \(String(describing: document.value["b"])) (type: \(Swift.type(of: document.value["b"])))")
             print("   'n' field: \(String(describing: document.value["n"])) (type: \(Swift.type(of: document.value["n"])))")
             // This should never happen - but don't use current time
-            timestampMicros = 0
+            timestampMillis = 0
         }
         // Stale time - use fallback chain: o -> c -> timestamp + 5 minutes
         let staleMillis: Double
@@ -62,7 +62,7 @@ extension CoTEvent {
         } else if let cValue = document.value["c"] as? Double, cValue > 0 {
             staleMillis = cValue
         } else {
-            staleMillis = (timestampMicros / 1000.0) + (5 * 60 * 1000) // Convert to millis then add 5 minutes
+            staleMillis = (timestampMillis / 1000.0) + (5 * 60 * 1000) // Convert to millis then add 5 minutes
         }
         // Location fields with defaults (schema shows they can be 0.0)
         let lat = document.value["j"] as? Double ?? 0.0
@@ -76,9 +76,9 @@ extension CoTEvent {
         let callsign = (callsignValue?.isEmpty == false) ? callsignValue! : uid
         
         let timestamp: Date
-        if timestampMicros > 0 {
-            timestamp = Date(timeIntervalSince1970: timestampMicros / 1_000_000.0) // Convert microseconds to seconds
-            print("🕐 Document \(uid) timestamp: \(timestamp) (from micros: \(timestampMicros))")
+        if timestampMillis > 0 {
+            timestamp = Date(timeIntervalSince1970: timestampMillis / 1_000.0) // Convert milliseconds to seconds
+            print("🕐 Document \(uid) timestamp: \(timestamp) (from micros: \(timestampMillis))")
         } else {
             // If we couldn't get a timestamp, fail the conversion
             print("❌ Cannot create event without valid timestamp for document \(uid)")
@@ -154,21 +154,21 @@ extension CoTEvent {
         let timestamp: Date
         if let nValue = document.value["n"] {
             // 'n' field could be Int64, Int, or Double
-            let nMicros: Double
+            let nMillis: Double
             if let intValue = nValue as? Int64 {
-                nMicros = Double(intValue)
+                nMillis = Double(intValue)
             } else if let intValue = nValue as? Int {
-                nMicros = Double(intValue)
+                nMillis = Double(intValue)
             } else if let doubleValue = nValue as? Double {
-                nMicros = doubleValue
+                nMillis = doubleValue
             } else {
                 print("⚠️ Chat \(uid) 'n' field has unexpected type: \(Swift.type(of: nValue))")
-                nMicros = 0
+                nMillis = 0
             }
             
-            if nMicros > 0 {
-                timestamp = Date(timeIntervalSince1970: nMicros / 1_000_000.0) // Convert microseconds to seconds
-                print("💬 Chat \(uid) using start time 'n': \(nMicros) micros -> \(timestamp)")
+            if nMillis > 0 {
+                timestamp = Date(timeIntervalSince1970: nMillis / 1_000.0) // Convert milliseconds to seconds
+                print("💬 Chat \(uid) using start time 'n': \(nMillis) micros -> \(timestamp)")
             } else {
                 timestamp = Date(timeIntervalSince1970: 0)
             }

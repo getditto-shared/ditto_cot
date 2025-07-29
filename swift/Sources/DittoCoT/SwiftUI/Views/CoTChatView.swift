@@ -9,7 +9,7 @@ public struct CoTChatView: View {
     @StateObject private var viewModel: CoTEventViewModel
     @State private var messageText = ""
     @State private var currentCallsign = "USER-1"
-    @State private var selectedRoom = "All Chat Rooms"
+    @State private var selectedRoom = "Ditto"
     @FocusState private var isMessageFieldFocused: Bool
     
     public init(observable: CoTObservable) {
