@@ -85,6 +85,8 @@ swift:
 		.build/debug/ditto-cot-codegen --schema-path ../schema --output-path Sources/DittoCoTCore/Generated; \
 		echo "Building Swift library..."; \
 		swift build; \
+		echo "Building macOS example app..."; \
+		./build_macos_app.sh; \
 	else \
 		echo "Swift Package.swift not found. Skipping."; \
 	fi
