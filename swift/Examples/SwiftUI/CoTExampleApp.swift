@@ -2,6 +2,7 @@ import SwiftUI
 import DittoSwift
 import DittoCoT
 import DittoCoTCore
+import CoreLocation
 #if os(macOS)
 import AppKit
 #endif
@@ -26,8 +27,16 @@ class AppEnvironment: ObservableObject {
     let ditto: Ditto
     let dittoCoT: DittoCoT
     let observable: CoTObservable
+    let trackObservable: TrackObservable
     let cotBinding: CoTBinding
     @Published var userCallsign: String = "USER-1"
+    @Published var isTracking: Bool = false
+    
+    // Track state
+    private var trackTimer: Timer?
+    private var currentTrackPosition = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+    private var currentSpeed: Double = 10.0 // knots
+    private var currentCourse: Double = 45.0 // degrees
     
     init() {
         // Load environment variables
@@ -86,6 +95,7 @@ class AppEnvironment: ObservableObject {
         // Initialize CoT integration
         self.dittoCoT = DittoCoT(ditto: ditto)
         self.observable = CoTObservable(dittoCoT: dittoCoT)
+        self.trackObservable = TrackObservable(ditto: ditto)
         self.cotBinding = CoTBinding(observable: observable)
         
         // Start Ditto sync
@@ -97,12 +107,105 @@ class AppEnvironment: ObservableObject {
             observable.startObserving()
             print("CoT event observation started")
             
+            // Start observing track events
+            trackObservable.startObserving()
+            print("Track observation started")
+            
             // Perform initial refresh
             observable.refreshAll()
+            trackObservable.refreshTracks()
             print("Initial data refresh completed")
         } catch {
             print("Failed to start Ditto sync: \(error)")
         }
+    }
+    
+    // MARK: - Tracking Methods
+    
+    func startTracking() {
+        guard !isTracking else { return }
+        
+        print("🎯 Starting track updates every 10 seconds...")
+        isTracking = true
+        
+        // Send initial track
+        sendTrackUpdate()
+        
+        // Schedule updates every 10 seconds
+        trackTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+            self.sendTrackUpdate()
+        }
+    }
+    
+    func stopTracking() {
+        print("🛑 Stopping track updates")
+        isTracking = false
+        trackTimer?.invalidate()
+        trackTimer = nil
+    }
+    
+    private func sendTrackUpdate() {
+        Task {
+            do {
+                // Simulate movement
+                updateTrackPosition()
+                
+                // Use consistent UID for this track
+                let trackUID = "usv-track-\(userCallsign)"
+                
+                print("📍 Sending track update for \(trackUID)")
+                print("   Position: \(currentTrackPosition.latitude), \(currentTrackPosition.longitude)")
+                print("   Speed: \(currentSpeed) knots, Course: \(currentCourse)°")
+                
+                let event = try CoTEventBuilder()
+                    .uid(trackUID)
+                    .type("a-f-S-X-M")  // Friendly surface vessel
+                    .how("m-g")
+                    .point(CoTPoint(
+                        lat: currentTrackPosition.latitude,
+                        lon: currentTrackPosition.longitude,
+                        hae: 0.0  // Sea level
+                    ))
+                    .detail(CoTDetail([
+                        "contact": ["callsign": "USV-\(userCallsign)"],
+                        "track": [
+                            "speed": currentSpeed,
+                            "course": currentCourse
+                        ]
+                    ]))
+                    .build()
+                
+                // This will update the existing document if it exists
+                _ = try await observable.insert(event)
+                print("✅ Track update sent successfully")
+            } catch {
+                print("❌ Failed to send track update: \(error)")
+            }
+        }
+    }
+    
+    private func updateTrackPosition() {
+        // Convert course to radians
+        let courseRadians = currentCourse * .pi / 180.0
+        
+        // Calculate distance traveled in 10 seconds (in nautical miles)
+        let distanceNM = (currentSpeed * 10.0) / 3600.0
+        
+        // Convert to degrees (approximately)
+        let latChange = (distanceNM / 60.0) * cos(courseRadians)
+        let lonChange = (distanceNM / 60.0) * sin(courseRadians) / cos(currentTrackPosition.latitude * .pi / 180.0)
+        
+        // Update position
+        currentTrackPosition.latitude += latChange
+        currentTrackPosition.longitude += lonChange
+        
+        // Add some variation to speed and course
+        currentSpeed += Double.random(in: -1...1)
+        currentSpeed = max(5, min(15, currentSpeed)) // Keep between 5-15 knots
+        
+        currentCourse += Double.random(in: -5...5)
+        if currentCourse < 0 { currentCourse += 360 }
+        if currentCourse >= 360 { currentCourse -= 360 }
     }
 }
 
@@ -140,13 +243,22 @@ struct ContentView: View {
                 .badge(cotBinding?.chatMessageCount ?? 0)
                 .tag(2)
             
+            // Tracks tab
+            CoTTrackView(trackObservable: appEnvironment.trackObservable)
+                .tabItem {
+                    Image(systemName: "location.circle")
+                    Text("Tracks")
+                }
+                .badge(appEnvironment.trackObservable.trackCount)
+                .tag(3)
+            
             // Dashboard tab
             DashboardView()
                 .tabItem {
                     Image(systemName: "chart.bar")
                     Text("Dashboard")
                 }
-                .tag(3)
+                .tag(4)
             
             // Debug/Presence tab
             PresenceDebugView(observable: appEnvironment.observable)
@@ -156,7 +268,7 @@ struct ContentView: View {
                     Text("Presence")
                 }
                 .badge(appEnvironment.observable.connectedPeers.count)
-                .tag(4)
+                .tag(5)
         }
         .overlay(alignment: .top) {
             // Emergency alert banner
@@ -215,6 +327,11 @@ struct DashboardView: View {
                     health: cotBinding?.connectionHealth ?? .unknown,
                     lastUpdate: cotBinding?.lastEventTime
                 )
+                
+                // Tracking status
+                if appEnvironment.isTracking {
+                    TrackingStatusCard()
+                }
                 
                 // Callsign input
                 CallsignCard(callsign: $appEnvironment.userCallsign)
@@ -327,6 +444,53 @@ struct ConnectionStatusCard: View {
         case .disconnected: return .red
         case .unknown: return .gray
         }
+    }
+}
+
+@available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
+struct TrackingStatusCard: View {
+    @EnvironmentObject private var appEnvironment: AppEnvironment
+    @State private var animationPhase = 0.0
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "dot.radiowaves.left.and.right")
+                .foregroundColor(.green)
+                .font(.title2)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Tracking Active")
+                    .font(.headline)
+                
+                Text("USV-\(appEnvironment.userCallsign)")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                
+                Text("Sending position every 10 seconds")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Button("Stop") {
+                appEnvironment.stopTracking()
+            }
+            .buttonStyle(.bordered)
+            .foregroundColor(.red)
+        }
+        .padding()
+        #if os(iOS)
+        .background(Color(.systemBackground))
+        #else
+        .background(Color(NSColor.windowBackgroundColor))
+        #endif
+        .cornerRadius(12)
+        .shadow(radius: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.green.opacity(0.5), lineWidth: 2)
+        )
     }
 }
 
@@ -454,6 +618,24 @@ struct QuickActionsCard: View {
                 }
                 .buttonStyle(.borderedProminent)
                 
+                // Tracking toggle
+                HStack {
+                    Button(appEnvironment.isTracking ? "Stop Tracking" : "Start USV Tracking") {
+                        if appEnvironment.isTracking {
+                            appEnvironment.stopTracking()
+                        } else {
+                            appEnvironment.startTracking()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(appEnvironment.isTracking ? .red : .blue)
+                    
+                    if appEnvironment.isTracking {
+                        Image(systemName: "dot.radiowaves.left.and.right")
+                            .foregroundColor(.green)
+                    }
+                }
+                
                 Button("Send Test Chat Message") {
                     sendTestChatMessage()
                 }
@@ -462,6 +644,7 @@ struct QuickActionsCard: View {
                 Button("Refresh All Events") {
                     print("🔄 REFRESH BUTTON CLICKED!")
                     appEnvironment.observable.refreshAll()
+                    appEnvironment.trackObservable.refreshTracks()
                 }
                 .buttonStyle(.bordered)
             }

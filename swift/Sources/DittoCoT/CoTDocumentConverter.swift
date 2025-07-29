@@ -225,6 +225,7 @@ public class CoTDocumentConverter {
         return mapItemPrefixes.contains { type.hasPrefix($0) }
     }
     
+    
     private func formatLocation(_ point: CoTPoint) -> String {
         return "\(point.lat),\(point.lon)"
     }

@@ -34,8 +34,12 @@ public class DittoCoT {
         
         switch conversionResult {
         case .success(let document):
-            let collection = ditto.store.collection(collectionName)
+            // Determine collection based on document type and content
+            let targetCollection = determineCollection(for: event, document: document)
+            let collection = ditto.store.collection(targetCollection)
             let dittoDoc = document.toDittoDocument()
+            
+            print("📤 Inserting document to '\(targetCollection)' collection")
             
             return try await withCheckedThrowingContinuation { continuation in
                 do {
@@ -49,6 +53,68 @@ public class DittoCoT {
         case .failure(let error):
             throw error
         }
+    }
+    
+    /// Determine the appropriate collection for a CoT event
+    private func determineCollection(for event: CoTEvent, document: DittoDocumentProtocol) -> String {
+        // Chat messages go to "chat" collection
+        if event.type.hasPrefix("b-t-f") {
+            return "chat"
+        }
+        
+        // Check if this is a track (following Java implementation logic)
+        if isTrackEvent(event) {
+            return "track"
+        }
+        
+        // Map items go to "mapitem" collection
+        if isMapItemEvent(event) {
+            return "mapitem"
+        }
+        
+        // Default to the configured collection name (usually "cot_events")
+        return collectionName
+    }
+    
+    /// Check if event should be treated as a track
+    private func isTrackEvent(_ event: CoTEvent) -> Bool {
+        // Check if document contains track data in detail
+        if let detail = event.detail,
+           let _ = detail.getValue(at: "track") {
+            return true
+        }
+        
+        // Check if the CoT type indicates this is a moving entity (track/PLI)
+        let type = event.type
+        
+        // Track type patterns (following Java implementation)
+        let trackPatterns = [
+            "a-f-S",      // Friendly surface units (like USVs)
+            "a-f-A",      // Friendly air units
+            "a-f-G",      // Friendly ground units
+            "a-h-S",      // Hostile surface units
+            "a-h-A",      // Hostile air units  
+            "a-h-G",      // Hostile ground units
+            "a-n-S",      // Neutral surface units
+            "a-n-A",      // Neutral air units
+            "a-n-G",      // Neutral ground units
+            "a-u-S",      // Unknown surface units
+            "a-u-A",      // Unknown air units
+            "a-u-G",      // Unknown ground units
+            "a-u-r-loc"   // Location reports
+        ]
+        
+        return trackPatterns.contains { type.contains($0) }
+    }
+    
+    /// Check if event is a map item
+    private func isMapItemEvent(_ event: CoTEvent) -> Bool {
+        // Check if this is a map item event based on type
+        let type = event.type
+        
+        // Common map item prefixes
+        let mapItemPrefixes = ["a-", "a-f", "a-h", "a-n", "a-u"]
+        return mapItemPrefixes.contains { type.hasPrefix($0) }
     }
     
     /// Insert multiple CoT events into Ditto
@@ -71,11 +137,13 @@ public class DittoCoT {
         
         switch conversionResult {
         case .success(let document):
-            let collection = ditto.store.collection(collectionName)
+            // Determine collection based on document type and content
+            let targetCollection = determineCollection(for: event, document: document)
+            let collection = ditto.store.collection(targetCollection)
             let dittoDoc = document.toDittoDocument()
             
             // Update document counter for existing documents using DQL
-            let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(collectionName) WHERE _id == '\(uid)'")
+            let queryResult = try await ditto.store.execute(query: "SELECT * FROM \(targetCollection) WHERE _id == '\(uid)'")
             let existingDocs = queryResult.items
             
             var updatedDoc = dittoDoc
