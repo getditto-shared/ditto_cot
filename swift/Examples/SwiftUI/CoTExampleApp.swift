@@ -23,7 +23,7 @@ struct CoTExampleApp: App {
 }
 
 @available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
-class AppEnvironment: ObservableObject {
+class AppEnvironment: NSObject, ObservableObject {
     let ditto: Ditto
     let dittoCoT: DittoCoT
     let observable: CoTObservable
@@ -38,11 +38,17 @@ class AppEnvironment: ObservableObject {
     private var currentSpeed: Double = 10.0 // knots
     private var currentCourse: Double = 45.0 // degrees
     
-    init() {
+    // Location manager for getting actual device location
+    private let locationManager = CLLocationManager()
+    @Published var currentLocation: CLLocation?
+    @Published var locationAuthorizationStatus: CLAuthorizationStatus = .notDetermined
+    
+    override init() {
         // Load environment variables
         let environment = EnvironmentLoader.loadEnvironment()
         
         // Initialize Ditto with SharedKey identity using environment variables
+        let ditto: Ditto
         do {
             let appId = try EnvironmentLoader.requireEnvironmentVariable("DITTO_APP_ID", from: environment)
             let sharedKey = try EnvironmentLoader.requireEnvironmentVariable("DITTO_SHARED_KEY", from: environment)
@@ -53,7 +59,6 @@ class AppEnvironment: ObservableObject {
             let timestamp = Int(Date().timeIntervalSince1970)
             let exampleAppPersistenceDir = documentsPath.appendingPathComponent("DittoCoTExample_\(timestamp)")
             
-            let ditto: Ditto
             do {
                 print("🔧 Initializing Ditto with App ID: \(appId)")
                 print("🔧 Using persistence directory: \(exampleAppPersistenceDir.path)")
@@ -78,7 +83,6 @@ class AppEnvironment: ObservableObject {
                 throw error
             }
             
-            self.ditto = ditto
             print("Ditto initialized with App ID: \(appId)")
             print("Ditto activated with license token")
         } catch {
@@ -92,11 +96,15 @@ class AppEnvironment: ObservableObject {
             fatalError("Ditto credentials required. Please configure .env file.")
         }
         
+        self.ditto = ditto
+        
         // Initialize CoT integration
         self.dittoCoT = DittoCoT(ditto: ditto)
         self.observable = CoTObservable(dittoCoT: dittoCoT)
         self.trackObservable = TrackObservable(ditto: ditto)
         self.cotBinding = CoTBinding(observable: observable)
+        
+        super.init()
         
         // Start Ditto sync
         do {
@@ -115,6 +123,11 @@ class AppEnvironment: ObservableObject {
             observable.refreshAll()
             trackObservable.refreshTracks()
             print("Initial data refresh completed")
+            
+            // Setup location manager
+            setupLocationManager()
+            
+            // Don't send debug track automatically - wait for user to interact with map or start tracking
         } catch {
             print("Failed to start Ditto sync: \(error)")
         }
@@ -125,7 +138,28 @@ class AppEnvironment: ObservableObject {
     func startTracking() {
         guard !isTracking else { return }
         
-        print("🎯 Starting track updates every 10 seconds...")
+        // Check if we have location permission and actual location data
+        #if os(macOS)
+        guard locationAuthorizationStatus == .authorizedAlways else {
+            print("⚠️ Cannot start tracking - location permission not granted")
+            print("⚠️ Please allow location access first by visiting the Map tab")
+            return
+        }
+        #else
+        guard locationAuthorizationStatus == .authorizedWhenInUse || locationAuthorizationStatus == .authorizedAlways else {
+            print("⚠️ Cannot start tracking - location permission not granted")
+            print("⚠️ Please allow location access first by visiting the Map tab")
+            return
+        }
+        #endif
+        
+        guard currentLocation != nil else {
+            print("⚠️ Cannot start tracking - no current location available")
+            print("⚠️ Please allow location access and wait for GPS fix by visiting the Map tab")
+            return
+        }
+        
+        print("🎯 Starting track updates every 10 seconds with actual device location...")
         isTracking = true
         
         // Send initial track
@@ -147,14 +181,21 @@ class AppEnvironment: ObservableObject {
     private func sendTrackUpdate() {
         Task {
             do {
-                // Simulate movement
-                updateTrackPosition()
+                // Only use actual device location - no fallback to simulated
+                guard let currentLoc = currentLocation else {
+                    print("⚠️ No current location available - skipping track update")
+                    print("⚠️ Please ensure location services are enabled and GPS has a fix")
+                    return
+                }
+                
+                let trackPosition = currentLoc.coordinate
+                print("📍 Using actual device location: \(trackPosition.latitude), \(trackPosition.longitude)")
                 
                 // Use consistent UID for this track
                 let trackUID = "usv-track-\(userCallsign)"
                 
                 print("📍 Sending track update for \(trackUID)")
-                print("   Position: \(currentTrackPosition.latitude), \(currentTrackPosition.longitude)")
+                print("   Position: \(trackPosition.latitude), \(trackPosition.longitude)")
                 print("   Speed: \(currentSpeed) knots, Course: \(currentCourse)°")
                 
                 let event = try CoTEventBuilder()
@@ -162,9 +203,9 @@ class AppEnvironment: ObservableObject {
                     .type("a-f-S-X-M")  // Friendly surface vessel
                     .how("m-g")
                     .point(CoTPoint(
-                        lat: currentTrackPosition.latitude,
-                        lon: currentTrackPosition.longitude,
-                        hae: 0.0  // Sea level
+                        lat: trackPosition.latitude,
+                        lon: trackPosition.longitude,
+                        hae: currentLocation?.altitude ?? 0.0
                     ))
                     .detail(CoTDetail([
                         "contact": ["callsign": "USV-\(userCallsign)"],
@@ -207,6 +248,93 @@ class AppEnvironment: ObservableObject {
         if currentCourse < 0 { currentCourse += 360 }
         if currentCourse >= 360 { currentCourse -= 360 }
     }
+    
+    // Setup location manager to get device location
+    private func setupLocationManager() {
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        
+        // Initialize authorization status
+        locationAuthorizationStatus = locationManager.authorizationStatus
+        
+        // Request location permissions  
+        switch locationAuthorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationManager.startUpdatingLocation()
+        default:
+            print("⚠️ Location access not authorized - using simulated location")
+        }
+    }
+    
+    // Debug method to send test track on startup
+    private func sendDebugTrackOnStartup() {
+        print("🚀 SENDING DEBUG TRACK ON STARTUP")
+        Task {
+            do {
+                let event = try CoTEventBuilder()
+                    .uid("debug-startup-track")
+                    .type("a-f-S-X-M")  // Surface vessel
+                    .how("m-g")
+                    .point(CoTPoint(
+                        lat: 37.7749,
+                        lon: -122.4194,
+                        hae: 0.0
+                    ))
+                    .detail(CoTDetail([
+                        "contact": ["callsign": "DEBUG-TRACK"]
+                    ]))
+                    .build()
+                
+                print("🚀 Inserting debug track event: \(event.uid)")
+                _ = try await observable.insert(event)
+                print("🚀 Debug track sent successfully!")
+            } catch {
+                print("❌ Failed to send debug track: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - CLLocationManagerDelegate
+@available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
+extension AppEnvironment: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.last {
+            DispatchQueue.main.async {
+                self.currentLocation = location
+                print("📍 Updated device location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                
+                // Update current track position for first time setup
+                if self.currentTrackPosition.latitude == 37.7749 && self.currentTrackPosition.longitude == -122.4194 {
+                    self.currentTrackPosition = location.coordinate
+                    print("📍 Set initial track position to device location")
+                }
+            }
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        DispatchQueue.main.async {
+            self.locationAuthorizationStatus = status
+            switch status {
+            case .authorizedWhenInUse, .authorizedAlways:
+                self.locationManager.startUpdatingLocation()
+                print("📍 Location access authorized - starting location updates")
+            case .denied, .restricted:
+                print("⚠️ Location access denied - will use simulated location")
+            case .notDetermined:
+                print("📍 Location authorization not determined")
+            @unknown default:
+                print("📍 Unknown location authorization status")
+            }
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("❌ Location manager error: \(error)")
+    }
 }
 
 @available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
@@ -227,7 +355,7 @@ struct ContentView: View {
                 .tag(0)
             
             // Map tab
-            CoTMapView(observable: appEnvironment.observable)
+            CoTMapView(observable: appEnvironment.observable, trackObservable: appEnvironment.trackObservable)
                 .tabItem {
                     Image(systemName: "map")
                     Text("Map")
@@ -618,21 +746,43 @@ struct QuickActionsCard: View {
                 }
                 .buttonStyle(.borderedProminent)
                 
-                // Tracking toggle
-                HStack {
-                    Button(appEnvironment.isTracking ? "Stop Tracking" : "Start USV Tracking") {
+                // Tracking toggle with location status
+                VStack(spacing: 4) {
+                    HStack {
+                        Button(appEnvironment.isTracking ? "Stop Tracking" : "Start USV Tracking") {
+                            if appEnvironment.isTracking {
+                                appEnvironment.stopTracking()
+                            } else {
+                                appEnvironment.startTracking()
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .foregroundColor(appEnvironment.isTracking ? .red : .blue)
+                        
                         if appEnvironment.isTracking {
-                            appEnvironment.stopTracking()
-                        } else {
-                            appEnvironment.startTracking()
+                            Image(systemName: "dot.radiowaves.left.and.right")
+                                .foregroundColor(.green)
                         }
                     }
-                    .buttonStyle(.bordered)
-                    .foregroundColor(appEnvironment.isTracking ? .red : .blue)
                     
-                    if appEnvironment.isTracking {
-                        Image(systemName: "dot.radiowaves.left.and.right")
-                            .foregroundColor(.green)
+                    // Show location status
+                    if !appEnvironment.isTracking {
+                        #if os(macOS)
+                        let hasPermission = appEnvironment.locationAuthorizationStatus == .authorizedAlways
+                        #else
+                        let hasPermission = appEnvironment.locationAuthorizationStatus == .authorizedWhenInUse || appEnvironment.locationAuthorizationStatus == .authorizedAlways
+                        #endif
+                        let hasLocation = appEnvironment.currentLocation != nil
+                        
+                        if !hasPermission || !hasLocation {
+                            Text(!hasPermission ? "Visit Map tab to enable location" : "Waiting for GPS fix...")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        } else {
+                            Text("Ready to track")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
                     }
                 }
                 
@@ -665,14 +815,24 @@ struct QuickActionsCard: View {
         Task {
             do {
                 print("📍 Building test location event...")
+                
+                // Use actual location if available, otherwise use SF coordinates
+                let (lat, lon): (Double, Double)
+                if let currentLoc = appEnvironment.currentLocation {
+                    lat = currentLoc.coordinate.latitude + Double.random(in: -0.001...0.001) // Small random offset
+                    lon = currentLoc.coordinate.longitude + Double.random(in: -0.001...0.001)
+                    print("📍 Using actual device location with small offset")
+                } else {
+                    lat = 37.7749 + Double.random(in: -0.01...0.01)
+                    lon = -122.4194 + Double.random(in: -0.01...0.01)
+                    print("📍 Using SF coordinates - no device location available")
+                }
+                
                 let event = try CoTEventBuilder()
                     .uid("test-\(UUID().uuidString)")
                     .type("a-f-G-U-C")
                     .how("m-g")
-                    .point(CoTPoint(
-                        lat: 37.7749 + Double.random(in: -0.01...0.01),
-                        lon: -122.4194 + Double.random(in: -0.01...0.01)
-                    ))
+                    .point(CoTPoint(lat: lat, lon: lon))
                     .detail(CoTDetail([
                         "contact": ["callsign": appEnvironment.userCallsign]
                     ]))

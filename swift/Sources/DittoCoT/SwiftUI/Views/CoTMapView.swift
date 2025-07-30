@@ -6,6 +6,7 @@ import CoreLocation
 @available(iOS 15.0, macOS 12.0, watchOS 8.0, tvOS 15.0, *)
 public struct CoTMapView: View {
     @StateObject private var viewModel: CoTEventViewModel
+    @ObservedObject private var trackObservable: TrackObservable
     @StateObject private var locationManager = LocationManager()
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), // Default to SF
@@ -15,14 +16,102 @@ public struct CoTMapView: View {
     @State private var showingLocationSheet = false
     @State private var isFullScreen = false // Start normal, allow full screen toggle
     
+    public init(observable: CoTObservable, trackObservable: TrackObservable) {
+        self._viewModel = StateObject(wrappedValue: CoTEventViewModel(observable: observable))
+        self.trackObservable = trackObservable
+    }
+    
+    // Legacy init for backward compatibility
     public init(observable: CoTObservable) {
         self._viewModel = StateObject(wrappedValue: CoTEventViewModel(observable: observable))
+        // Create a dummy track observable - not ideal but maintains compatibility
+        let trackObs = TrackObservable(ditto: observable.dittoCoT.ditto)
+        trackObs.startObserving()
+        self.trackObservable = trackObs
+    }
+    
+    // Combine filtered events and track events
+    private var allMapEvents: [CoTEventModel] {
+        // Get list of track UIDs to filter out from regular events
+        let trackUIDs = Set(trackObservable.activeTracks.compactMap { $0.value["_id"] as? String })
+        
+        // Filter out any events that are also in the track collection to avoid duplicates
+        let nonTrackEvents = viewModel.filteredEvents.filter { event in
+            return !trackUIDs.contains(event.uid)
+        }
+        var combined = nonTrackEvents
+        
+        print("🗺️ CoTMapView: Building map events - Regular events: \(viewModel.filteredEvents.count) -> Non-track: \(combined.count), Track UIDs to exclude: \(trackUIDs), Raw tracks: \(trackObservable.trackEvents.count), Active tracks: \(trackObservable.activeTracks.count)")
+        
+        // Convert track documents to CoTEventModel for map display
+        let trackEvents = trackObservable.activeTracks.compactMap { trackDoc -> CoTEventModel? in
+            guard let uid = trackDoc.value["_id"] as? String,
+                  let callsign = trackDoc.value["e"] as? String,
+                  let type = trackDoc.value["w"] as? String else { 
+                print("❌ CoTMapView: Failed to extract basic fields from track document")
+                return nil 
+            }
+            
+            // Get location
+            let lat = trackDoc.value["j"] as? Double ?? 0.0
+            let lon = trackDoc.value["l"] as? Double ?? 0.0
+            let location = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            
+            print("🗺️ CoTMapView: Converting track to map event - UID: \(uid), Callsign: \(callsign), Location: (\(lat), \(lon))")
+            
+            // Get timestamp from 'b' field (milliseconds)
+            let timestamp: Date
+            if let bValue = trackDoc.value["b"] as? Double {
+                timestamp = Date(timeIntervalSince1970: bValue / 1000.0)
+            } else {
+                timestamp = Date()
+            }
+            
+            // Calculate proper stale time for tracks - check if 'n' field exists (stale time), otherwise default to 5 minutes from timestamp
+            let staleTime: Date
+            if let nValue = trackDoc.value["n"] as? Double {
+                staleTime = Date(timeIntervalSince1970: nValue / 1000.0)
+            } else {
+                // Default to 5 minutes from the track timestamp (not current time)
+                staleTime = timestamp.addingTimeInterval(300)
+            }
+            
+            let model = CoTEventModel(
+                uid: uid,
+                type: type,
+                callsign: callsign,
+                timestamp: timestamp,
+                location: location,
+                altitude: trackDoc.value["i"] as? Double,
+                accuracy: trackDoc.value["h"] as? Double,
+                staleTime: staleTime,
+                how: trackDoc.value["p"] as? String ?? "m-g",
+                remarks: "Track: \(callsign)",
+                rawDocumentData: trackDoc.value as [String: Any]
+            )
+            
+            print("✅ CoTMapView: Created track event model for map")
+            return model
+        }
+        
+        combined.append(contentsOf: trackEvents)
+        
+        // Check for duplicates and log all UIDs
+        let allUIDs = combined.map { $0.uid }
+        let uniqueUIDs = Set(allUIDs)
+        print("🗺️ CoTMapView: Final map events count: \(combined.count) (Regular: \(viewModel.filteredEvents.count), Tracks: \(trackEvents.count))")
+        print("🗺️ CoTMapView: All UIDs: \(allUIDs)")
+        if allUIDs.count != uniqueUIDs.count {
+            print("⚠️ CoTMapView: DUPLICATE UIDs detected! Unique: \(uniqueUIDs.count), Total: \(allUIDs.count)")
+        }
+        
+        return combined
     }
     
     public var body: some View {
         ZStack {
             // Map - full screen
-            Map(coordinateRegion: $region, annotationItems: viewModel.filteredEvents) { event in
+            Map(coordinateRegion: $region, annotationItems: allMapEvents) { event in
                 MapAnnotation(coordinate: event.location) {
                     EventAnnotation(event: event) {
                         selectedEvent = event
